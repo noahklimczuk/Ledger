@@ -2,8 +2,8 @@ import Foundation
 import Security
 
 /// Thin wrapper around the Keychain Services API. Used for anything secret that must
-/// survive app restarts without ever touching UserDefaults or plaintext files: SnapTrade
-/// API credentials, the per-user SnapTrade userSecret, etc.
+/// survive app restarts without ever touching UserDefaults or plaintext files: Plaid
+/// API credentials, the per-Item access token, etc.
 enum KeychainService {
     enum KeychainError: Error {
         case unexpectedStatus(OSStatus)

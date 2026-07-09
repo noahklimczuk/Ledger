@@ -1,9 +1,9 @@
 import Foundation
 
-/// Minimal hand-rolled REST client for the Plaid API (no third-party SDK dependency, to match
-/// the SnapTrade client's approach and keep the project buildable without package resolution).
+/// Minimal hand-rolled REST client for the Plaid API (no third-party SDK dependency, to keep the
+/// project buildable without package resolution).
 ///
-/// Plaid auth is simpler than SnapTrade's: there is no request signing. `client_id` and `secret`
+/// Plaid auth needs no request signing: `client_id` and `secret`
 /// are sent in the JSON body of every request, over HTTPS, to the environment-specific host
 /// (`sandbox`/`development`/`production`). See https://plaid.com/docs/api.
 struct PlaidAPIClient: Sendable {

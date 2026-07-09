@@ -9,7 +9,7 @@ Phase 1 (done): multi-account tracking, manual transaction entry with splits, cu
 monthly budgets with rollover, a dashboard (balances, safe-to-spend, budget progress, recent
 transactions), and Face ID lock on launch. Wealthsimple bank-account linking via Plaid is included
 (pulled forward from the original later-phase plan), behind the swappable `TransactionSource`
-protocol. A SnapTrade adapter also lives behind the same seam for Wealthsimple investment accounts.
+protocol.
 
 Phase 2 (done): CSV and OFX/QFX file import (More → Import CSV / OFX). Pick a file, choose the
 target account, map columns (CSV only — OFX carries structured fields), preview which rows are new
@@ -63,10 +63,9 @@ savings — through [Plaid](https://plaid.com), a licensed account aggregator th
 Wealthsimple's depository products in Canada. Your Wealthsimple credentials are entered on Plaid's
 own hosted login page and never touch this app.
 
-> **Why not SnapTrade?** SnapTrade is a *brokerage* aggregator — it can only see Wealthsimple's
-> trading/investment accounts, never Wealthsimple Cash. The SnapTrade adapter is still in the
-> project (behind the same `TransactionSource` seam) for the investment-account use case, but the
-> Connect Wealthsimple screen now uses Plaid so it can pull in bank accounts and their
+> **Why Plaid?** A *brokerage* aggregator (e.g. SnapTrade) can only see Wealthsimple's
+> trading/investment accounts, never Wealthsimple Cash. Plaid covers Wealthsimple's depository
+> products, so the Connect Wealthsimple screen uses it to pull in bank accounts and their
 > transactions.
 
 Setup:
@@ -100,10 +99,11 @@ only — never in UserDefaults, Info.plist, or source control.
 - **Models/** — SwiftData `@Model` types (source of truth, fully offline).
 - **ViewModels/** — `@MainActor @Observable` classes, one per screen; own `ModelContext` reads/writes.
 - **Views/** — SwiftUI, grouped by feature (Dashboard, Accounts, Transactions, Budgets, Categories, Integrations, Shared).
-- **Services/** — `TransactionImport/` (the `TransactionSource` protocol + Plaid and SnapTrade
-  adapters), `Security/` (Keychain, Face ID), `Formatting/` (CAD currency, en_CA dates).
+- **Services/** — `TransactionImport/` (the `TransactionSource` protocol + Plaid adapter),
+  `Security/` (Keychain, Face ID), `Formatting/` (CAD currency, en_CA dates).
 - **Utilities/** — small stateless helpers (safe-to-spend math, hex color).
 
 `TransactionSource` is the seam for swapping data sources: manual entry writes to SwiftData
-directly (no source needed), SnapTrade is a real implementation, and CSV import or a self-hosted
-proxy can be added later as additional conformances without touching call sites.
+directly (no source needed), Plaid and CSV/OFX import are real implementations, and another
+source (e.g. a self-hosted proxy) can be added later as an additional conformance without
+touching call sites.

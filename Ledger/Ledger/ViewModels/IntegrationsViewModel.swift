@@ -4,9 +4,7 @@ import SwiftData
 
 /// Drives the "Connect Wealthsimple" screen using **Plaid** (a bank-account aggregator), so the
 /// accounts pulled in are Wealthsimple *Cash*/chequing/savings -- the bank side -- rather than
-/// brokerage/trading accounts. SnapTrade (`SnapTradeTransactionSource`) remains in the project
-/// behind the same `TransactionSource` seam for the investment-account use case, but the primary
-/// connect flow here targets bank accounts.
+/// brokerage/trading accounts. Plaid slots in behind the shared `TransactionSource` seam.
 @MainActor
 @Observable
 final class IntegrationsViewModel {

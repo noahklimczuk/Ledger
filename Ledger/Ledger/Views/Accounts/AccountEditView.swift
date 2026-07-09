@@ -15,11 +15,7 @@ struct AccountEditView: View {
     private var isEditing: Bool { account != nil }
 
     private var linkedSourceLabel: String {
-        switch account?.externalSourceId {
-        case "plaid": "Linked to Wealthsimple via Plaid"
-        case "snapTrade": "Linked to Wealthsimple via SnapTrade"
-        default: "Linked to Wealthsimple"
-        }
+        account?.externalSourceId == "plaid" ? "Linked to Wealthsimple via Plaid" : "Linked to Wealthsimple"
     }
 
     var body: some View {

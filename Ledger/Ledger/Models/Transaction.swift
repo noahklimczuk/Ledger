@@ -3,7 +3,6 @@ import SwiftData
 
 enum TransactionSourceKind: String, Codable {
     case manual
-    case snapTrade
     case plaid
     case csv
     case ofx
@@ -20,7 +19,7 @@ final class Transaction {
     var createdAt: Date
 
     var sourceKind: TransactionSourceKind
-    /// Stable id from the external source (e.g. SnapTrade activity id), used to dedupe re-imports. Nil for manual entries.
+    /// Stable id from the external source (e.g. Plaid transaction id), used to dedupe re-imports. Nil for manual entries.
     var externalId: String?
     var receiptImageData: Data?
 

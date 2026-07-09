@@ -5,8 +5,7 @@ import Foundation
 /// `access_token` exists in `PlaidCredentialStore`.
 ///
 /// This is the bank/cash-account path: Plaid links Wealthsimple's *depository* products
-/// (Wealthsimple Cash, savings) plus any other Canadian bank the user connects -- unlike the
-/// SnapTrade adapter, which only surfaces brokerage/investment accounts.
+/// (Wealthsimple Cash, savings) plus any other Canadian bank the user connects.
 struct PlaidTransactionSource: TransactionSource {
     let sourceIdentifier = "plaid"
 
