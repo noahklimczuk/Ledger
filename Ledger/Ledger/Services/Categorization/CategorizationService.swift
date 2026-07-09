@@ -43,6 +43,21 @@ final class CategorizationService {
         return true
     }
 
+    /// Applies the learned/built-in rules to every currently uncategorized, non-split transaction.
+    /// Called on launch and after a sync/import so that as rules grow (or defaults are seeded),
+    /// previously-unmatched transactions get filled in. Returns the number newly categorized.
+    @discardableResult
+    func categorizeAllUncategorized() -> Int {
+        let descriptor = FetchDescriptor<Transaction>()
+        let transactions = (try? modelContext.fetch(descriptor)) ?? []
+        var count = 0
+        for transaction in transactions where transaction.category == nil && transaction.splits.isEmpty {
+            if applyRule(to: transaction) { count += 1 }
+        }
+        if count > 0 { try? modelContext.save() }
+        return count
+    }
+
     // MARK: - Matching
 
     /// The most specific rule whose keyword is contained in the (normalized) merchant. Longest

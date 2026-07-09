@@ -17,7 +17,12 @@ struct RecurringView: View {
                 } else {
                     List {
                         forecastSection(viewModel)
-                        activeSection(viewModel)
+                        if !viewModel.incomeSeries.isEmpty {
+                            seriesSection(viewModel, title: "Income", series: viewModel.incomeSeries)
+                        }
+                        if !viewModel.expenseSeries.isEmpty {
+                            seriesSection(viewModel, title: "Bills & Subscriptions", series: viewModel.expenseSeries)
+                        }
                         if !viewModel.ignoredSeries.isEmpty {
                             ignoredSection(viewModel)
                         }
@@ -62,18 +67,23 @@ struct RecurringView: View {
             } header: {
                 Text("Upcoming (next 60 days)")
             } footer: {
-                Text("Projected outflow in the next 30 days: \(CurrencyFormatter.string(from: viewModel.next30DaysOutflow))")
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Projected outflow (next 30 days): \(CurrencyFormatter.string(from: viewModel.next30DaysOutflow))")
+                    if viewModel.next30DaysIncome > 0 {
+                        Text("Projected income (next 30 days): \(CurrencyFormatter.string(from: viewModel.next30DaysIncome))")
+                    }
+                }
             }
         }
     }
 
-    private func activeSection(_ viewModel: RecurringViewModel) -> some View {
-        Section("Detected") {
-            ForEach(viewModel.activeSeries) { series in
-                RecurringRow(series: series)
+    private func seriesSection(_ viewModel: RecurringViewModel, title: String, series: [RecurringSeries]) -> some View {
+        Section(title) {
+            ForEach(series) { item in
+                RecurringRow(series: item)
                     .swipeActions {
                         Button {
-                            viewModel.setIgnored(series, ignored: true)
+                            viewModel.setIgnored(item, ignored: true)
                         } label: {
                             Label("Ignore", systemImage: "bell.slash")
                         }

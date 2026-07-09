@@ -50,6 +50,11 @@ private struct MoreView: View {
                         Label("Savings Goals", systemImage: "target")
                     }
                     NavigationLink {
+                        DebtListView()
+                    } label: {
+                        Label("Debt Tracker", systemImage: "creditcard.trianglebadge.exclamationmark")
+                    }
+                    NavigationLink {
                         BillRemindersView()
                     } label: {
                         Label("Bill Reminders", systemImage: "bell.badge")

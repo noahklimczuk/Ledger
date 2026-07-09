@@ -57,6 +57,29 @@ Phase 5 (in progress): live account-linking polish for the Plaid connection.
 - Still to do in Phase 5: linking **multiple institutions** at once, and true OS **background
   refresh** (needs the Background Modes capability enabled in Xcode) — each will be its own PR.
 
+Phase 6 (done): automation + a debt tracker.
+- **Refresh on open** — every time the app comes to the foreground it syncs the linked connection
+  (no longer throttled to a few hours), re-categorizes anything new, and re-detects recurring
+  series (`AppRefreshCoordinator`, driven from launch and every scene-phase `.active`).
+- **Starter categories** — a common set of budgeting categories (income + essentials + discretionary)
+  is seeded on first launch (`DefaultDataSeeder` / `DefaultCategoryCatalog`); you can still add,
+  rename, and delete categories freely.
+- **Auto-categorization out of the box** — the seeded categories ship with merchant-keyword rules,
+  so transactions are categorized from a fresh install (not just after you teach a rule). A
+  launch/foreground pass fills in any still-uncategorized transactions.
+- **Grouped recurring** — the Recurring screen now splits detected streams into **Income**
+  (paycheques, interest, regular deposits) and **Bills & Subscriptions**, with projected income and
+  outflow for the next 30 days.
+- **Auto-generate a budget** — Budgets → menu → "Auto-Generate from Last 3 Months" builds a budget
+  for the current month from each category's average spend over the previous three months.
+- **Debt tracker** (More → Debt Tracker) — track credit cards, loans, and lines of credit with a
+  balance, APR, and monthly payment; each shows an estimated payoff timeline and total interest
+  (standard amortization), plus a total-owed / total-monthly-payment summary.
+- **Bug fixes** — removing an account you don't want to track now actually sticks: the accounts list
+  hides archived accounts, and a removed **linked** account is archived (not deleted) so the next
+  sync can't re-create it. The rename/save path no longer reloads the accounts list while the edit
+  sheet is still presented.
+
 Not yet: the optional LLM recap, the home screen widget, envelope budgeting mode, multi-currency,
 receipt photos, export, year-in-review, shared/joint view.
 

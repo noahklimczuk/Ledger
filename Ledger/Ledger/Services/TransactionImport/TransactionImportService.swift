@@ -26,6 +26,9 @@ final class TransactionImportService {
 
         for imported in importedAccounts {
             let account = try upsertAccount(imported, sourceIdentifier: source.sourceIdentifier, summary: &summary)
+            // The user removed this linked account (archived). Don't revive it or pull new
+            // transactions into it — that's the "deleted accounts come back on restart" bug.
+            if account.isArchived { continue }
             let importedTransactions = try await source.fetchTransactions(accountExternalId: imported.id, since: since)
             for transaction in importedTransactions {
                 if try insertTransactionIfNeeded(transaction, into: account, sourceKind: sourceKind) {
