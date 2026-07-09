@@ -28,6 +28,11 @@ private struct MoreView: View {
             List {
                 Section("Insights") {
                     NavigationLink {
+                        InsightsView()
+                    } label: {
+                        Label("Insights", systemImage: "sparkles")
+                    }
+                    NavigationLink {
                         ReportsView()
                     } label: {
                         Label("Reports", systemImage: "chart.bar.xaxis")

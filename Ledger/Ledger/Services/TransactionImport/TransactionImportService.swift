@@ -13,6 +13,7 @@ final class TransactionImportService {
     }
 
     private let modelContext: ModelContext
+    private lazy var categorizer = CategorizationService(modelContext: modelContext)
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -103,6 +104,8 @@ final class TransactionImportService {
             externalId: imported.id
         )
         modelContext.insert(transaction)
+        // Replay learned merchant → category rules onto freshly imported transactions.
+        categorizer.applyRule(to: transaction)
         return true
     }
 }

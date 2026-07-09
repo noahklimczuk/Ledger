@@ -69,7 +69,10 @@ final class TransactionEditViewModel {
     func save() -> Transaction? {
         guard canSave, let amount, let account else { return nil }
 
+        let categorizer = CategorizationService(modelContext: modelContext)
         let transaction = existingTransaction ?? Transaction(date: date, merchant: merchant, amount: amount, account: account)
+        let previousCategory = transaction.category
+
         transaction.date = date
         transaction.merchant = merchant
         transaction.amount = amount
@@ -82,6 +85,17 @@ final class TransactionEditViewModel {
         }
 
         syncSplits(on: transaction)
+
+        // Auto-categorization: learn from an explicit manual choice, or fill a blank category from
+        // a previously-learned rule. Split transactions carry their categories on the splits.
+        if transaction.splits.isEmpty {
+            if let chosen = category, chosen !== previousCategory {
+                categorizer.learn(merchant: merchant, category: chosen)
+            } else if transaction.category == nil {
+                categorizer.applyRule(to: transaction)
+            }
+        }
+
         try? modelContext.save()
         return transaction
     }
