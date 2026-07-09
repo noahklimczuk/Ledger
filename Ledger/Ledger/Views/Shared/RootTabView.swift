@@ -25,6 +25,30 @@ private struct MoreView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section("Insights") {
+                    NavigationLink {
+                        ReportsView()
+                    } label: {
+                        Label("Reports", systemImage: "chart.bar.xaxis")
+                    }
+                    NavigationLink {
+                        RecurringView()
+                    } label: {
+                        Label("Recurring", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                }
+                Section("Planning") {
+                    NavigationLink {
+                        SavingsGoalsView()
+                    } label: {
+                        Label("Savings Goals", systemImage: "target")
+                    }
+                    NavigationLink {
+                        BillRemindersView()
+                    } label: {
+                        Label("Bill Reminders", systemImage: "bell.badge")
+                    }
+                }
                 Section("Organize") {
                     NavigationLink {
                         CategoryEditorView()

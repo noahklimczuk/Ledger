@@ -3,7 +3,7 @@
 A private, single-user iOS budgeting app. SwiftUI + SwiftData, targeting iOS 18+, for personal
 sideload/TestFlight use only.
 
-## Status: Phase 2
+## Status: Phase 3
 
 Phase 1 (done): multi-account tracking, manual transaction entry with splits, custom categories,
 monthly budgets with rollover, a dashboard (balances, safe-to-spend, budget progress, recent
@@ -18,9 +18,21 @@ occurrence index for legitimate same-day repeats; OFX uses the bank's FITID), so
 same or an overlapping export is idempotent. Both live behind the same `TransactionSource` seam
 (`CSVTransactionSource`, `OFXTransactionSource`).
 
-Not yet: recurring-transaction detection, reports/Swift Charts, savings goals, the rules-based
-insights engine, the optional LLM recap, the home screen widget, envelope budgeting mode,
-multi-currency, receipt photos, export, year-in-review, shared/joint view.
+Phase 3 (done): recurring detection, reports, net worth, savings goals, and bill reminders,
+reachable from the More tab.
+- **Recurring** — detects subscriptions/regular bills from history by spacing regularity
+  (weekly→yearly), forecasts the next 60 days of charges with a 30-day outflow total, and lets you
+  ignore/restore a series. Persisted as `RecurringSeries`, refreshed on open.
+- **Reports** (Swift Charts) — date-range picker (this/last month, 3/6 months, this year, custom);
+  income/expense/net tiles; net-worth line chart (derived from transactions, no snapshots needed);
+  spending-by-category bars (split-aware); grouped income-vs-expense bars; month-over-month delta.
+- **Savings Goals** — target amount + optional date, progress bars, required monthly contribution,
+  swipe to add a contribution.
+- **Bill Reminders** — local notifications only (no server), optional recurrence, notify-days-before,
+  swipe "Paid" to advance a recurring bill to its next due date.
+
+Not yet: the rules-based insights engine, the optional LLM recap, the home screen widget, envelope
+budgeting mode, multi-currency, receipt photos, export, year-in-review, shared/joint view.
 
 ## Building
 

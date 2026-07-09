@@ -8,6 +8,9 @@ enum LedgerSchema {
         Category.self,
         Budget.self,
         Tag.self,
-        CategorizationRule.self
+        CategorizationRule.self,
+        RecurringSeries.self,
+        SavingsGoal.self,
+        BillReminder.self
     ]
 }
