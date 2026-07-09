@@ -48,13 +48,15 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Total Balance")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.85))
             Text(CurrencyFormatter.string(from: viewModel.totalBalance))
                 .font(.system(size: 34, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(LinearGradient.brand, in: RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color.brandTeal.opacity(0.35), radius: 10, y: 5)
     }
 
     private func safeToSpendCard(_ viewModel: DashboardViewModel) -> some View {
