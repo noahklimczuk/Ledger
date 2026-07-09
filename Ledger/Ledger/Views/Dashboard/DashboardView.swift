@@ -65,7 +65,7 @@ struct DashboardView: View {
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: viewModel.safeToSpend))
                     .font(.title2.bold())
-                    .foregroundStyle(viewModel.safeToSpend < 0 ? .red : .primary)
+                    .foregroundStyle(viewModel.safeToSpend < 0 ? Color.red : Color.primary)
             }
             Spacer()
             Image(systemName: viewModel.safeToSpend < 0 ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")

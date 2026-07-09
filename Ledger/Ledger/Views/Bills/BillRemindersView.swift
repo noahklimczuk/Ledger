@@ -92,7 +92,7 @@ private struct BillRow: View {
                     }
                 }
                 .font(.caption)
-                .foregroundStyle(reminder.isOverdue ? .red : .secondary)
+                .foregroundStyle(reminder.isOverdue ? Color.red : Color.secondary)
             }
             Spacer()
             Text(CurrencyFormatter.string(from: reminder.amount))

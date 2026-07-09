@@ -241,7 +241,7 @@ struct CSVImportView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.currencyCode))
-                        .foregroundStyle(transaction.amount < 0 ? .primary : .green)
+                        .foregroundStyle(transaction.amount < 0 ? Color.primary : Color.green)
                     if row.isDuplicate {
                         Text("Duplicate").font(.caption2).foregroundStyle(.secondary)
                     }

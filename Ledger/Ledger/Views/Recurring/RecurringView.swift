@@ -56,7 +56,7 @@ struct RecurringView: View {
                         }
                         Spacer()
                         Text(CurrencyFormatter.string(from: charge.series.averageAmount))
-                            .foregroundStyle(charge.series.isIncome ? .green : .primary)
+                            .foregroundStyle(charge.series.isIncome ? Color.green : Color.primary)
                     }
                 }
             } header: {
@@ -115,7 +115,7 @@ private struct RecurringRow: View {
             }
             Spacer()
             Text(CurrencyFormatter.string(from: series.averageAmount))
-                .foregroundStyle(series.isIncome ? .green : .primary)
+                .foregroundStyle(series.isIncome ? Color.green : Color.primary)
         }
         .padding(.vertical, 2)
     }
