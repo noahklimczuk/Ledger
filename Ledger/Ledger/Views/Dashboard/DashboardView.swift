@@ -1,3 +1,4 @@
+import Charts
 import SwiftUI
 import SwiftData
 
@@ -39,6 +40,9 @@ struct DashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     balanceCard(viewModel)
+                    monthSummaryCard(viewModel)
+                    incomeExpenseChartCard(viewModel)
+                    categoryChartCard(viewModel)
                     safeToSpendCard(viewModel)
                     budgetCard(viewModel)
                     recentTransactionsSection(viewModel)
@@ -63,6 +67,90 @@ struct DashboardView: View {
         .shadow(color: Color.brandTeal.opacity(0.35), radius: 10, y: 5)
     }
 
+    // MARK: - This month: income / expenses / net
+
+    private func monthSummaryCard(_ viewModel: DashboardViewModel) -> some View {
+        HStack(spacing: 12) {
+            summaryTile("Income", value: viewModel.monthIncome, color: .green)
+            summaryTile("Expenses", value: viewModel.monthSpending, color: .red)
+            summaryTile("Net", value: viewModel.monthNet, color: viewModel.monthNet < 0 ? .red : .primary)
+        }
+    }
+
+    private func summaryTile(_ label: String, value: Decimal, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(CurrencyFormatter.string(from: value))
+                .font(.headline)
+                .foregroundStyle(color)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    @ViewBuilder
+    private func incomeExpenseChartCard(_ viewModel: DashboardViewModel) -> some View {
+        if viewModel.monthIncome > 0 || viewModel.monthSpending > 0 {
+            let bars = [
+                FlowBar(label: "Income", amount: viewModel.monthIncome, color: .green),
+                FlowBar(label: "Expenses", amount: viewModel.monthSpending, color: .red),
+            ]
+            card(title: "Income vs. Expenses") {
+                Chart(bars) { bar in
+                    BarMark(
+                        x: .value("Type", bar.label),
+                        y: .value("Amount", bar.amount.doubleValue)
+                    )
+                    .foregroundStyle(bar.color)
+                    .annotation(position: .top) {
+                        Text(CurrencyFormatter.string(from: bar.amount))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .cornerRadius(6)
+                }
+                .chartYAxis(.hidden)
+                .frame(height: 180)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func categoryChartCard(_ viewModel: DashboardViewModel) -> some View {
+        if !viewModel.topCategories.isEmpty {
+            card(title: "Top Spending Categories") {
+                Chart(viewModel.topCategories) { slice in
+                    BarMark(
+                        x: .value("Amount", slice.amount.doubleValue),
+                        y: .value("Category", slice.name)
+                    )
+                    .foregroundStyle(Color(hex: slice.colorHex))
+                    .annotation(position: .trailing, alignment: .leading) {
+                        Text(CurrencyFormatter.string(from: slice.amount))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .cornerRadius(4)
+                }
+                .chartXAxis(.hidden)
+                .frame(height: CGFloat(viewModel.topCategories.count) * 40 + 20)
+            }
+        }
+    }
+
+    private func card<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title).font(.headline)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+
     private func safeToSpendCard(_ viewModel: DashboardViewModel) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -84,7 +172,7 @@ struct DashboardView: View {
 
     private func budgetCard(_ viewModel: DashboardViewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("This Month")
+            Text("Spending vs Budget")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             HStack {
@@ -130,6 +218,17 @@ struct DashboardView: View {
             }
         }
     }
+}
+
+private struct FlowBar: Identifiable {
+    var id: String { label }
+    let label: String
+    let amount: Decimal
+    let color: Color
+}
+
+private extension Decimal {
+    var doubleValue: Double { (self as NSDecimalNumber).doubleValue }
 }
 
 #Preview {
