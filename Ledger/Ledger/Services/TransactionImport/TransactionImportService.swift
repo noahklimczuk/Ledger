@@ -71,8 +71,8 @@ final class TransactionImportService {
             }
         )
         if let existing = try modelContext.fetch(descriptor).first {
-            existing.name = imported.name
-            existing.institutionName = imported.institutionName
+            // Conflict handling: a re-sync must not clobber a manual rename of a linked account,
+            // so leave name/institution as the user last left them.
             return existing
         }
 

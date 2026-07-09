@@ -3,7 +3,7 @@
 A private, single-user iOS budgeting app. SwiftUI + SwiftData, targeting iOS 18+, for personal
 sideload/TestFlight use only.
 
-## Status: Phase 4
+## Status: Phase 5
 
 Phase 1 (done): multi-account tracking, manual transaction entry with splits, custom categories,
 monthly budgets with rollover, a dashboard (balances, safe-to-spend, budget progress, recent
@@ -42,6 +42,20 @@ Phase 4 (done): rules-based insights, entirely on-device (nothing leaves the pho
 - **Insights screen** (More → Insights) — the top few findings as cards, ranked by severity then
   dollar magnitude; swipe to snooze for a week or dismiss for good (persisted as `InsightState`),
   refreshed each time the screen opens.
+
+Phase 5 (in progress): live account-linking polish for the Plaid connection.
+- **Auto-sync on foreground** — opening the app triggers a background sync of the linked connection,
+  throttled to at most once every few hours (`PlaidSyncCoordinator`, driven from `LedgerApp`'s
+  scene-phase change). Manual "Sync Now" still works anytime.
+- **Sync status** — last-synced time, last error, and a "needs sign-in" flag are persisted
+  (`PlaidSyncStatusStore`) and surfaced on the Connect Wealthsimple screen.
+- **Reconnect** — when Plaid returns `ITEM_LOGIN_REQUIRED`, the screen prompts a re-auth via Plaid
+  Link **update mode** (`createLinkToken(accessToken:)`), which refreshes the existing item without
+  a new token exchange.
+- **Conflict handling** — a re-sync never overwrites your edits: transactions dedupe by external id
+  (existing rows are left untouched), and a manually renamed linked account keeps its name.
+- Still to do in Phase 5: linking **multiple institutions** at once, and true OS **background
+  refresh** (needs the Background Modes capability enabled in Xcode) — each will be its own PR.
 
 Not yet: the optional LLM recap, the home screen widget, envelope budgeting mode, multi-currency,
 receipt photos, export, year-in-review, shared/joint view.
