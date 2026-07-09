@@ -21,9 +21,9 @@ struct ImportedTransaction: Sendable, Identifiable {
 /// Anything that can hand the app a batch of accounts/transactions from outside SwiftData.
 ///
 /// Manual entry does **not** go through this protocol -- it writes directly to SwiftData via
-/// `TransactionEditViewModel`. This protocol exists purely for bulk/external ingestion: CSV
-/// import and SnapTrade today, with room for another source (e.g. a self-hosted proxy) to
-/// slot in later behind the same interface without touching any call sites.
+/// `TransactionEditViewModel`. This protocol exists purely for bulk/external ingestion: CSV/OFX
+/// import and Plaid (bank/cash accounts) today, with room for another source to slot in later
+/// behind the same interface without touching any call sites.
 protocol TransactionSource: Sendable {
     var sourceIdentifier: String { get }
     func fetchAccounts() async throws -> [ImportedAccount]

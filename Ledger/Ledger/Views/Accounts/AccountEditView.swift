@@ -14,6 +14,10 @@ struct AccountEditView: View {
 
     private var isEditing: Bool { account != nil }
 
+    private var linkedSourceLabel: String {
+        account?.externalSourceId == "plaid" ? "Linked to Wealthsimple via Plaid" : "Linked to Wealthsimple"
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -32,7 +36,7 @@ struct AccountEditView: View {
                 }
                 if account?.isLinked == true {
                     Section {
-                        Label("Linked to Wealthsimple via SnapTrade", systemImage: "link")
+                        Label(linkedSourceLabel, systemImage: "link")
                             .foregroundStyle(.secondary)
                             .font(.footnote)
                     }

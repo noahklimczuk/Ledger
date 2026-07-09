@@ -7,7 +7,7 @@ sideload/TestFlight use only.
 
 Phase 1 (done): multi-account tracking, manual transaction entry with splits, custom categories,
 monthly budgets with rollover, a dashboard (balances, safe-to-spend, budget progress, recent
-transactions), and Face ID lock on launch. Wealthsimple account linking via SnapTrade is included
+transactions), and Face ID lock on launch. Wealthsimple bank-account linking via Plaid is included
 (pulled forward from the original later-phase plan), behind the swappable `TransactionSource`
 protocol.
 
@@ -56,38 +56,54 @@ a Mac-side debugging loop.
    what you'd expect from steps 2-4.
 6. Swipe actions on a transaction row: mark reviewed (leading swipe), delete (trailing swipe).
 
-## Connecting Wealthsimple (SnapTrade)
+## Connecting Wealthsimple bank accounts (Plaid)
 
-SnapTrade is a licensed third-party account aggregator — Wealthsimple credentials are entered on
-SnapTrade's own hosted login page and never touch this app. Setup:
+The "Connect Wealthsimple" flow links your **bank** accounts — Wealthsimple Cash, chequing and
+savings — through [Plaid](https://plaid.com), a licensed account aggregator that covers
+Wealthsimple's depository products in Canada. Your Wealthsimple credentials are entered on Plaid's
+own hosted login page and never touch this app.
 
-1. Create a developer account at [snaptrade.com](https://snaptrade.com) and generate a
-   `clientId` + `consumerKey`.
-2. In the SnapTrade dashboard, whitelist `ledger://snaptrade-callback` as an allowed redirect URI
-   (required for the `ASWebAuthenticationSession` callback in `SnapTradeConnectSession` to work).
-3. In the app: More → Connect Wealthsimple → enter the clientId/consumerKey → Save → Connect
-   Wealthsimple. This registers a SnapTrade user, opens their Connection Portal, and on success
-   pulls in accounts + transaction history.
+> **Why Plaid?** A *brokerage* aggregator (e.g. SnapTrade) can only see Wealthsimple's
+> trading/investment accounts, never Wealthsimple Cash. Plaid covers Wealthsimple's depository
+> products, so the Connect Wealthsimple screen uses it to pull in bank accounts and their
+> transactions.
 
-**Caveat:** `SnapTradeAPIClient`/`SnapTradeModels`/`SnapTradeSigning` were written against
-SnapTrade's published docs (docs.snaptrade.com) without a real account to test against — request
-signing (HMAC-SHA256 over canonical JSON) and endpoint paths were verified against current docs,
-but exact response field names/casing (`SnapTradeModels.swift`) may need small fixes once you can
-see real API responses. Everything decodes defensively (optional fields) so a mismatch degrades
-to missing data rather than a crash.
+Setup:
 
-Credentials (`clientId`, `consumerKey`, the generated `userSecret`) are stored in the iOS
-Keychain only — never in UserDefaults, Info.plist, or source control.
+1. Create a developer account at [dashboard.plaid.com](https://dashboard.plaid.com) and copy your
+   `client_id` + a `secret`. Real Wealthsimple data requires **Production** keys with the
+   `transactions` product enabled (Sandbox only returns fake test banks).
+2. In the Plaid dashboard, enable **Hosted Link** and add `ledger://plaid-callback` as an allowed
+   redirect URI (required for the `ASWebAuthenticationSession` callback in `PlaidConnectSession`).
+3. In the app: More → Connect Wealthsimple → enter the client ID / secret, pick the environment →
+   Save → Connect Wealthsimple. This opens Plaid's Hosted Link (institution search → Wealthsimple
+   login → account selection), exchanges the resulting public token for an access token, and pulls
+   in accounts + transaction history.
+
+Balances/transactions sync via `/accounts/balance/get` and `/transactions/get`; Plaid signs
+amounts the opposite way from Ledger (Plaid positive = money out), so `PlaidTransactionSource`
+negates them to match Ledger's convention (negative = money out).
+
+**Caveat:** `PlaidAPIClient`/`PlaidModels` were written against Plaid's published docs
+(plaid.com/docs/api) without a live account to test against — endpoint paths and the Hosted Link
+public-token retrieval (`/link/token/get`) follow current docs, but exact response field
+names/casing may need small fixes once you can see real API responses. Everything decodes
+defensively (optional fields, `convertFromSnakeCase`) so a mismatch degrades to missing data
+rather than a crash.
+
+Credentials (`client_id`, `secret`, the generated `access_token`) are stored in the iOS Keychain
+only — never in UserDefaults, Info.plist, or source control.
 
 ## Architecture
 
 - **Models/** — SwiftData `@Model` types (source of truth, fully offline).
 - **ViewModels/** — `@MainActor @Observable` classes, one per screen; own `ModelContext` reads/writes.
 - **Views/** — SwiftUI, grouped by feature (Dashboard, Accounts, Transactions, Budgets, Categories, Integrations, Shared).
-- **Services/** — `TransactionImport/` (the `TransactionSource` protocol + SnapTrade adapter),
+- **Services/** — `TransactionImport/` (the `TransactionSource` protocol + Plaid adapter),
   `Security/` (Keychain, Face ID), `Formatting/` (CAD currency, en_CA dates).
 - **Utilities/** — small stateless helpers (safe-to-spend math, hex color).
 
 `TransactionSource` is the seam for swapping data sources: manual entry writes to SwiftData
-directly (no source needed), SnapTrade is a real implementation, and CSV import or a self-hosted
-proxy can be added later as additional conformances without touching call sites.
+directly (no source needed), Plaid and CSV/OFX import are real implementations, and another
+source (e.g. a self-hosted proxy) can be added later as an additional conformance without
+touching call sites.
