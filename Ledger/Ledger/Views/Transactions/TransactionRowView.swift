@@ -24,7 +24,7 @@ struct TransactionRowView: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.account?.currencyCode ?? "CAD"))
                     .fontWeight(.semibold)
-                    .foregroundStyle(transaction.amount < 0 ? .primary : .green)
+                    .foregroundStyle(transaction.amount < 0 ? Color.primary : Color.green)
                 if !transaction.isReviewed {
                     Circle()
                         .fill(.orange)

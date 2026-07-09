@@ -107,7 +107,7 @@ private struct BudgetRowView: View {
                     .fontWeight(.medium)
                 Spacer()
                 Text(CurrencyFormatter.string(from: row.spent))
-                    .foregroundStyle(row.isOverBudget ? .red : .primary)
+                    .foregroundStyle(row.isOverBudget ? Color.red : Color.primary)
                 Text("/ \(CurrencyFormatter.string(from: row.allocatedIncludingRollover))")
                     .foregroundStyle(.secondary)
             }

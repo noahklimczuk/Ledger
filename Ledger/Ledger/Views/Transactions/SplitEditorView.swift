@@ -37,7 +37,7 @@ struct SplitEditorView: View {
                 Text("Split total")
                 Spacer()
                 Text(CurrencyFormatter.string(from: viewModel.splitTotal))
-                    .foregroundStyle(viewModel.isSplitValid ? .secondary : .red)
+                    .foregroundStyle(viewModel.isSplitValid ? Color.secondary : Color.red)
             }
             .font(.footnote)
         }
