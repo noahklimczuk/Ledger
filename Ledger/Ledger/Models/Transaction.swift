@@ -5,6 +5,7 @@ enum TransactionSourceKind: String, Codable {
     case manual
     case snapTrade
     case csv
+    case ofx
 }
 
 @Model

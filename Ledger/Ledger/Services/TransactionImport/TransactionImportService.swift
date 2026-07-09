@@ -39,6 +39,29 @@ final class TransactionImportService {
         return summary
     }
 
+    /// Imports a pre-mapped batch into a caller-chosen account (used by CSV/OFX file import,
+    /// where the account isn't defined by the source). Reuses the same externalId dedup as sync.
+    @discardableResult
+    func importTransactions(_ transactions: [ImportedTransaction], into account: Account, sourceKind: TransactionSourceKind) throws -> ImportSummary {
+        var summary = ImportSummary()
+        for transaction in transactions {
+            if try insertTransactionIfNeeded(transaction, into: account, sourceKind: sourceKind) {
+                summary.transactionsCreated += 1
+            } else {
+                summary.transactionsSkipped += 1
+            }
+        }
+        try modelContext.save()
+        return summary
+    }
+
+    /// The set of externalIds already in the store, so an import preview can flag which rows
+    /// are duplicates before anything is written.
+    func existingExternalIds() -> Set<String> {
+        let all = (try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? []
+        return Set(all.compactMap(\.externalId))
+    }
+
     private func upsertAccount(_ imported: ImportedAccount, sourceIdentifier: String, summary: inout ImportSummary) throws -> Account {
         let externalAccountId = imported.id
         let descriptor = FetchDescriptor<Account>(

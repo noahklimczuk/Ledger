@@ -3,17 +3,24 @@
 A private, single-user iOS budgeting app. SwiftUI + SwiftData, targeting iOS 18+, for personal
 sideload/TestFlight use only.
 
-## Status: Phase 1
+## Status: Phase 2
 
-Phase 1 is a complete, working local app: multi-account tracking, manual transaction entry with
-splits, custom categories, monthly budgets with rollover, a dashboard (balances, safe-to-spend,
-budget progress, recent transactions), and Face ID lock on launch. Wealthsimple account linking
-via SnapTrade is included in this phase (pulled forward from the original later-phase plan),
-behind the swappable `TransactionSource` protocol.
+Phase 1 (done): multi-account tracking, manual transaction entry with splits, custom categories,
+monthly budgets with rollover, a dashboard (balances, safe-to-spend, budget progress, recent
+transactions), and Face ID lock on launch. Wealthsimple account linking via SnapTrade is included
+(pulled forward from the original later-phase plan), behind the swappable `TransactionSource`
+protocol.
 
-Not in this phase yet: CSV/OFX import, recurring-transaction detection, reports/Swift Charts,
-savings goals, the rules-based insights engine, the optional LLM recap, the home screen widget,
-envelope budgeting mode, multi-currency, receipt photos, export, year-in-review, shared/joint view.
+Phase 2 (done): CSV and OFX/QFX file import (More → Import CSV / OFX). Pick a file, choose the
+target account, map columns (CSV only — OFX carries structured fields), preview which rows are new
+vs. duplicates, then import. Dedup is deterministic (CSV rows hash to a stable id including an
+occurrence index for legitimate same-day repeats; OFX uses the bank's FITID), so re-importing the
+same or an overlapping export is idempotent. Both live behind the same `TransactionSource` seam
+(`CSVTransactionSource`, `OFXTransactionSource`).
+
+Not yet: recurring-transaction detection, reports/Swift Charts, savings goals, the rules-based
+insights engine, the optional LLM recap, the home screen widget, envelope budgeting mode,
+multi-currency, receipt photos, export, year-in-review, shared/joint view.
 
 ## Building
 

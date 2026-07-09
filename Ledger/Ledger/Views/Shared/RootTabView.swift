@@ -38,6 +38,11 @@ private struct MoreView: View {
                     } label: {
                         Label("Connect Wealthsimple", systemImage: "link")
                     }
+                    NavigationLink {
+                        CSVImportView()
+                    } label: {
+                        Label("Import CSV / OFX", systemImage: "square.and.arrow.down")
+                    }
                 }
             }
             .navigationTitle("More")
