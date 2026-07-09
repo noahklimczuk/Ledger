@@ -93,6 +93,16 @@ Phase 7 (done): live balances + a transaction detail screen.
   date, account, and its current category. You can change the category right there (which also
   teaches the auto-categorization rule), or open the full editor with "Edit".
 
+Phase 8 (done): navigation + dashboard charts.
+- **Swipe between tabs** — the root is now a paged `TabView` with a custom bottom bar, so the five
+  screens can be swiped left/right as well as tapped.
+- **Budget → category transactions** — tapping a budget row opens `CategoryTransactionsView`, listing
+  every transaction in that category for the month (with the month's total); editing a budget moved
+  to a leading swipe.
+- **Clear monthly income** — the dashboard shows Income / Expenses / Net tiles for the month.
+- **Dashboard charts** (Swift Charts) — an income-vs-expenses bar chart and a top-spending-categories
+  breakdown, alongside the existing balance/safe-to-spend/budget cards.
+
 Not yet: the optional LLM recap, the home screen widget, envelope budgeting mode, multi-currency,
 receipt photos, export, year-in-review, shared/joint view.
 

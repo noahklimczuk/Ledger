@@ -27,17 +27,22 @@ struct BudgetListView: View {
                         } else {
                             List {
                                 ForEach(viewModel.rows) { row in
-                                    Button { editingRow = row } label: {
-                                        BudgetRowView(row: row)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) {
-                                            viewModel.delete(row)
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
+                                    budgetRow(row, month: viewModel.selectedMonth)
+                                        .swipeActions(edge: .trailing) {
+                                            Button(role: .destructive) {
+                                                viewModel.delete(row)
+                                            } label: {
+                                                Label("Delete", systemImage: "trash")
+                                            }
                                         }
-                                    }
+                                        .swipeActions(edge: .leading) {
+                                            Button {
+                                                editingRow = row
+                                            } label: {
+                                                Label("Edit", systemImage: "pencil")
+                                            }
+                                            .tint(.accentColor)
+                                        }
                                 }
                             }
                             .refreshable { viewModel.load() }
@@ -96,6 +101,19 @@ struct BudgetListView: View {
                 if viewModel == nil { viewModel = BudgetsViewModel(modelContext: modelContext) }
                 viewModel?.load()
             }
+        }
+    }
+
+    @ViewBuilder
+    private func budgetRow(_ row: BudgetsViewModel.BudgetRow, month: Date) -> some View {
+        if let category = row.budget.category {
+            NavigationLink {
+                CategoryTransactionsView(category: category, month: month)
+            } label: {
+                BudgetRowView(row: row)
+            }
+        } else {
+            BudgetRowView(row: row)
         }
     }
 

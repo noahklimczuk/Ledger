@@ -2,23 +2,62 @@ import SwiftUI
 import SwiftData
 
 struct RootTabView: View {
+    @State private var selection = 0
+
     var body: some View {
-        TabView {
-            DashboardView()
-                .tabItem { Label("Dashboard", systemImage: "house.fill") }
-
-            AccountListView()
-                .tabItem { Label("Accounts", systemImage: "banknote.fill") }
-
-            TransactionListView()
-                .tabItem { Label("Transactions", systemImage: "list.bullet") }
-
-            BudgetListView()
-                .tabItem { Label("Budgets", systemImage: "chart.pie.fill") }
-
-            MoreView()
-                .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }
+        // A paged TabView so the screens can be swiped between left/right. The native tab bar
+        // doesn't support swiping, so we hide its page indicator and supply our own bar below.
+        TabView(selection: $selection) {
+            DashboardView().tag(0)
+            AccountListView().tag(1)
+            TransactionListView().tag(2)
+            BudgetListView().tag(3)
+            MoreView().tag(4)
         }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            CustomTabBar(selection: $selection)
+        }
+    }
+}
+
+private struct CustomTabBar: View {
+    @Binding var selection: Int
+
+    private let items: [(title: String, icon: String)] = [
+        ("Dashboard", "house.fill"),
+        ("Accounts", "banknote.fill"),
+        ("Transactions", "list.bullet"),
+        ("Budgets", "chart.pie.fill"),
+        ("More", "ellipsis.circle.fill"),
+    ]
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            ForEach(items.indices, id: \.self) { index in
+                let item = items[index]
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { selection = index }
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: item.icon)
+                            .font(.system(size: 18))
+                        Text(item.title)
+                            .font(.system(size: 10))
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .foregroundStyle(selection == index ? Color.accentColor : Color.secondary)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.top, 10)
+        .padding(.bottom, 4)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider() }
     }
 }
 
