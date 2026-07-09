@@ -35,6 +35,12 @@ struct LedgerApp: App {
             .animation(.default, value: lockService.isUnlocked)
             .animation(.easeOut(duration: 0.4), value: showSplash)
             .task {
+                // Refresh on cold launch too — `onChange(of: scenePhase)` isn't guaranteed to fire
+                // for the initial `.active`. The coordinator's in-flight guard makes an overlap with
+                // the scene-phase handler a no-op.
+                await AppRefreshCoordinator.refreshOnForeground(container: sharedModelContainer)
+            }
+            .task {
                 try? await Task.sleep(nanoseconds: 1_300_000_000)
                 showSplash = false
             }
@@ -44,7 +50,7 @@ struct LedgerApp: App {
             switch newPhase {
             case .active:
                 let container = sharedModelContainer
-                Task { await Self.syncLinkedAccountsIfStale(container: container) }
+                Task { await AppRefreshCoordinator.refreshOnForeground(container: container) }
             case .background:
                 lockService.lock()
             default:
@@ -52,18 +58,4 @@ struct LedgerApp: App {
             }
         }
     }
-
-    /// Auto-sync the linked Plaid connection when the app comes to the foreground, throttled so it
-    /// runs at most once every few hours. Manual "Sync Now" on the Integrations screen is unaffected.
-    @MainActor
-    private static func syncLinkedAccountsIfStale(container: ModelContainer) async {
-        let coordinator = PlaidSyncCoordinator()
-        guard coordinator.isConnected else { return }
-        if let last = coordinator.lastSyncedAt, Date().timeIntervalSince(last) < autoSyncInterval {
-            return
-        }
-        await coordinator.sync(modelContext: container.mainContext)
-    }
-
-    private static let autoSyncInterval: TimeInterval = 6 * 60 * 60
 }

@@ -6,6 +6,9 @@ struct AccountEditView: View {
     @Environment(\.dismiss) private var dismiss
 
     let account: Account?
+    /// The list's shared view model, so a save updates the same accounts array the list observes
+    /// rather than a throwaway one. Optional so previews can present the editor standalone.
+    var viewModel: AccountsViewModel? = nil
 
     @State private var name = ""
     @State private var type: AccountType = .chequing
@@ -67,7 +70,7 @@ struct AccountEditView: View {
 
     private func save() {
         let balance = Decimal(string: startingBalanceText, locale: Locale(identifier: "en_CA")) ?? 0
-        let viewModel = AccountsViewModel(modelContext: modelContext)
+        let viewModel = viewModel ?? AccountsViewModel(modelContext: modelContext)
         if let account {
             viewModel.updateAccount(
                 account,

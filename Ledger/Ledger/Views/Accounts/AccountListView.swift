@@ -29,9 +29,9 @@ struct AccountListView: View {
                                 .buttonStyle(.plain)
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
-                                        viewModel.archive(account)
+                                        viewModel.remove(account)
                                     } label: {
-                                        Label("Archive", systemImage: "archivebox")
+                                        Label("Delete", systemImage: "trash")
                                     }
                                 }
                             }
@@ -51,10 +51,10 @@ struct AccountListView: View {
                 }
             }
             .sheet(isPresented: $isPresentingNewAccount, onDismiss: { viewModel?.load() }) {
-                AccountEditView(account: nil)
+                AccountEditView(account: nil, viewModel: viewModel)
             }
             .sheet(item: $editingAccount, onDismiss: { viewModel?.load() }) { account in
-                AccountEditView(account: account)
+                AccountEditView(account: account, viewModel: viewModel)
             }
             .task {
                 if viewModel == nil { viewModel = AccountsViewModel(modelContext: modelContext) }

@@ -6,6 +6,8 @@ struct BudgetListView: View {
     @State private var viewModel: BudgetsViewModel?
     @State private var isPresentingNew = false
     @State private var editingRow: BudgetsViewModel.BudgetRow?
+    @State private var isConfirmingAutoGenerate = false
+    @State private var autoGenerateResult: String?
 
     var body: some View {
         NavigationStack {
@@ -48,8 +50,37 @@ struct BudgetListView: View {
             .navigationTitle("Budgets")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button { isPresentingNew = true } label: { Image(systemName: "plus") }
+                    Menu {
+                        Button { isPresentingNew = true } label: {
+                            Label("Add Budget", systemImage: "plus")
+                        }
+                        Button { isConfirmingAutoGenerate = true } label: {
+                            Label("Auto-Generate from Last 3 Months", systemImage: "wand.and.stars")
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
+            }
+            .confirmationDialog(
+                "Create budgets for \(DateFormatting.monthYear(viewModel?.selectedMonth ?? .now)) from your average spending over the last 3 months?",
+                isPresented: $isConfirmingAutoGenerate,
+                titleVisibility: .visible
+            ) {
+                Button("Auto-Generate") {
+                    let created = viewModel?.generateFromRecentHistory() ?? 0
+                    autoGenerateResult = created > 0
+                        ? "Set \(created) budget\(created == 1 ? "" : "s") from recent spending."
+                        : "No spending found in the last 3 months to build a budget from."
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Existing budgets for this month will be updated to match.")
+            }
+            .alert("Budget", isPresented: Binding(get: { autoGenerateResult != nil }, set: { if !$0 { autoGenerateResult = nil } })) {
+                Button("OK", role: .cancel) { autoGenerateResult = nil }
+            } message: {
+                Text(autoGenerateResult ?? "")
             }
             .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {
                 if let viewModel {

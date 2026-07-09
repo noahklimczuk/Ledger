@@ -90,4 +90,57 @@ final class BudgetsViewModel {
         try? modelContext.save()
         load()
     }
+
+    /// Builds budgets for the selected month from the average monthly spend of each expense category
+    /// over the preceding `months` calendar months. Categories with no spend in the window are left
+    /// alone; existing budgets for the month are updated in place. Returns how many were set.
+    @discardableResult
+    func generateFromRecentHistory(months: Int = 3) -> Int {
+        let calendar = Calendar.current
+        let month = selectedMonth
+        guard let windowStart = calendar.date(byAdding: .month, value: -months, to: month) else { return 0 }
+
+        let allTransactions = (try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? []
+        let inWindow = allTransactions.filter { $0.date >= windowStart && $0.date < month && $0.amount < 0 }
+
+        var totals: [PersistentIdentifier: Decimal] = [:]
+        for transaction in inWindow {
+            guard let category = transaction.category, !category.isIncome else { continue }
+            totals[category.persistentModelID, default: 0] += -transaction.amount
+        }
+        guard !totals.isEmpty else { return 0 }
+
+        let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
+        let categoriesById = Dictionary(categories.map { ($0.persistentModelID, $0) }, uniquingKeysWith: { first, _ in first })
+
+        let existing = (try? modelContext.fetch(FetchDescriptor<Budget>(predicate: #Predicate { $0.month == month }))) ?? []
+        var existingByCategory: [PersistentIdentifier: Budget] = [:]
+        for budget in existing where budget.category != nil {
+            existingByCategory[budget.category!.persistentModelID] = budget
+        }
+
+        var count = 0
+        for (categoryId, total) in totals {
+            guard let category = categoriesById[categoryId] else { continue }
+            let average = Self.roundedToDollar(total / Decimal(months))
+            guard average > 0 else { continue }
+            if let budget = existingByCategory[categoryId] {
+                budget.allocatedAmount = average
+            } else {
+                modelContext.insert(Budget(month: month, category: category, allocatedAmount: average))
+            }
+            count += 1
+        }
+
+        try? modelContext.save()
+        load()
+        return count
+    }
+
+    private static func roundedToDollar(_ value: Decimal) -> Decimal {
+        var input = value
+        var result = Decimal()
+        NSDecimalRound(&result, &input, 0, .plain)
+        return result
+    }
 }

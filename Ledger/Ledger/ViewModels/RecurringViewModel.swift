@@ -16,6 +16,19 @@ final class RecurringViewModel {
     private(set) var upcoming: [UpcomingCharge] = []
     private(set) var isDetecting = false
 
+    /// Recurring income streams (paycheques, interest, regular deposits), grouped for display.
+    var incomeSeries: [RecurringSeries] { activeSeries.filter(\.isIncome) }
+    /// Regular payments — subscriptions and bills that go out on a cadence.
+    var expenseSeries: [RecurringSeries] { activeSeries.filter { !$0.isIncome } }
+
+    /// Total of the next 30 days of expected recurring income.
+    var next30DaysIncome: Decimal {
+        let thirtyDays = Calendar.current.date(byAdding: .day, value: 30, to: .now) ?? .now
+        return upcoming
+            .filter { $0.date <= thirtyDays && $0.series.averageAmount > 0 }
+            .reduce(Decimal(0)) { $0 + $1.series.averageAmount }
+    }
+
     /// Total of the next 30 days of expected charges (expenses only).
     private(set) var next30DaysOutflow: Decimal = 0
 

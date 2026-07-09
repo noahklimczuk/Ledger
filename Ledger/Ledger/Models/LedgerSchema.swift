@@ -12,6 +12,7 @@ enum LedgerSchema {
         RecurringSeries.self,
         SavingsGoal.self,
         BillReminder.self,
-        InsightState.self
+        InsightState.self,
+        Debt.self
     ]
 }
