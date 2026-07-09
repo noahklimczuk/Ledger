@@ -3,10 +3,10 @@ import SwiftData
 
 struct TransactionListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppRefreshCoordinator.self) private var refresh
     @State private var viewModel: TransactionListViewModel?
     @State private var isPresentingNewTransaction = false
     @State private var isPresentingFilters = false
-    @State private var editingTransaction: Transaction?
 
     var body: some View {
         NavigationStack {
@@ -27,10 +27,11 @@ struct TransactionListView: View {
                     } else {
                         List {
                             ForEach(viewModel.transactions) { transaction in
-                                Button { editingTransaction = transaction } label: {
+                                NavigationLink {
+                                    TransactionDetailView(transaction: transaction)
+                                } label: {
                                     TransactionRowView(transaction: transaction)
                                 }
-                                .buttonStyle(.plain)
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
                                         viewModel.delete(transaction)
@@ -78,9 +79,6 @@ struct TransactionListView: View {
             .sheet(isPresented: $isPresentingNewTransaction, onDismiss: { viewModel?.load() }) {
                 TransactionEditView(transaction: nil)
             }
-            .sheet(item: $editingTransaction, onDismiss: { viewModel?.load() }) { transaction in
-                TransactionEditView(transaction: transaction)
-            }
             .sheet(isPresented: $isPresentingFilters, onDismiss: { viewModel?.load() }) {
                 if let viewModel {
                     TransactionFilterView(filter: Binding(get: { viewModel.filter }, set: { viewModel.filter = $0 }))
@@ -90,6 +88,7 @@ struct TransactionListView: View {
                 if viewModel == nil { viewModel = TransactionListViewModel(modelContext: modelContext) }
                 viewModel?.load()
             }
+            .onChange(of: refresh.refreshCount) { _, _ in viewModel?.load() }
         }
     }
 }
@@ -97,4 +96,5 @@ struct TransactionListView: View {
 #Preview {
     TransactionListView()
         .modelContainer(for: LedgerSchema.models, inMemory: true)
+        .environment(AppRefreshCoordinator())
 }

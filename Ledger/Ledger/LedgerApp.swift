@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct LedgerApp: App {
     @State private var lockService = AppLockService()
+    @State private var refreshCoordinator = AppRefreshCoordinator()
     @State private var showSplash = true
     @Environment(\.scenePhase) private var scenePhase
 
@@ -32,13 +33,14 @@ struct LedgerApp: App {
                 }
             }
             .tint(.accentColor)
+            .environment(refreshCoordinator)
             .animation(.default, value: lockService.isUnlocked)
             .animation(.easeOut(duration: 0.4), value: showSplash)
             .task {
                 // Refresh on cold launch too — `onChange(of: scenePhase)` isn't guaranteed to fire
                 // for the initial `.active`. The coordinator's in-flight guard makes an overlap with
                 // the scene-phase handler a no-op.
-                await AppRefreshCoordinator.refreshOnForeground(container: sharedModelContainer)
+                await refreshCoordinator.refreshOnForeground(container: sharedModelContainer)
             }
             .task {
                 try? await Task.sleep(nanoseconds: 1_300_000_000)
@@ -50,7 +52,7 @@ struct LedgerApp: App {
             switch newPhase {
             case .active:
                 let container = sharedModelContainer
-                Task { await AppRefreshCoordinator.refreshOnForeground(container: container) }
+                Task { await refreshCoordinator.refreshOnForeground(container: container) }
             case .background:
                 lockService.lock()
             default:

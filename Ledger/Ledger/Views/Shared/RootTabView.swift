@@ -88,4 +88,5 @@ private struct MoreView: View {
 #Preview {
     RootTabView()
         .modelContainer(for: LedgerSchema.models, inMemory: true)
+        .environment(AppRefreshCoordinator())
 }
