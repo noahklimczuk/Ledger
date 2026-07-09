@@ -1,0 +1,13 @@
+import SwiftData
+
+enum LedgerSchema {
+    static let models: [any PersistentModel.Type] = [
+        Account.self,
+        Transaction.self,
+        SplitAllocation.self,
+        Category.self,
+        Budget.self,
+        Tag.self,
+        CategorizationRule.self
+    ]
+}

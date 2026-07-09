@@ -1,0 +1,85 @@
+import Foundation
+import SwiftData
+
+/// Pulls accounts + transactions from a `TransactionSource` and upserts them into SwiftData,
+/// deduping accounts by (externalSourceId, externalAccountId) and transactions by externalId
+/// so re-running a sync never creates duplicates.
+@MainActor
+final class TransactionImportService {
+    struct ImportSummary {
+        var accountsCreated = 0
+        var transactionsCreated = 0
+        var transactionsSkipped = 0
+    }
+
+    private let modelContext: ModelContext
+
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+    }
+
+    @discardableResult
+    func importAll(from source: TransactionSource, sourceKind: TransactionSourceKind, since: Date? = nil) async throws -> ImportSummary {
+        var summary = ImportSummary()
+        let importedAccounts = try await source.fetchAccounts()
+
+        for imported in importedAccounts {
+            let account = try upsertAccount(imported, sourceIdentifier: source.sourceIdentifier, summary: &summary)
+            let importedTransactions = try await source.fetchTransactions(accountExternalId: imported.id, since: since)
+            for transaction in importedTransactions {
+                if try insertTransactionIfNeeded(transaction, into: account, sourceKind: sourceKind) {
+                    summary.transactionsCreated += 1
+                } else {
+                    summary.transactionsSkipped += 1
+                }
+            }
+        }
+
+        try modelContext.save()
+        return summary
+    }
+
+    private func upsertAccount(_ imported: ImportedAccount, sourceIdentifier: String, summary: inout ImportSummary) throws -> Account {
+        let externalAccountId = imported.id
+        let descriptor = FetchDescriptor<Account>(
+            predicate: #Predicate { account in
+                account.externalAccountId == externalAccountId && account.externalSourceId == sourceIdentifier
+            }
+        )
+        if let existing = try modelContext.fetch(descriptor).first {
+            existing.name = imported.name
+            existing.institutionName = imported.institutionName
+            return existing
+        }
+
+        let account = Account(
+            name: imported.name,
+            type: imported.type,
+            institutionName: imported.institutionName,
+            currencyCode: imported.currencyCode,
+            startingBalance: 0,
+            externalSourceId: sourceIdentifier,
+            externalAccountId: imported.id
+        )
+        modelContext.insert(account)
+        summary.accountsCreated += 1
+        return account
+    }
+
+    private func insertTransactionIfNeeded(_ imported: ImportedTransaction, into account: Account, sourceKind: TransactionSourceKind) throws -> Bool {
+        let externalId = imported.id
+        let descriptor = FetchDescriptor<Transaction>(predicate: #Predicate { $0.externalId == externalId })
+        guard try modelContext.fetch(descriptor).first == nil else { return false }
+
+        let transaction = Transaction(
+            date: imported.date,
+            merchant: imported.merchant,
+            amount: imported.amount,
+            account: account,
+            sourceKind: sourceKind,
+            externalId: imported.id
+        )
+        modelContext.insert(transaction)
+        return true
+    }
+}
