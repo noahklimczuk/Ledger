@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct LedgerApp: App {
     @State private var lockService = AppLockService()
+    @State private var showSplash = true
     @Environment(\.scenePhase) private var scenePhase
 
     private var sharedModelContainer: ModelContainer = {
@@ -24,8 +25,19 @@ struct LedgerApp: App {
                     AppLockView(lockService: lockService)
                         .transition(.opacity)
                 }
+                if showSplash {
+                    SplashView()
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
             }
+            .tint(.accentColor)
             .animation(.default, value: lockService.isUnlocked)
+            .animation(.easeOut(duration: 0.4), value: showSplash)
+            .task {
+                try? await Task.sleep(nanoseconds: 1_300_000_000)
+                showSplash = false
+            }
         }
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase) { _, newPhase in
