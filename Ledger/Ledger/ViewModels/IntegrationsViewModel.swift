@@ -2,6 +2,11 @@ import Foundation
 import Observation
 import SwiftData
 
+/// Drives the "Connect Wealthsimple" screen using **Plaid** (a bank-account aggregator), so the
+/// accounts pulled in are Wealthsimple *Cash*/chequing/savings -- the bank side -- rather than
+/// brokerage/trading accounts. SnapTrade (`SnapTradeTransactionSource`) remains in the project
+/// behind the same `TransactionSource` seam for the investment-account use case, but the primary
+/// connect flow here targets bank accounts.
 @MainActor
 @Observable
 final class IntegrationsViewModel {
@@ -12,16 +17,19 @@ final class IntegrationsViewModel {
     }
 
     var clientId: String = ""
-    var consumerKey: String = ""
+    var secret: String = ""
+    var environment: PlaidEnvironment = .production
     private(set) var connectionState: ConnectionState = .notConfigured
     private(set) var isBusy = false
     private(set) var lastError: String?
     private(set) var lastSyncSummary: TransactionImportService.ImportSummary?
 
-    private let credentialStore = SnapTradeCredentialStore()
-    private let apiClient = SnapTradeAPIClient()
-    private let connectSession = SnapTradeConnectSession()
+    private let credentialStore = PlaidCredentialStore()
+    private let apiClient = PlaidAPIClient()
+    private let connectSession = PlaidConnectSession()
     private let modelContext: ModelContext
+
+    private let completionRedirectURI = "ledger://plaid-callback"
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -30,7 +38,8 @@ final class IntegrationsViewModel {
 
     func refreshState() {
         clientId = credentialStore.clientId ?? ""
-        consumerKey = credentialStore.consumerKey ?? ""
+        secret = credentialStore.secret ?? ""
+        environment = credentialStore.environment
         if credentialStore.isConnected {
             connectionState = .connected
         } else if credentialStore.hasAPICredentials {
@@ -42,13 +51,14 @@ final class IntegrationsViewModel {
 
     func saveAPICredentials() {
         credentialStore.clientId = clientId.trimmingCharacters(in: .whitespacesAndNewlines)
-        credentialStore.consumerKey = consumerKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        credentialStore.secret = secret.trimmingCharacters(in: .whitespacesAndNewlines)
+        credentialStore.environment = environment
         refreshState()
     }
 
     func connectWealthsimple() async {
-        guard let storedClientId = credentialStore.clientId, let storedConsumerKey = credentialStore.consumerKey else {
-            lastError = "Enter your SnapTrade clientId and consumerKey first."
+        guard let storedClientId = credentialStore.clientId, let storedSecret = credentialStore.secret else {
+            lastError = "Enter your Plaid client ID and secret first."
             return
         }
 
@@ -57,31 +67,51 @@ final class IntegrationsViewModel {
         defer { isBusy = false }
 
         do {
-            if credentialStore.userSecret == nil {
-                let registration = try await apiClient.registerUser(
-                    clientId: storedClientId,
-                    consumerKey: storedConsumerKey,
-                    userId: credentialStore.userId
-                )
-                credentialStore.userSecret = registration.userSecret
+            // 1. Create a Hosted Link token and open Plaid's hosted UI.
+            let linkToken = try await apiClient.createLinkToken(
+                clientId: storedClientId,
+                secret: storedSecret,
+                environment: credentialStore.environment,
+                clientUserId: credentialStore.clientUserId,
+                completionRedirectURI: completionRedirectURI
+            )
+            guard let hostedLink = linkToken.hostedLinkUrl, let hostedURL = URL(string: hostedLink) else {
+                throw PlaidAPIClient.ClientError.missingLinkURL
+            }
+            guard let token = linkToken.linkToken else {
+                throw PlaidAPIClient.ClientError.invalidResponse
             }
 
-            guard let credentials = credentialStore.snapshot else {
-                lastError = "Missing SnapTrade credentials."
-                return
+            // 2. Wait for the user to complete (or cancel) the flow.
+            try await connectSession.connect(hostedLinkURL: hostedURL)
+
+            // 3. Retrieve the public token the connection produced, then exchange it.
+            let results = try await apiClient.linkTokenResults(
+                clientId: storedClientId,
+                secret: storedSecret,
+                environment: credentialStore.environment,
+                linkToken: token
+            )
+            guard let publicToken = results.firstPublicToken else {
+                throw PlaidAPIClient.ClientError.noConnectionCompleted
             }
 
-            let login = try await apiClient.generateLoginURL(credentials: credentials, customRedirect: "ledger://snaptrade-callback")
-            guard let portalURL = URL(string: login.redirectURI) else {
-                lastError = "SnapTrade returned an invalid connection URL."
-                return
+            let exchange = try await apiClient.exchangePublicToken(
+                clientId: storedClientId,
+                secret: storedSecret,
+                environment: credentialStore.environment,
+                publicToken: publicToken
+            )
+            guard let accessToken = exchange.accessToken else {
+                throw PlaidAPIClient.ClientError.exchangeFailed
             }
 
-            _ = try await connectSession.connect(portalURL: portalURL)
+            credentialStore.accessToken = accessToken
+            credentialStore.itemId = exchange.itemId
             refreshState()
             await sync()
-        } catch SnapTradeConnectSession.ConnectError.cancelled {
-            // User backed out of the connection portal; nothing to surface as an error.
+        } catch PlaidConnectSession.ConnectError.cancelled {
+            // User backed out of Plaid Link; nothing to surface as an error.
         } catch {
             lastError = error.localizedDescription
         }
@@ -98,9 +128,9 @@ final class IntegrationsViewModel {
         defer { isBusy = false }
 
         do {
-            let source = SnapTradeTransactionSource(credentials: credentials, client: apiClient)
+            let source = PlaidTransactionSource(credentials: credentials, client: apiClient)
             let importService = TransactionImportService(modelContext: modelContext)
-            lastSyncSummary = try await importService.importAll(from: source, sourceKind: .snapTrade)
+            lastSyncSummary = try await importService.importAll(from: source, sourceKind: .plaid)
         } catch {
             lastError = error.localizedDescription
         }

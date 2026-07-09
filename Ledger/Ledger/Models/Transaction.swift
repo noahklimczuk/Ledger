@@ -4,6 +4,7 @@ import SwiftData
 enum TransactionSourceKind: String, Codable {
     case manual
     case snapTrade
+    case plaid
     case csv
     case ofx
 }

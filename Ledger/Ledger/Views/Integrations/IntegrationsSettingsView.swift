@@ -1,9 +1,9 @@
 import SwiftUI
 import SwiftData
 
-/// The only screen for SnapTrade setup + Wealthsimple connection. There's no separate
+/// The only screen for Plaid setup + Wealthsimple *bank-account* connection. There's no separate
 /// "ConnectWealthsimpleView" -- the actual connect flow is driven by ASWebAuthenticationSession
-/// (see SnapTradeConnectSession), which presents its own system UI, so a Connect button here
+/// (see PlaidConnectSession), which presents Plaid's own hosted UI, so a Connect button here
 /// is the entire surface needed.
 struct IntegrationsSettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -14,22 +14,27 @@ struct IntegrationsSettingsView: View {
             if let viewModel {
                 Form {
                     Section {
-                        Text("Ledger uses SnapTrade, a licensed third-party account aggregator, to securely connect your Wealthsimple accounts. Your Wealthsimple credentials are entered on SnapTrade's hosted login page and never touch this app.")
+                        Text("Ledger uses Plaid, a licensed third-party account aggregator, to securely connect your Wealthsimple bank accounts (Wealthsimple Cash, chequing and savings). Your Wealthsimple credentials are entered on Plaid's hosted login page and never touch this app.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
 
-                    Section("SnapTrade API Credentials") {
+                    Section("Plaid API Credentials") {
                         TextField("Client ID", text: Binding(get: { viewModel.clientId }, set: { viewModel.clientId = $0 }))
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
-                        SecureField("Consumer Key", text: Binding(get: { viewModel.consumerKey }, set: { viewModel.consumerKey = $0 }))
+                        SecureField("Secret", text: Binding(get: { viewModel.secret }, set: { viewModel.secret = $0 }))
+                        Picker("Environment", selection: Binding(get: { viewModel.environment }, set: { viewModel.environment = $0 })) {
+                            ForEach(PlaidEnvironment.allCases) { env in
+                                Text(env.displayName).tag(env)
+                            }
+                        }
                         Button("Save Credentials") {
                             viewModel.saveAPICredentials()
                         }
-                        .disabled(viewModel.clientId.isEmpty || viewModel.consumerKey.isEmpty)
+                        .disabled(viewModel.clientId.isEmpty || viewModel.secret.isEmpty)
 
-                        Link("Get API keys at snaptrade.com", destination: URL(string: "https://snaptrade.com")!)
+                        Link("Get API keys at dashboard.plaid.com", destination: URL(string: "https://dashboard.plaid.com")!)
                             .font(.footnote)
                     }
 
