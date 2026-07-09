@@ -3,6 +3,7 @@ import SwiftData
 
 struct AccountListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppRefreshCoordinator.self) private var refresh
     @State private var viewModel: AccountsViewModel?
     @State private var isPresentingNewAccount = false
     @State private var editingAccount: Account?
@@ -60,6 +61,7 @@ struct AccountListView: View {
                 if viewModel == nil { viewModel = AccountsViewModel(modelContext: modelContext) }
                 viewModel?.load()
             }
+            .onChange(of: refresh.refreshCount) { _, _ in viewModel?.load() }
         }
     }
 }
@@ -92,4 +94,5 @@ private struct AccountRow: View {
 #Preview {
     AccountListView()
         .modelContainer(for: LedgerSchema.models, inMemory: true)
+        .environment(AppRefreshCoordinator())
 }

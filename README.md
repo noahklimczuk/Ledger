@@ -80,6 +80,19 @@ Phase 6 (done): automation + a debt tracker.
   sync can't re-create it. The rename/save path no longer reloads the accounts list while the edit
   sheet is still presented.
 
+Phase 7 (done): live balances + a transaction detail screen.
+- **Real reported balances** — a sync now reconciles each linked account's balance to what the
+  institution actually reports (`TransactionImportService.reconcileBalance`), instead of showing the
+  sum of a possibly-incomplete transaction history. It back-solves the starting balance from the
+  reported balance and the transactions on hand, so the dashboard total, account list, and net-worth
+  chart all reflect reality; liability (credit) accounts are stored negative.
+- **Live updates on open** — `AppRefreshCoordinator` is now an `@Observable` injected into the
+  environment; screens reload when a background refresh finishes, so balances and transactions
+  update on startup without needing to re-open a tab.
+- **Transaction detail** — tapping a transaction pushes a detail screen showing the merchant, amount,
+  date, account, and its current category. You can change the category right there (which also
+  teaches the auto-categorization rule), or open the full editor with "Edit".
+
 Not yet: the optional LLM recap, the home screen widget, envelope budgeting mode, multi-currency,
 receipt photos, export, year-in-review, shared/joint view.
 

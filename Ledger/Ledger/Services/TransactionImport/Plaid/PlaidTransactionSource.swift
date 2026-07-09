@@ -31,7 +31,7 @@ struct PlaidTransactionSource: TransactionSource {
                 institutionName: nil,
                 type: Self.accountType(plaidType: dto.type, subtype: dto.subtype),
                 currencyCode: dto.balances?.isoCurrencyCode ?? "CAD",
-                currentBalance: dto.balances?.current ?? 0
+                currentBalance: dto.balances?.current
             )
         }
     }

@@ -6,7 +6,9 @@ struct ImportedAccount: Sendable, Identifiable {
     var institutionName: String?
     var type: AccountType
     var currencyCode: String
-    var currentBalance: Decimal
+    /// The balance the institution reports, if available. Nil when the source can't provide one
+    /// (so the caller leaves the derived balance alone rather than reconciling to a bogus value).
+    var currentBalance: Decimal?
 }
 
 struct ImportedTransaction: Sendable, Identifiable {

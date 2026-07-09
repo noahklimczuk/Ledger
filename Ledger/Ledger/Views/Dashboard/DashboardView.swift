@@ -3,6 +3,7 @@ import SwiftData
 
 struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppRefreshCoordinator.self) private var refresh
     @State private var viewModel: DashboardViewModel?
 
     var body: some View {
@@ -19,6 +20,9 @@ struct DashboardView: View {
                 if viewModel == nil { viewModel = DashboardViewModel(modelContext: modelContext) }
                 viewModel?.load()
             }
+            // Reload once a background refresh (sync + categorize) finishes, so balances and
+            // recent transactions reflect the latest data without needing to re-open the tab.
+            .onChange(of: refresh.refreshCount) { _, _ in viewModel?.load() }
             .refreshable { viewModel?.load() }
         }
     }
@@ -131,4 +135,5 @@ struct DashboardView: View {
 #Preview {
     DashboardView()
         .modelContainer(for: LedgerSchema.models, inMemory: true)
+        .environment(AppRefreshCoordinator())
 }
