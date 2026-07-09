@@ -34,7 +34,7 @@ enum OFXParser {
     }
 
     /// Reads the text after `<TAG>` up to the next `<` or newline.
-    private static func value(of tag: String, in block: Substring) -> String? {
+    private static func value(of tag: String, in block: String) -> String? {
         guard let range = block.range(of: "<\(tag)>") else { return nil }
         let remainder = block[range.upperBound...]
         let terminators = CharacterSet(charactersIn: "<\r\n")
