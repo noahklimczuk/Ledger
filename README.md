@@ -3,7 +3,7 @@
 A private, single-user iOS budgeting app. SwiftUI + SwiftData, targeting iOS 18+, for personal
 sideload/TestFlight use only.
 
-## Status: Phase 3
+## Status: Phase 4
 
 Phase 1 (done): multi-account tracking, manual transaction entry with splits, custom categories,
 monthly budgets with rollover, a dashboard (balances, safe-to-spend, budget progress, recent
@@ -31,8 +31,20 @@ reachable from the More tab.
 - **Bill Reminders** — local notifications only (no server), optional recurrence, notify-days-before,
   swipe "Paid" to advance a recurring bill to its next due date.
 
-Not yet: the rules-based insights engine, the optional LLM recap, the home screen widget, envelope
-budgeting mode, multi-currency, receipt photos, export, year-in-review, shared/joint view.
+Phase 4 (done): rules-based insights, entirely on-device (nothing leaves the phone).
+- **Auto-categorization** — assigning or overriding a transaction's category teaches a
+  `CategorizationRule` (merchant keyword → category, normalized so store numbers don't defeat it).
+  New manual entries with a blank category and every imported/synced transaction (Plaid, CSV, OFX)
+  are auto-categorized from the learned rules; the most specific keyword wins.
+- **Insights engine** (`InsightsEngine`) — six detectors: categories trending up vs their 3-month
+  average, budgets projected to overshoot, duplicate subscriptions, the priciest recurring charge
+  to review, unusually large recent purchases, and leftover-cash change month-over-month.
+- **Insights screen** (More → Insights) — the top few findings as cards, ranked by severity then
+  dollar magnitude; swipe to snooze for a week or dismiss for good (persisted as `InsightState`),
+  refreshed each time the screen opens.
+
+Not yet: the optional LLM recap, the home screen widget, envelope budgeting mode, multi-currency,
+receipt photos, export, year-in-review, shared/joint view.
 
 ## Building
 
