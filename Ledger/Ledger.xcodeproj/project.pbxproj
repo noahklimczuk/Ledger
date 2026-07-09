@@ -10,9 +10,22 @@
 		4F75EF713000036C00641475 /* Ledger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ledger.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4F75EFA13000036C00641475 /* Exceptions for "Ledger" folder in "Ledger" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4F75EF703000036C00641475 /* Ledger */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4F75EF733000036C00641475 /* Ledger */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4F75EFA13000036C00641475 /* Exceptions for "Ledger" folder in "Ledger" target */,
+			);
 			path = Ledger;
 			sourceTree = "<group>";
 		};
