@@ -46,23 +46,31 @@ struct PlaidAPIClient: Sendable {
 
     /// Creates a Hosted Link token. `completionRedirectURI` is the custom-scheme URL Plaid
     /// redirects to when the user finishes (or cancels) the flow, closing the auth session.
+    /// Creates a Hosted Link token. Pass `accessToken` to open Link in **update mode** to
+    /// re-authenticate an existing Item (Plaid requires `products` be omitted in that case);
+    /// otherwise a fresh connection is created.
     func createLinkToken(
         clientId: String,
         secret: String,
         environment: PlaidEnvironment,
         clientUserId: String,
-        completionRedirectURI: String
+        completionRedirectURI: String,
+        accessToken: String? = nil
     ) async throws -> PlaidDTO.LinkTokenCreateResponse {
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "client_id": clientId,
             "secret": secret,
             "client_name": "Ledger",
             "language": "en",
             "country_codes": ["CA"],
             "user": ["client_user_id": clientUserId],
-            "products": ["transactions"],
             "hosted_link": ["completion_redirect_uri": completionRedirectURI]
         ]
+        if let accessToken {
+            body["access_token"] = accessToken
+        } else {
+            body["products"] = ["transactions"]
+        }
         return try await post(environment: environment, path: "/link/token/create", body: body)
     }
 

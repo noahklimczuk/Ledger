@@ -41,17 +41,20 @@ struct IntegrationsSettingsView: View {
                     Section("Wealthsimple") {
                         statusRow(viewModel)
 
-                        if viewModel.connectionState != .notConfigured {
-                            Button {
-                                Task { await viewModel.connectWealthsimple() }
-                            } label: {
-                                if viewModel.isBusy {
-                                    ProgressView()
-                                } else {
-                                    Text(viewModel.connectionState == .connected ? "Reconnect" : "Connect Wealthsimple")
-                                }
+                        if viewModel.connectionState == .connected {
+                            lastSyncedRow(viewModel)
+                        }
+
+                        if viewModel.needsReauth {
+                            Label("Wealthsimple needs you to sign in again to keep syncing.", systemImage: "exclamationmark.triangle.fill")
+                                .font(.footnote)
+                                .foregroundStyle(.orange)
+                        }
+
+                        if viewModel.connectionState == .configuredNotConnected {
+                            actionButton(viewModel, title: "Connect Wealthsimple") {
+                                await viewModel.connectWealthsimple()
                             }
-                            .disabled(viewModel.isBusy)
                         }
 
                         if viewModel.connectionState == .connected {
@@ -60,9 +63,21 @@ struct IntegrationsSettingsView: View {
                             }
                             .disabled(viewModel.isBusy)
 
+                            actionButton(viewModel, title: viewModel.needsReauth ? "Reconnect Wealthsimple" : "Reconnect") {
+                                await viewModel.reconnect()
+                            }
+
                             Button("Disconnect", role: .destructive) {
                                 viewModel.disconnect()
                             }
+                        }
+                    }
+
+                    if viewModel.connectionState == .connected {
+                        Section {
+                            Text("Ledger syncs automatically when you open the app (at most every few hours). Your manual edits are always kept — a re-sync never overwrites a transaction or account you've changed.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
                         }
                     }
 
@@ -106,6 +121,29 @@ struct IntegrationsSettingsView: View {
                 Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
             }
         }
+    }
+
+    private func lastSyncedRow(_ viewModel: IntegrationsViewModel) -> some View {
+        HStack {
+            Text("Last Synced")
+            Spacer()
+            Text(viewModel.lastSyncedAt.map { $0.formatted(.relative(presentation: .named)) } ?? "Never")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func actionButton(_ viewModel: IntegrationsViewModel, title: String, action: @escaping () async -> Void) -> some View {
+        Button {
+            Task { await action() }
+        } label: {
+            if viewModel.isBusy {
+                ProgressView()
+            } else {
+                Text(title)
+            }
+        }
+        .disabled(viewModel.isBusy)
     }
 }
 

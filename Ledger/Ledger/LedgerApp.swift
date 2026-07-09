@@ -41,9 +41,29 @@ struct LedgerApp: App {
         }
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .background {
+            switch newPhase {
+            case .active:
+                let container = sharedModelContainer
+                Task { await Self.syncLinkedAccountsIfStale(container: container) }
+            case .background:
                 lockService.lock()
+            default:
+                break
             }
         }
     }
+
+    /// Auto-sync the linked Plaid connection when the app comes to the foreground, throttled so it
+    /// runs at most once every few hours. Manual "Sync Now" on the Integrations screen is unaffected.
+    @MainActor
+    private static func syncLinkedAccountsIfStale(container: ModelContainer) async {
+        let coordinator = PlaidSyncCoordinator()
+        guard coordinator.isConnected else { return }
+        if let last = coordinator.lastSyncedAt, Date().timeIntervalSince(last) < autoSyncInterval {
+            return
+        }
+        await coordinator.sync(modelContext: container.mainContext)
+    }
+
+    private static let autoSyncInterval: TimeInterval = 6 * 60 * 60
 }
