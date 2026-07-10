@@ -3,6 +3,7 @@ import SwiftData
 
 struct RootTabView: View {
     @State private var selection = 0
+    @State private var tabSwipe = TabSwipeCoordinator()
 
     var body: some View {
         // A paged TabView so the screens can be swiped between left/right. The native tab bar
@@ -15,6 +16,10 @@ struct RootTabView: View {
             MoreView().tag(4)
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
+        // While a screen is pushed inside any tab, the paging swipe is disabled so a horizontal
+        // swipe pops back to the previous screen instead of dragging to the next tab.
+        .scrollDisabled(!tabSwipe.isTabSwipeEnabled)
+        .environment(tabSwipe)
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             CustomTabBar(selection: $selection)
@@ -76,53 +81,53 @@ private struct MoreView: View {
                 }
                 Section("Insights") {
                     NavigationLink {
-                        InsightsView()
+                        InsightsView().disablesTabSwipe()
                     } label: {
                         Label("Insights", systemImage: "sparkles")
                     }
                     NavigationLink {
-                        ReportsView()
+                        ReportsView().disablesTabSwipe()
                     } label: {
                         Label("Reports", systemImage: "chart.bar.xaxis")
                     }
                     NavigationLink {
-                        RecurringView()
+                        RecurringView().disablesTabSwipe()
                     } label: {
                         Label("Recurring", systemImage: "arrow.triangle.2.circlepath")
                     }
                 }
                 Section("Planning") {
                     NavigationLink {
-                        SavingsGoalsView()
+                        SavingsGoalsView().disablesTabSwipe()
                     } label: {
                         Label("Savings Goals", systemImage: "target")
                     }
                     NavigationLink {
-                        DebtListView()
+                        DebtListView().disablesTabSwipe()
                     } label: {
                         Label("Debt Tracker", systemImage: "creditcard.trianglebadge.exclamationmark")
                     }
                     NavigationLink {
-                        BillRemindersView()
+                        BillRemindersView().disablesTabSwipe()
                     } label: {
                         Label("Bill Reminders", systemImage: "bell.badge")
                     }
                 }
                 Section("Organize") {
                     NavigationLink {
-                        CategoryEditorView()
+                        CategoryEditorView().disablesTabSwipe()
                     } label: {
                         Label("Categories", systemImage: "tag.fill")
                     }
                 }
                 Section("Data Sources") {
                     NavigationLink {
-                        IntegrationsSettingsView()
+                        IntegrationsSettingsView().disablesTabSwipe()
                     } label: {
                         Label("Connect Wealthsimple", systemImage: "link")
                     }
                     NavigationLink {
-                        CSVImportView()
+                        CSVImportView().disablesTabSwipe()
                     } label: {
                         Label("Import CSV / OFX", systemImage: "square.and.arrow.down")
                     }

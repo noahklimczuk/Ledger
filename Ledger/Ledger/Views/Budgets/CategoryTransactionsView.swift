@@ -47,6 +47,8 @@ struct CategoryTransactionsView: View {
         .navigationTitle(category.name)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: category.persistentModelID) { load() }
+        // Pushed screen: swiping should go back, not drag to the next tab.
+        .disablesTabSwipe()
     }
 
     private var summaryRow: some View {
