@@ -25,6 +25,9 @@ final class ReportsViewModel {
     var customEnd: Date = .now { didSet { if range == .custom { load() } } }
 
     private(set) var categorySpending: [CategorySpending] = []
+    /// The in-range expense transactions behind each `categorySpending` row (newest first),
+    /// keyed by category name — backs the tap-to-expand drill-down in the category card.
+    private(set) var transactionsByCategory: [String: [Transaction]] = [:]
     private(set) var monthlyFlows: [MonthlyFlow] = []
     private(set) var netWorthPoints: [NetWorthCalculator.Point] = []
     private(set) var totalIncome: Decimal = 0
@@ -69,13 +72,20 @@ final class ReportsViewModel {
 
     private func computeCategorySpending(_ transactions: [Transaction]) {
         // (category name, colorHex) -> summed expense magnitude, attributing split allocations
-        // to their own categories.
+        // to their own categories. Alongside the totals, keep the transactions themselves so a
+        // category row can expand into its list.
         var totals: [String: (colorHex: String, amount: Decimal)] = [:]
+        var byCategory: [String: [Transaction]] = [:]
+        var seen: [String: Set<PersistentIdentifier>] = [:]
 
-        func add(categoryName: String, colorHex: String, amount: Decimal) {
+        func add(categoryName: String, colorHex: String, amount: Decimal, transaction: Transaction) {
             guard amount < 0 else { return }
             let existing = totals[categoryName] ?? (colorHex, 0)
             totals[categoryName] = (existing.colorHex, existing.amount + (-amount))
+            // A transaction split twice into the same category should still list once.
+            if seen[categoryName, default: []].insert(transaction.persistentModelID).inserted {
+                byCategory[categoryName, default: []].append(transaction)
+            }
         }
 
         for transaction in transactions {
@@ -84,14 +94,16 @@ final class ReportsViewModel {
                     add(
                         categoryName: split.category?.name ?? "Uncategorized",
                         colorHex: split.category?.colorHex ?? "#8E8E93",
-                        amount: split.amount
+                        amount: split.amount,
+                        transaction: transaction
                     )
                 }
             } else {
                 add(
                     categoryName: transaction.category?.name ?? "Uncategorized",
                     colorHex: transaction.category?.colorHex ?? "#8E8E93",
-                    amount: transaction.amount
+                    amount: transaction.amount,
+                    transaction: transaction
                 )
             }
         }
@@ -99,6 +111,7 @@ final class ReportsViewModel {
         categorySpending = totals
             .map { CategorySpending(name: $0.key, colorHex: $0.value.colorHex, amount: $0.value.amount) }
             .sorted { $0.amount > $1.amount }
+        transactionsByCategory = byCategory.mapValues { $0.sorted { $0.date > $1.date } }
     }
 
     private func computeMonthlyFlows(_ transactions: [Transaction], interval: DateInterval) {

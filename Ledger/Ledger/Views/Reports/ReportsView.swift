@@ -5,6 +5,8 @@ import SwiftData
 struct ReportsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: ReportsViewModel?
+    /// Name of the category whose transactions are expanded in the category card, if any.
+    @State private var expandedCategory: String?
 
     var body: some View {
         Group {
@@ -129,8 +131,92 @@ struct ReportsView: View {
                 }
                 .chartXAxis(.hidden)
                 .frame(height: CGFloat(viewModel.categorySpending.count) * 40 + 20)
+
+                Divider()
+
+                // Tap a category to drop down its transactions for the selected range.
+                VStack(spacing: 0) {
+                    ForEach(viewModel.categorySpending) { item in
+                        categoryRow(item, viewModel: viewModel)
+                        if item.name != viewModel.categorySpending.last?.name {
+                            Divider()
+                        }
+                    }
+                }
             }
         }
+    }
+
+    @ViewBuilder
+    private func categoryRow(_ item: ReportsViewModel.CategorySpending, viewModel: ReportsViewModel) -> some View {
+        let isExpanded = expandedCategory == item.name
+        let transactions = viewModel.transactionsByCategory[item.name] ?? []
+
+        Button {
+            withAnimation(.spring(duration: 0.3)) {
+                expandedCategory = isExpanded ? nil : item.name
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(Color(hex: item.colorHex))
+                    .frame(width: 10, height: 10)
+                Text(item.name)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.primary)
+                    .lineLimit(1)
+                Text("\(transactions.count)")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color(.systemGray5), in: Capsule())
+                Spacer(minLength: 8)
+                Text(CurrencyFormatter.string(from: item.amount))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.primary)
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .rotationEffect(.degrees(isExpanded ? 180 : 0))
+            }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+
+        if isExpanded {
+            transactionDropDown(transactions)
+        }
+    }
+
+    /// The expanded transaction list. Past a handful of rows it scrolls within a fixed height
+    /// instead of stretching the card off the screen.
+    @ViewBuilder
+    private func transactionDropDown(_ transactions: [Transaction]) -> some View {
+        let rows = VStack(spacing: 0) {
+            ForEach(transactions) { transaction in
+                TransactionRowView(transaction: transaction)
+                if transaction.persistentModelID != transactions.last?.persistentModelID {
+                    Divider().padding(.leading, 44)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+
+        Group {
+            if transactions.count > 5 {
+                ScrollView {
+                    rows
+                }
+                .frame(height: 320)
+            } else {
+                rows
+            }
+        }
+        .background(Color(.systemGray6).opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
+        .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
     // MARK: - Income vs expense
