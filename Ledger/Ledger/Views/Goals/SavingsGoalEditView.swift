@@ -14,6 +14,8 @@ struct SavingsGoalEditView: View {
     @State private var currentAmountText = ""
     @State private var hasTargetDate = false
     @State private var targetDate = Date()
+    @State private var trackedAccount: Account?
+    @State private var accounts: [Account] = []
 
     private let locale = Locale(identifier: "en_CA")
 
@@ -23,9 +25,29 @@ struct SavingsGoalEditView: View {
                 Section("Goal") {
                     TextField("Name", text: $name)
                 }
+                Section {
+                    Picker("Tracked From", selection: $trackedAccount) {
+                        Text("Manual contributions").tag(Account?.none)
+                        ForEach(accounts) { account in
+                            Label(account.name, systemImage: account.type.sfSymbolName)
+                                .tag(Account?.some(account))
+                        }
+                    }
+                    if let trackedAccount {
+                        LabeledContent("Current balance", value: CurrencyFormatter.string(from: max(trackedAccount.currentBalance, 0)))
+                    }
+                } header: {
+                    Text("Progress Source")
+                } footer: {
+                    Text(trackedAccount == nil
+                         ? "Track progress by hand with Add Money, or link an account so the goal follows its real balance."
+                         : "The goal follows this account's balance automatically — money you move into it counts toward the goal, no manual updates needed.")
+                }
                 Section("Amounts") {
                     TextField("Target amount", text: $targetAmountText).keyboardType(.decimalPad)
-                    TextField("Saved so far", text: $currentAmountText).keyboardType(.decimalPad)
+                    if trackedAccount == nil {
+                        TextField("Saved so far", text: $currentAmountText).keyboardType(.decimalPad)
+                    }
                 }
                 Section("Target Date") {
                     Toggle("Set a target date", isOn: $hasTargetDate)
@@ -57,12 +79,19 @@ struct SavingsGoalEditView: View {
     }
 
     private func populate() {
+        let descriptor = FetchDescriptor<Account>(
+            predicate: #Predicate { !$0.isArchived },
+            sortBy: [SortDescriptor(\.name)]
+        )
+        accounts = (try? modelContext.fetch(descriptor)) ?? []
+
         guard let goal else { return }
         name = goal.name
         symbol = goal.sfSymbolName
         colorHex = goal.colorHex
         targetAmountText = NSDecimalNumber(decimal: goal.targetAmount).stringValue
         currentAmountText = NSDecimalNumber(decimal: goal.currentAmount).stringValue
+        trackedAccount = goal.account
         if let date = goal.targetDate {
             hasTargetDate = true
             targetDate = date
@@ -76,9 +105,9 @@ struct SavingsGoalEditView: View {
 
         let viewModel = SavingsGoalsViewModel(modelContext: modelContext)
         if let goal {
-            viewModel.updateGoal(goal, name: name, sfSymbolName: symbol, colorHex: colorHex, targetAmount: target, currentAmount: current, targetDate: date)
+            viewModel.updateGoal(goal, name: name, sfSymbolName: symbol, colorHex: colorHex, targetAmount: target, currentAmount: current, targetDate: date, account: trackedAccount)
         } else {
-            viewModel.addGoal(name: name, sfSymbolName: symbol, colorHex: colorHex, targetAmount: target, currentAmount: current, targetDate: date)
+            viewModel.addGoal(name: name, sfSymbolName: symbol, colorHex: colorHex, targetAmount: target, currentAmount: current, targetDate: date, account: trackedAccount)
         }
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
