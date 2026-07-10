@@ -55,7 +55,8 @@ final class ReportsViewModel {
         let interval = range.interval(customStart: customStart, customEnd: customEnd)
 
         let descriptor = FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date)])
-        let allTransactions = (try? modelContext.fetch(descriptor)) ?? []
+        let allTransactions = ((try? modelContext.fetch(descriptor)) ?? [])
+            .filter(\.countsTowardTotals)
         let inRange = allTransactions.filter { $0.date >= interval.start && $0.date < interval.end }
 
         computeCategorySpending(inRange)
@@ -64,7 +65,7 @@ final class ReportsViewModel {
         totalIncome = inRange.filter { $0.amount > 0 }.reduce(Decimal(0)) { $0 + $1.amount }
         totalExpense = inRange.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
 
-        let accounts = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
+        let accounts = ((try? modelContext.fetch(FetchDescriptor<Account>())) ?? []).filter { !$0.isArchived }
         netWorthPoints = NetWorthCalculator.monthlySeries(accounts: accounts, transactions: allTransactions, interval: interval)
 
         hasData = !inRange.isEmpty

@@ -51,7 +51,8 @@ final class DashboardViewModel {
         let monthEnd = calendar.date(byAdding: DateComponents(month: 1), to: monthStart) ?? monthStart
 
         let transactionDescriptor = FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date, order: .reverse)])
-        let allTransactions = (try? modelContext.fetch(transactionDescriptor)) ?? []
+        let allTransactions = ((try? modelContext.fetch(transactionDescriptor)) ?? [])
+            .filter(\.countsTowardTotals)
         recentTransactions = Array(allTransactions.prefix(5))
 
         let monthTransactions = allTransactions.filter { $0.date >= monthStart && $0.date < monthEnd }

@@ -59,11 +59,12 @@ final class SavingsGoal {
         return min(max(value, 0), 1)
     }
 
-    /// Contribution per month needed to hit the target by `targetDate`, or nil if no date/overdue.
+    /// Contribution per month needed to hit the target by `targetDate`, or nil if no date or the
+    /// date has passed. Inside the final month the whole remaining amount is due.
     var requiredMonthlyContribution: Decimal? {
-        guard let targetDate, !isComplete else { return nil }
+        guard let targetDate, !isComplete, targetDate > .now else { return nil }
         let months = Calendar.current.dateComponents([.month], from: .now, to: targetDate).month ?? 0
-        guard months > 0 else { return nil }
+        guard months > 0 else { return remaining }
         return remaining / Decimal(months)
     }
 }

@@ -123,7 +123,8 @@ final class BudgetsViewModel {
 
         let budgets = (try? modelContext.fetch(FetchDescriptor<Budget>(predicate: #Predicate { $0.month == month }))) ?? []
         let previousBudgets = (try? modelContext.fetch(FetchDescriptor<Budget>(predicate: #Predicate { $0.month == previousMonth }))) ?? []
-        let allTransactions = (try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? []
+        let allTransactions = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
+            .filter(\.countsTowardTotals)
 
         let budgetedIds = Set(budgets.compactMap { $0.category?.persistentModelID })
         let previousBudgetedIds = Set(previousBudgets.compactMap { $0.category?.persistentModelID })
@@ -286,7 +287,8 @@ final class BudgetsViewModel {
         let month = selectedMonth
         guard let windowStart = calendar.date(byAdding: .month, value: -months, to: month) else { return 0 }
 
-        let allTransactions = (try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? []
+        let allTransactions = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
+            .filter(\.countsTowardTotals)
         let inWindow = allTransactions.filter { $0.date >= windowStart && $0.date < month && $0.amount < 0 }
 
         var totals: [PersistentIdentifier: Decimal] = [:]

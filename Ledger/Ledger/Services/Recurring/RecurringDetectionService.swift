@@ -26,7 +26,8 @@ final class RecurringDetectionService {
     /// Re-runs detection and upserts results. User `isIgnored` choices are preserved; series that
     /// are no longer detected (and weren't ignored) are removed.
     func refresh() {
-        let transactions = (try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? []
+        let transactions = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
+            .filter(\.countsTowardTotals)
         let detected = detect(in: transactions)
         let detectedKeys = Set(detected.map(\.merchantKey))
 

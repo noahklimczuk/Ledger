@@ -25,7 +25,7 @@ struct IntegrationsSettingsView: View {
                             .autocorrectionDisabled()
                         SecureField("Secret", text: Binding(get: { viewModel.secret }, set: { viewModel.secret = $0 }))
                         Picker("Environment", selection: Binding(get: { viewModel.environment }, set: { viewModel.environment = $0 })) {
-                            ForEach(PlaidEnvironment.allCases) { env in
+                            ForEach(PlaidEnvironment.selectableCases) { env in
                                 Text(env.displayName).tag(env)
                             }
                         }

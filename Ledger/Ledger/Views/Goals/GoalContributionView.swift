@@ -12,11 +12,10 @@ struct GoalContributionView: View {
     @State private var amountText = ""
     @FocusState private var amountFocused: Bool
 
-    private static let locale = Locale(identifier: "en_CA")
     private let quickAmounts: [Decimal] = [25, 50, 100, 250]
 
     private var amount: Decimal? {
-        guard let value = Decimal(string: amountText.trimmingCharacters(in: .whitespaces), locale: Self.locale),
+        guard let value = ImportValueParsing.decimal(from: amountText.trimmingCharacters(in: .whitespaces)),
               value > 0 else { return nil }
         return value
     }
@@ -102,7 +101,7 @@ struct GoalContributionView: View {
             ForEach(quickAmounts, id: \.self) { chip in
                 Button {
                     // Chips stack onto whatever's typed, so $100 + $25 + $25 is three taps.
-                    let current = Decimal(string: amountText.trimmingCharacters(in: .whitespaces), locale: Self.locale) ?? 0
+                    let current = ImportValueParsing.decimal(from: amountText.trimmingCharacters(in: .whitespaces)) ?? 0
                     amountText = NSDecimalNumber(decimal: current + chip).stringValue
                 } label: {
                     Text("+\(CurrencyFormatter.string(from: chip))")

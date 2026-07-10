@@ -89,6 +89,7 @@ struct CategoryTransactionsView: View {
             transaction.date >= monthStart
                 && transaction.date < monthEnd
                 && transaction.category?.persistentModelID == categoryId
+                && transaction.countsTowardTotals
         }
     }
 }

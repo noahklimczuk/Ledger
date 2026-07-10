@@ -14,8 +14,6 @@ struct BillReminderEditView: View {
     @State private var cadence: RecurrenceCadence = .monthly
     @State private var notifyDaysBefore = 1
 
-    private let locale = Locale(identifier: "en_CA")
-
     var body: some View {
         NavigationStack {
             Form {
@@ -47,7 +45,7 @@ struct BillReminderEditView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
                         .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            || Decimal(string: amountText, locale: locale) == nil)
+                            || ImportValueParsing.decimal(from: amountText) == nil)
                 }
             }
             .onAppear(perform: populate)
@@ -67,7 +65,7 @@ struct BillReminderEditView: View {
     }
 
     private func save() {
-        guard let amount = Decimal(string: amountText, locale: locale) else { return }
+        guard let amount = ImportValueParsing.decimal(from: amountText) else { return }
         let selectedCadence = isRecurring ? cadence : nil
         let viewModel = BillRemindersViewModel(modelContext: modelContext)
 

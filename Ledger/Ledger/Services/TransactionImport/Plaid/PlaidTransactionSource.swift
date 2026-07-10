@@ -46,6 +46,7 @@ struct PlaidTransactionSource: TransactionSource {
         while true {
             let page = try await client.transactions(
                 credentials: credentials,
+                accountId: accountExternalId,
                 startDate: startDate,
                 endDate: endDate,
                 offset: offset,
@@ -60,8 +61,13 @@ struct PlaidTransactionSource: TransactionSource {
         }
 
         return collected
-            // Plaid returns transactions across every linked account in one call; keep only this account's.
-            .filter { $0.accountId == accountExternalId }
+            // The request is already scoped to this account via `account_ids`; keep the filter as
+            // a safety net in case Plaid ignores the option.
+            .filter { $0.accountId == nil || $0.accountId == accountExternalId }
+            // Pending transactions get a *new* transaction_id once they post, so importing one now
+            // leaves a duplicate behind that externalId dedup can never catch (and the pending
+            // amount can still change). Skip them; the posted version arrives on a later sync.
+            .filter { $0.pending != true }
             .compactMap { dto -> ImportedTransaction? in
                 guard let plaidAmount = dto.amount else { return nil }
                 return ImportedTransaction(

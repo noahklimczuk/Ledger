@@ -21,7 +21,8 @@ final class InsightsViewModel {
         // Recurring screen first. (This persists its own results.)
         RecurringDetectionService(modelContext: modelContext).refresh()
 
-        let transactions = (try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? []
+        let transactions = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
+            .filter(\.countsTowardTotals)
         let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
         let recurring = (try? modelContext.fetch(FetchDescriptor<RecurringSeries>())) ?? []
 

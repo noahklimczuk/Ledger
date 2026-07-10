@@ -21,7 +21,6 @@ final class TransactionEditViewModel {
 
     private let modelContext: ModelContext
     private let existingTransaction: Transaction?
-    private static let decimalLocale = Locale(identifier: "en_CA")
 
     var isEditing: Bool { existingTransaction != nil }
 
@@ -41,11 +40,11 @@ final class TransactionEditViewModel {
     }
 
     var amount: Decimal? {
-        Decimal(string: amountText, locale: Self.decimalLocale)
+        ImportValueParsing.decimal(from: amountText)
     }
 
     var splitTotal: Decimal {
-        splits.reduce(Decimal(0)) { $0 + (Decimal(string: $1.amountText, locale: Self.decimalLocale) ?? 0) }
+        splits.reduce(Decimal(0)) { $0 + (ImportValueParsing.decimal(from: $1.amountText) ?? 0) }
     }
 
     var isSplitValid: Bool {
@@ -110,7 +109,7 @@ final class TransactionEditViewModel {
         transaction.splits = []
 
         for draft in splits {
-            guard let amount = Decimal(string: draft.amountText, locale: Self.decimalLocale) else { continue }
+            guard let amount = ImportValueParsing.decimal(from: draft.amountText) else { continue }
             let split = SplitAllocation(amount: amount, category: draft.category)
             split.transaction = transaction
             modelContext.insert(split)
