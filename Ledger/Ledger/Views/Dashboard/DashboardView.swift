@@ -22,13 +22,13 @@ struct DashboardView: View {
             .task {
                 if viewModel == nil { viewModel = DashboardViewModel(modelContext: modelContext) }
                 viewModel?.load()
-                isCheckInDue = WeeklyCheckInViewModel.isDue()
+                isCheckInDue = DailyCheckInViewModel.isDue()
             }
             .sheet(isPresented: $isPresentingCheckIn, onDismiss: {
-                isCheckInDue = WeeklyCheckInViewModel.isDue()
+                isCheckInDue = DailyCheckInViewModel.isDue()
                 viewModel?.load()
             }) {
-                WeeklyCheckInView()
+                DailyCheckInView()
             }
             // Reload once a background refresh (sync + categorize) finishes, so balances and
             // recent transactions reflect the latest data without needing to re-open the tab.
@@ -65,7 +65,7 @@ struct DashboardView: View {
         }
     }
 
-    /// Shown when a week has passed since the last check-in — the ritual only sticks if the app
+    /// Shown on days the check-in hasn't been done yet — the ritual only sticks if the app
     /// does the remembering.
     private var checkInCard: some View {
         Button {
@@ -78,10 +78,10 @@ struct DashboardView: View {
                     .frame(width: 36, height: 36)
                     .background(LinearGradient.brand, in: Circle())
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Weekly Check-In")
+                    Text("Daily Check-In")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.primary)
-                    Text("2 minutes to review the week and zero out your plan")
+                    Text("2 minutes to review today and keep the plan at zero")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

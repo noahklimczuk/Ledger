@@ -71,7 +71,7 @@ private struct MoreView: View {
                     Button {
                         isPresentingCheckIn = true
                     } label: {
-                        Label("Weekly Check-In", systemImage: "checklist")
+                        Label("Daily Check-In", systemImage: "checklist")
                     }
                 }
                 Section("Insights") {
@@ -130,7 +130,7 @@ private struct MoreView: View {
             }
             .navigationTitle("More")
             .sheet(isPresented: $isPresentingCheckIn) {
-                WeeklyCheckInView()
+                DailyCheckInView()
             }
         }
     }
