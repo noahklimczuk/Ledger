@@ -22,17 +22,6 @@
 	<string>1</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Ledger uses Face ID to keep your accounts and transactions private.</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.noah.Ledger.plaid</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>ledger</string>
-			</array>
-		</dict>
-	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -33,7 +33,7 @@ final class AppRefreshCoordinator {
         let context = container.mainContext
         DefaultDataSeeder.seedIfNeeded(modelContext: context)
 
-        let coordinator = PlaidSyncCoordinator()
+        let coordinator = WealthsimpleSyncCoordinator()
         if coordinator.isConnected {
             await coordinator.sync(modelContext: context)
         }

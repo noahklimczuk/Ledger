@@ -2,8 +2,8 @@ import Foundation
 import Security
 
 /// Thin wrapper around the Keychain Services API. Used for anything secret that must
-/// survive app restarts without ever touching UserDefaults or plaintext files: Plaid
-/// API credentials, the per-Item access token, etc.
+/// survive app restarts without ever touching UserDefaults or plaintext files: the
+/// Wealthsimple session tokens, the Anthropic API key, etc.
 enum KeychainService {
     enum KeychainError: Error {
         case unexpectedStatus(OSStatus)

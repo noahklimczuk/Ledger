@@ -14,7 +14,7 @@ final class AccountsViewModel {
 
     func load() {
         // Only show accounts the user is actively tracking. Archived accounts stay in the store
-        // (so a linked account can't be re-created by the next Plaid sync) but are hidden here.
+        // (so a linked account can't be re-created by the next Wealthsimple sync) but are hidden here.
         let descriptor = FetchDescriptor<Account>(
             predicate: #Predicate { !$0.isArchived },
             sortBy: [SortDescriptor(\.name)]
@@ -45,7 +45,7 @@ final class AccountsViewModel {
     }
 
     /// Removes an account the user no longer wants to track. A purely manual account is deleted
-    /// outright; a linked (Plaid) account is archived instead — deleting it would let the next sync
+    /// outright; a linked (Wealthsimple) account is archived instead — deleting it would let the next sync
     /// re-create it from the institution, which is exactly the "deleted accounts come back" bug.
     /// Archiving keeps the row for dedup but hides it and excludes it from future syncs.
     func remove(_ account: Account) {

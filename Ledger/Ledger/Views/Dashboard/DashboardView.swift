@@ -89,7 +89,7 @@ struct DashboardView: View {
                     number: 2,
                     symbol: "link",
                     title: "Or connect Wealthsimple",
-                    detail: "More → Connect Wealthsimple pulls in accounts and transactions automatically via Plaid."
+                    detail: "More → Connect Wealthsimple signs in with your Wealthsimple login and pulls in your Cash account and transactions automatically."
                 )
                 onboardingStep(
                     number: 3,

@@ -42,7 +42,7 @@ final class Account {
     var createdAt: Date
 
     /// Non-nil when this account originated from (or is linked to) an external TransactionSource,
-    /// e.g. "plaid". Nil for purely manual accounts.
+    /// e.g. "wealthsimple". Nil for purely manual accounts.
     var externalSourceId: String?
     var externalAccountId: String?
 

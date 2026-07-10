@@ -24,7 +24,7 @@ struct ImportedTransaction: Sendable, Identifiable {
 ///
 /// Manual entry does **not** go through this protocol -- it writes directly to SwiftData via
 /// `TransactionEditViewModel`. This protocol exists purely for bulk/external ingestion: CSV/OFX
-/// import and Plaid (bank/cash accounts) today, with room for another source to slot in later
+/// import and Wealthsimple (bank/cash accounts) today, with room for another source to slot in later
 /// behind the same interface without touching any call sites.
 protocol TransactionSource: Sendable {
     var sourceIdentifier: String { get }
