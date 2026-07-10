@@ -16,7 +16,6 @@ final class RecurringViewModel {
     private(set) var activeSeries: [RecurringSeries] = []
     private(set) var ignoredSeries: [RecurringSeries] = []
     private(set) var upcoming: [UpcomingCharge] = []
-    private(set) var isDetecting = false
 
     /// Recurring income streams (paycheques, interest, regular deposits), grouped for display.
     var incomeSeries: [RecurringSeries] { activeSeries.filter(\.isIncome) }
@@ -42,9 +41,7 @@ final class RecurringViewModel {
 
     func load(runDetection: Bool = true) {
         if runDetection {
-            isDetecting = true
             RecurringDetectionService(modelContext: modelContext).refresh()
-            isDetecting = false
         }
 
         let all = (try? modelContext.fetch(FetchDescriptor<RecurringSeries>(

@@ -21,7 +21,6 @@ final class DashboardViewModel {
     /// Upcoming bills + detected recurring charges reserved out of Safe to Spend this month.
     private(set) var reservedForBills: Decimal = 0
     private(set) var topCategories: [CategorySlice] = []
-    private(set) var isLoading = false
 
     /// Income minus spending for the current month.
     var monthNet: Decimal { monthIncome - monthSpending }
@@ -37,9 +36,6 @@ final class DashboardViewModel {
     }
 
     func load() {
-        isLoading = true
-        defer { isLoading = false }
-
         let accountDescriptor = FetchDescriptor<Account>(
             predicate: #Predicate { !$0.isArchived },
             sortBy: [SortDescriptor(\.name)]

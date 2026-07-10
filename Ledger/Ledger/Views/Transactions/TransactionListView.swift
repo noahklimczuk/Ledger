@@ -9,7 +9,7 @@ struct TransactionListView: View {
     @Query(sort: [SortDescriptor(\Transaction.date, order: .reverse)]) private var allTransactions: [Transaction]
 
     @State private var searchText = ""
-    @State private var filter = TransactionListViewModel.Filter()
+    @State private var filter = TransactionFilter()
     @State private var isPresentingNewTransaction = false
     @State private var isPresentingFilters = false
 
