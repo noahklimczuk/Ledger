@@ -18,6 +18,8 @@ final class DashboardViewModel {
     private(set) var monthIncome: Decimal = 0
     private(set) var monthBudgetTotal: Decimal = 0
     private(set) var safeToSpend: Decimal = 0
+    /// Upcoming bills + detected recurring charges reserved out of Safe to Spend this month.
+    private(set) var reservedForBills: Decimal = 0
     private(set) var topCategories: [CategorySlice] = []
     private(set) var isLoading = false
 
@@ -61,7 +63,17 @@ final class DashboardViewModel {
         let budgets = (try? modelContext.fetch(budgetDescriptor)) ?? []
         monthBudgetTotal = budgets.reduce(Decimal(0)) { $0 + $1.allocatedAmount }
 
-        safeToSpend = SafeToSpendCalculator.calculate(income: monthIncome, budgetAllocations: monthBudgetTotal)
+        // Reserve money that's already spoken for — upcoming bills and detected recurring
+        // charges — so Safe to Spend never shows rent money as spendable.
+        let bills = (try? modelContext.fetch(FetchDescriptor<BillReminder>())) ?? []
+        let recurring = (try? modelContext.fetch(FetchDescriptor<RecurringSeries>())) ?? []
+        reservedForBills = SafeToSpendCalculator.upcomingCommitments(bills: bills, recurring: recurring)
+
+        safeToSpend = SafeToSpendCalculator.calculate(
+            income: monthIncome,
+            budgetAllocations: monthBudgetTotal,
+            committedBills: reservedForBills
+        )
     }
 
     /// The month's biggest spending categories (split-aware), for the dashboard breakdown chart.

@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UserNotifications
 
 @main
 struct LedgerApp: App {
@@ -7,6 +8,12 @@ struct LedgerApp: App {
     @State private var refreshCoordinator = AppRefreshCoordinator()
     @State private var showSplash = true
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        // Budget guardrail alerts fire while the app is foregrounded (the sync loop only runs
+        // then); the delegate lets them present as banners instead of arriving silently.
+        UNUserNotificationCenter.current().delegate = NotificationCenterDelegate.shared
+    }
 
     private var sharedModelContainer: ModelContainer = {
         let schema = Schema(LedgerSchema.models)
