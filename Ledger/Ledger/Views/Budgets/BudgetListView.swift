@@ -14,6 +14,7 @@ struct BudgetListView: View {
     @State private var isEditingIncome = false
     @State private var isConfirmingAutoGenerate = false
     @State private var autoGenerateResult: String?
+    @State private var isPresentingSuggestion = false
 
     var body: some View {
         NavigationStack {
@@ -60,6 +61,9 @@ struct BudgetListView: View {
                         Button { isEditingIncome = true } label: {
                             Label("Set Monthly Income", systemImage: "dollarsign.circle")
                         }
+                        Button { isPresentingSuggestion = true } label: {
+                            Label("Suggest a Budget", systemImage: "sparkles")
+                        }
                         Button { isConfirmingAutoGenerate = true } label: {
                             Label("Auto-Generate from Last 3 Months", systemImage: "wand.and.stars")
                         }
@@ -87,6 +91,11 @@ struct BudgetListView: View {
                 Button("OK", role: .cancel) { autoGenerateResult = nil }
             } message: {
                 Text(autoGenerateResult ?? "")
+            }
+            .sheet(isPresented: $isPresentingSuggestion, onDismiss: { viewModel?.load() }) {
+                if let viewModel {
+                    BudgetSuggestionView(month: viewModel.selectedMonth)
+                }
             }
             .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {
                 if let viewModel {
@@ -380,15 +389,15 @@ struct BudgetListView: View {
                 .multilineTextAlignment(.center)
             HStack(spacing: 12) {
                 Button {
-                    isPresentingNew = true
+                    isPresentingSuggestion = true
                 } label: {
-                    Label("Add Budget", systemImage: "plus")
+                    Label("Suggest a Budget", systemImage: "sparkles")
                 }
                 .buttonStyle(.borderedProminent)
                 Button {
-                    isConfirmingAutoGenerate = true
+                    isPresentingNew = true
                 } label: {
-                    Label("Auto-Generate", systemImage: "wand.and.stars")
+                    Label("Add Budget", systemImage: "plus")
                 }
                 .buttonStyle(.bordered)
             }
