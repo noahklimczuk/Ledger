@@ -1,10 +1,13 @@
 import Foundation
 import SwiftData
 
-/// Just-in-time budget alerts, run after every sync: a heads-up when a category crosses 80% of
-/// its budget, an alert when it goes over, and a pace warning when overall spending is running
-/// ahead of the calendar. Each threshold fires **once per category per month** (state kept in
-/// UserDefaults), so the 5-minute sync loop never turns into notification spam.
+/// Just-in-time budget alerts: a heads-up when a category crosses 80% of its budget, an alert when
+/// it goes over, and a pace warning when overall spending is running ahead of the calendar.
+///
+/// Frequency is deliberately conservative so the sync loop never turns into notification spam:
+/// the whole check runs **at most once per day** (`minimumRunInterval`), each category threshold
+/// fires **once per category per month**, and the pace warning has its own multi-day cooldown.
+/// State lives in UserDefaults.
 ///
 /// Reuses `BudgetsViewModel` for the numbers so alerts always agree with the Budgets tab —
 /// netted refunds, subcategory rollup, rollover and all.
@@ -15,15 +18,21 @@ struct BudgetGuardrailService {
         /// Category key → highest tier already notified (1 = approaching, 2 = over budget).
         var notifiedTiers: [String: Int] = [:]
         var lastPaceAlertAt: Date?
+        /// When the guardrail check last actually ran, used to throttle the whole thing to at most
+        /// once per day regardless of how often syncs (and therefore this check) are triggered.
+        var lastRunAt: Date?
     }
 
     private static let stateKey = "budgetGuardrails.state"
     /// At most this many category alerts per run; anything beyond trickles out on later syncs
     /// instead of arriving as a burst the first time guardrails see an old over-spent month.
     private static let maxAlertsPerRun = 3
+    /// The whole check runs at most this often. Syncs happen on every foreground and every few
+    /// minutes; without this, guardrails would re-evaluate (and potentially notify) far too often.
+    private static let minimumRunInterval: TimeInterval = 24 * 60 * 60
     /// How far ahead of the calendar (in budget share) overall spending must be to warn.
     private static let paceSlack = 0.15
-    private static let paceAlertCooldown: TimeInterval = 4 * 24 * 60 * 60
+    private static let paceAlertCooldown: TimeInterval = 14 * 24 * 60 * 60
 
     private let modelContext: ModelContext
     private let defaults = UserDefaults.standard
@@ -33,12 +42,20 @@ struct BudgetGuardrailService {
     }
 
     func checkAndNotify() async {
+        var state = loadState()
+
+        // Throttle the whole check to once a day. Syncs fire on every foreground and every few
+        // minutes, so without this the guardrails would re-run constantly.
+        if let lastRun = state.lastRunAt, Date().timeIntervalSince(lastRun) < Self.minimumRunInterval {
+            return
+        }
+
         guard await NotificationService.ensureQuietAuthorization() else { return }
 
         let viewModel = BudgetsViewModel(modelContext: modelContext)
         viewModel.selectedMonth = Budget.normalize(.now)
 
-        var state = loadState()
+        state.lastRunAt = Date()
         state = await notifyCategoryCrossings(viewModel: viewModel, state: state)
         state = await notifyPace(viewModel: viewModel, state: state)
         saveState(state)
