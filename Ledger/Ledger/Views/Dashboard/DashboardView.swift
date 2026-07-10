@@ -6,6 +6,8 @@ struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppRefreshCoordinator.self) private var refresh
     @State private var viewModel: DashboardViewModel?
+    @State private var isPresentingCheckIn = false
+    @State private var isCheckInDue = false
 
     var body: some View {
         NavigationStack {
@@ -20,6 +22,13 @@ struct DashboardView: View {
             .task {
                 if viewModel == nil { viewModel = DashboardViewModel(modelContext: modelContext) }
                 viewModel?.load()
+                isCheckInDue = WeeklyCheckInViewModel.isDue()
+            }
+            .sheet(isPresented: $isPresentingCheckIn, onDismiss: {
+                isCheckInDue = WeeklyCheckInViewModel.isDue()
+                viewModel?.load()
+            }) {
+                WeeklyCheckInView()
             }
             // Reload once a background refresh (sync + categorize) finishes, so balances and
             // recent transactions reflect the latest data without needing to re-open the tab.
@@ -40,6 +49,9 @@ struct DashboardView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    if isCheckInDue {
+                        checkInCard
+                    }
                     balanceCard(viewModel)
                     monthSummaryCard(viewModel)
                     incomeExpenseChartCard(viewModel)
@@ -51,6 +63,37 @@ struct DashboardView: View {
                 .padding()
             }
         }
+    }
+
+    /// Shown when a week has passed since the last check-in — the ritual only sticks if the app
+    /// does the remembering.
+    private var checkInCard: some View {
+        Button {
+            isPresentingCheckIn = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "checklist")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(LinearGradient.brand, in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Weekly Check-In")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.primary)
+                    Text("2 minutes to review the week and zero out your plan")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding()
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
     }
 
     private func balanceCard(_ viewModel: DashboardViewModel) -> some View {
@@ -168,6 +211,11 @@ struct DashboardView: View {
                 Text(CurrencyFormatter.string(from: viewModel.safeToSpend))
                     .font(.title2.bold())
                     .foregroundStyle(viewModel.safeToSpend < 0 ? Color.red : Color.primary)
+                if viewModel.reservedForBills > 0 {
+                    Text("After reserving \(CurrencyFormatter.string(from: viewModel.reservedForBills)) for upcoming bills")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer()
             Image(systemName: viewModel.safeToSpend < 0 ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")

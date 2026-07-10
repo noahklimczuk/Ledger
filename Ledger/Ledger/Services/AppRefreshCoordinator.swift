@@ -42,6 +42,10 @@ final class AppRefreshCoordinator {
         CategorizationService(modelContext: context).categorizeAllUncategorized()
         RecurringDetectionService(modelContext: context).refresh()
 
+        // With the freshest numbers in hand, fire any budget guardrail alerts (80% / over /
+        // ahead-of-pace) that newly imported spending just tripped.
+        await BudgetGuardrailService(modelContext: context).checkAndNotify()
+
         lastRefreshedAt = .now
         refreshCount += 1
     }

@@ -62,9 +62,18 @@ private struct CustomTabBar: View {
 }
 
 private struct MoreView: View {
+    @State private var isPresentingCheckIn = false
+
     var body: some View {
         NavigationStack {
             List {
+                Section("Routine") {
+                    Button {
+                        isPresentingCheckIn = true
+                    } label: {
+                        Label("Weekly Check-In", systemImage: "checklist")
+                    }
+                }
                 Section("Insights") {
                     NavigationLink {
                         InsightsView()
@@ -120,6 +129,9 @@ private struct MoreView: View {
                 }
             }
             .navigationTitle("More")
+            .sheet(isPresented: $isPresentingCheckIn) {
+                WeeklyCheckInView()
+            }
         }
     }
 }
