@@ -1,7 +1,7 @@
 import Foundation
 
 /// Minimal hand-rolled client for the Anthropic Messages API (no SDK dependency, same approach
-/// as `PlaidAPIClient`). Used for exactly one thing: turning the on-device budget summary
+/// as `WealthsimpleAPIClient`). Used for exactly one thing: turning the on-device budget summary
 /// (aggregated per-category monthly totals — never raw transactions, merchants, accounts, or
 /// balances) into suggested amounts with a plain-English rationale. The API key comes from the
 /// user's own Anthropic console, is stored in the Keychain only, and the feature degrades to the

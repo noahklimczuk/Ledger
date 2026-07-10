@@ -1,10 +1,10 @@
 import SwiftUI
 import SwiftData
 
-/// The only screen for Plaid setup + Wealthsimple *bank-account* connection. There's no separate
-/// "ConnectWealthsimpleView" -- the actual connect flow is driven by ASWebAuthenticationSession
-/// (see PlaidConnectSession), which presents Plaid's own hosted UI, so a Connect button here
-/// is the entire surface needed.
+/// The screen for connecting a Wealthsimple **Cash** account directly, using the user's own
+/// Wealthsimple login. There's no aggregator and no API keys -- just email/password and, when
+/// prompted, a 2-step verification code. The resulting session is stored in the Keychain and used
+/// to sync accounts + activity (`IntegrationsViewModel` → `WealthsimpleSyncCoordinator`).
 struct IntegrationsSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: IntegrationsViewModel?
@@ -14,28 +14,13 @@ struct IntegrationsSettingsView: View {
             if let viewModel {
                 Form {
                     Section {
-                        Text("Ledger uses Plaid, a licensed third-party account aggregator, to securely connect your Wealthsimple bank accounts (Wealthsimple Cash, chequing and savings). Your Wealthsimple credentials are entered on Plaid's hosted login page and never touch this app.")
+                        Text("Ledger connects directly to Wealthsimple with your own login to pull in your Wealthsimple Cash account and its transactions. Your email and password are sent only to Wealthsimple to sign in — Ledger keeps just the resulting secure token, in the iOS Keychain.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
 
-                    Section("Plaid API Credentials") {
-                        TextField("Client ID", text: Binding(get: { viewModel.clientId }, set: { viewModel.clientId = $0 }))
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        SecureField("Secret", text: Binding(get: { viewModel.secret }, set: { viewModel.secret = $0 }))
-                        Picker("Environment", selection: Binding(get: { viewModel.environment }, set: { viewModel.environment = $0 })) {
-                            ForEach(PlaidEnvironment.selectableCases) { env in
-                                Text(env.displayName).tag(env)
-                            }
-                        }
-                        Button("Save Credentials") {
-                            viewModel.saveAPICredentials()
-                        }
-                        .disabled(viewModel.clientId.isEmpty || viewModel.secret.isEmpty)
-
-                        Link("Get API keys at dashboard.plaid.com", destination: URL(string: "https://dashboard.plaid.com")!)
-                            .font(.footnote)
+                    if viewModel.connectionState == .notConnected {
+                        signInSection(viewModel)
                     }
 
                     Section("Wealthsimple") {
@@ -51,21 +36,11 @@ struct IntegrationsSettingsView: View {
                                 .foregroundStyle(.orange)
                         }
 
-                        if viewModel.connectionState == .configuredNotConnected {
-                            actionButton(viewModel, title: "Connect Wealthsimple") {
-                                await viewModel.connectWealthsimple()
-                            }
-                        }
-
                         if viewModel.connectionState == .connected {
                             Button("Sync Now") {
                                 Task { await viewModel.sync() }
                             }
                             .disabled(viewModel.isBusy)
-
-                            actionButton(viewModel, title: viewModel.needsReauth ? "Reconnect Wealthsimple" : "Reconnect") {
-                                await viewModel.reconnect()
-                            }
 
                             Button("Disconnect", role: .destructive) {
                                 viewModel.disconnect()
@@ -108,14 +83,42 @@ struct IntegrationsSettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private func signInSection(_ viewModel: IntegrationsViewModel) -> some View {
+        Section("Sign in to Wealthsimple") {
+            TextField("Email", text: Binding(get: { viewModel.email }, set: { viewModel.email = $0 }))
+                .textContentType(.username)
+                .keyboardType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            SecureField("Password", text: Binding(get: { viewModel.password }, set: { viewModel.password = $0 }))
+                .textContentType(.password)
+
+            if viewModel.needsOTP {
+                TextField("2-step verification code", text: Binding(get: { viewModel.otp }, set: { viewModel.otp = $0 }))
+                    .textContentType(.oneTimeCode)
+                    .keyboardType(.numberPad)
+            }
+
+            Button {
+                Task { await viewModel.connect() }
+            } label: {
+                if viewModel.isBusy {
+                    ProgressView()
+                } else {
+                    Text(viewModel.needsOTP ? "Verify & Connect" : "Connect Wealthsimple")
+                }
+            }
+            .disabled(viewModel.isBusy || viewModel.email.isEmpty || viewModel.password.isEmpty)
+        }
+    }
+
     private func statusRow(_ viewModel: IntegrationsViewModel) -> some View {
         HStack {
             Text("Status")
             Spacer()
             switch viewModel.connectionState {
-            case .notConfigured:
-                Label("Not Configured", systemImage: "xmark.circle").foregroundStyle(.secondary)
-            case .configuredNotConnected:
+            case .notConnected:
                 Label("Not Connected", systemImage: "circle").foregroundStyle(.orange)
             case .connected:
                 Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
@@ -130,20 +133,6 @@ struct IntegrationsSettingsView: View {
             Text(viewModel.lastSyncedAt.map { $0.formatted(.relative(presentation: .named)) } ?? "Never")
                 .foregroundStyle(.secondary)
         }
-    }
-
-    @ViewBuilder
-    private func actionButton(_ viewModel: IntegrationsViewModel, title: String, action: @escaping () async -> Void) -> some View {
-        Button {
-            Task { await action() }
-        } label: {
-            if viewModel.isBusy {
-                ProgressView()
-            } else {
-                Text(title)
-            }
-        }
-        .disabled(viewModel.isBusy)
     }
 }
 

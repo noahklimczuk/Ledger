@@ -100,7 +100,7 @@ final class TransactionImportService {
 
     /// Makes a linked account's displayed balance match what the institution actually reports.
     /// `currentBalance` is computed as `startingBalance + Σ(transactions)`, and imported history is
-    /// often incomplete (Plaid caps how far back it returns), so we back-solve `startingBalance` from
+    /// often incomplete (the sync caps how far back it returns), so we back-solve `startingBalance` from
     /// the reported balance and the transactions we do have. Liability accounts (credit) are stored
     /// negative so they reduce total balance / net worth. Runs on every sync, so the balance stays
     /// reconciled to reality.

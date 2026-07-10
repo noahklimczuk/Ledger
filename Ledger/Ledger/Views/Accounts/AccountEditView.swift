@@ -18,7 +18,7 @@ struct AccountEditView: View {
     private var isEditing: Bool { account != nil }
 
     private var linkedSourceLabel: String {
-        account?.externalSourceId == "plaid" ? "Linked to Wealthsimple via Plaid" : "Linked to Wealthsimple"
+        "Linked to Wealthsimple"
     }
 
     var body: some View {

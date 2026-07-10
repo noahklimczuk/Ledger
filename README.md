@@ -7,9 +7,9 @@ sideload/TestFlight use only.
 
 Phase 1 (done): multi-account tracking, manual transaction entry with splits, custom categories,
 monthly budgets with rollover, a dashboard (balances, safe-to-spend, budget progress, recent
-transactions), and Face ID lock on launch. Wealthsimple bank-account linking via Plaid is included
-(pulled forward from the original later-phase plan), behind the swappable `TransactionSource`
-protocol.
+transactions), and Face ID lock on launch. Wealthsimple bank-account linking is included (via a
+direct connection to Wealthsimple's own API — see below; pulled forward from the original
+later-phase plan), behind the swappable `TransactionSource` protocol.
 
 Phase 2 (done): CSV and OFX/QFX file import (More → Import CSV / OFX). Pick a file, choose the
 target account, map columns (CSV only — OFX carries structured fields), preview which rows are new
@@ -34,8 +34,8 @@ reachable from the More tab.
 Phase 4 (done): rules-based insights, entirely on-device (nothing leaves the phone).
 - **Auto-categorization** — assigning or overriding a transaction's category teaches a
   `CategorizationRule` (merchant keyword → category, normalized so store numbers don't defeat it).
-  New manual entries with a blank category and every imported/synced transaction (Plaid, CSV, OFX)
-  are auto-categorized from the learned rules; the most specific keyword wins.
+  New manual entries with a blank category and every imported/synced transaction (Wealthsimple,
+  CSV, OFX) are auto-categorized from the learned rules; the most specific keyword wins.
 - **Insights engine** (`InsightsEngine`) — six detectors: categories trending up vs their 3-month
   average, budgets projected to overshoot, duplicate subscriptions, the priciest recurring charge
   to review, unusually large recent purchases, and leftover-cash change month-over-month.
@@ -43,15 +43,15 @@ Phase 4 (done): rules-based insights, entirely on-device (nothing leaves the pho
   dollar magnitude; swipe to snooze for a week or dismiss for good (persisted as `InsightState`),
   refreshed each time the screen opens.
 
-Phase 5 (in progress): live account-linking polish for the Plaid connection.
+Phase 5 (in progress): live account-linking polish for the Wealthsimple connection.
 - **Auto-sync on foreground** — opening the app triggers a background sync of the linked connection,
-  throttled to at most once every few hours (`PlaidSyncCoordinator`, driven from `LedgerApp`'s
+  throttled to at most once every few hours (`WealthsimpleSyncCoordinator`, driven from `LedgerApp`'s
   scene-phase change). Manual "Sync Now" still works anytime.
 - **Sync status** — last-synced time, last error, and a "needs sign-in" flag are persisted
-  (`PlaidSyncStatusStore`) and surfaced on the Connect Wealthsimple screen.
-- **Reconnect** — when Plaid returns `ITEM_LOGIN_REQUIRED`, the screen prompts a re-auth via Plaid
-  Link **update mode** (`createLinkToken(accessToken:)`), which refreshes the existing item without
-  a new token exchange.
+  (`WealthsimpleSyncStatusStore`) and surfaced on the Connect Wealthsimple screen.
+- **Reconnect** — the stored session refreshes its own access token from the refresh token on each
+  sync; when the refresh token itself expires, the screen flags "needs sign-in" and the user signs
+  in again to mint a fresh session.
 - **Conflict handling** — a re-sync never overwrites your edits: transactions dedupe by external id
   (existing rows are left untouched), and a manually renamed linked account keeps its name.
 - Still to do in Phase 5: linking **multiple institutions** at once, and true OS **background
@@ -109,12 +109,12 @@ Phase 8 (done): navigation + dashboard charts.
   Delete), so those actions stay reachable even where the paged-tab swipe competes with row swipes.
 
 Phase 9 (done): a bug-fix / polish / feature-completion pass, plus AI budget suggestions.
-- **Fixes** — Plaid sync skips pending transactions (they re-post under a new id, defeating dedup)
-  and scopes `/transactions/get` per account; archived (removed) accounts' transactions no longer
+- **Fixes** — the linked sync skips non-final transactions (they re-post under a new id, defeating
+  dedup) and scopes each pull per account; archived (removed) accounts' transactions no longer
   count toward any aggregate (dashboard, budgets, reports, net worth, insights, recurring);
   user-entered amounts parse robustly ("1,234.56" no longer silently read as 1); deleting a
-  category cleans up its budgets and learned rules; Plaid's retired Development environment is
-  hidden from the picker.
+  category cleans up its budgets and learned rules. (The bank link ran through Plaid at the time;
+  it was later replaced by a direct Wealthsimple connection — see "Connecting Wealthsimple Cash".)
 - **Budget rollover compounds** across consecutive rollover-enabled months (bounded to 12), with
   overspent months drawing the accumulated carry down.
 - **Recurring forecasts count every occurrence** in the window — a weekly charge reserves ~4-5
@@ -159,54 +159,59 @@ a Mac-side debugging loop.
    what you'd expect from steps 2-4.
 6. Swipe actions on a transaction row: mark reviewed (leading swipe), delete (trailing swipe).
 
-## Connecting Wealthsimple bank accounts (Plaid)
+## Connecting Wealthsimple Cash (direct)
 
-The "Connect Wealthsimple" flow links your **bank** accounts — Wealthsimple Cash, chequing and
-savings — through [Plaid](https://plaid.com), a licensed account aggregator that covers
-Wealthsimple's depository products in Canada. Your Wealthsimple credentials are entered on Plaid's
-own hosted login page and never touch this app.
+The "Connect Wealthsimple" flow links your **Wealthsimple Cash** account by talking to
+Wealthsimple's own API the same way the Wealthsimple web app does — you sign in with your
+Wealthsimple email/password (and 2-step code when prompted). There's **no third-party aggregator,
+no API keys, and no paid plan**: it's free.
 
-> **Why Plaid?** A *brokerage* aggregator (e.g. SnapTrade) can only see Wealthsimple's
-> trading/investment accounts, never Wealthsimple Cash. Plaid covers Wealthsimple's depository
-> products, so the Connect Wealthsimple screen uses it to pull in bank accounts and their
-> transactions.
+> **Why not Plaid?** The earlier version routed this through [Plaid](https://plaid.com), which
+> needs a paid **Production** plan (and manual approval) to see real data, and whose Wealthsimple
+> coverage in Canada is unreliable. A *brokerage* aggregator (e.g. SnapTrade) can only see
+> Wealthsimple's trading/investment accounts, never Wealthsimple Cash. Signing in directly is the
+> free path that actually reaches Cash, so the Plaid integration was removed in favour of it.
 
-Setup:
+Setup — there's nothing to configure ahead of time:
 
-1. Create a developer account at [dashboard.plaid.com](https://dashboard.plaid.com) and copy your
-   `client_id` + a `secret`. Real Wealthsimple data requires **Production** keys with the
-   `transactions` product enabled (Sandbox only returns fake test banks).
-2. In the Plaid dashboard, enable **Hosted Link** and add `ledger://plaid-callback` as an allowed
-   redirect URI (required for the `ASWebAuthenticationSession` callback in `PlaidConnectSession`).
-3. In the app: More → Connect Wealthsimple → enter the client ID / secret, pick the environment →
-   Save → Connect Wealthsimple. This opens Plaid's Hosted Link (institution search → Wealthsimple
-   login → account selection), exchanges the resulting public token for an access token, and pulls
-   in accounts + transaction history.
+1. In the app: More → Connect Wealthsimple → enter your Wealthsimple email and password → **Connect
+   Wealthsimple**.
+2. If your account has 2-step verification on (it should), Wealthsimple sends a code and the screen
+   reveals a field for it — enter it and tap **Verify & Connect**.
+3. On success the app pulls in your Cash account and its transaction history, then re-syncs
+   automatically on foreground (throttled) and via "Sync Now".
 
-Balances/transactions sync via `/accounts/balance/get` and `/transactions/get`; Plaid signs
-amounts the opposite way from Ledger (Plaid positive = money out), so `PlaidTransactionSource`
-negates them to match Ledger's convention (negative = money out).
+How it works (see `Services/TransactionImport/Wealthsimple/`):
 
-**Caveat:** `PlaidAPIClient`/`PlaidModels` were written against Plaid's published docs
-(plaid.com/docs/api) without a live account to test against — endpoint paths and the Hosted Link
-public-token retrieval (`/link/token/get`) follow current docs, but exact response field
-names/casing may need small fixes once you can see real API responses. Everything decodes
-defensively (optional fields, `convertFromSnakeCase`) so a mismatch degrades to missing data
-rather than a crash.
+- **Auth** — a one-time bootstrap scrapes the login page for the device id (`wssdi` cookie) and the
+  web app's OAuth `client_id`, then an OAuth **password grant** against
+  `api.production.wealthsimple.com` returns access + refresh tokens (`WealthsimpleAPIClient`).
+- **Data** — accounts and the Cash **activity feed** are read from the GraphQL endpoint at
+  `my.wealthsimple.com/graphql` (`FetchAccounts`, `FetchActivityFeedItems`). Wealthsimple's
+  `amountSign` already matches Ledger's convention (negative = money out).
+- **Refresh** — each sync refreshes the access token from the refresh token; when the refresh token
+  expires the screen flags "needs sign-in".
 
-Credentials (`client_id`, `secret`, the generated `access_token`) are stored in the iOS Keychain
-only — never in UserDefaults, Info.plist, or source control.
+**Caveat:** Wealthsimple has no public/official API, so `WealthsimpleAPIClient`/`WealthsimpleModels`
+follow the shapes used by the community `ws-api` clients (reverse-engineered from the web app).
+Endpoint/field names can change, and everything decodes defensively (optional fields,
+`convertFromSnakeCase`) so a mismatch degrades to missing data rather than a crash. The pure
+API-shape → Ledger mapping is unit-tested (`WealthsimpleMappingTests`).
+
+The login session (access + refresh tokens, device/session ids) is stored in the iOS Keychain only
+— never in UserDefaults, Info.plist, or source control. Your password is sent only to Wealthsimple
+to sign in and is not persisted.
 
 ## Architecture
 
 - **Models/** — SwiftData `@Model` types (source of truth, fully offline).
 - **ViewModels/** — `@MainActor @Observable` classes, one per screen; own `ModelContext` reads/writes.
 - **Views/** — SwiftUI, grouped by feature (Dashboard, Accounts, Transactions, Budgets, Categories, Integrations, Shared).
-- **Services/** — `TransactionImport/` (the `TransactionSource` protocol + Plaid adapter),
-  `Security/` (Keychain, Face ID), `Formatting/` (CAD currency, en_CA dates).
+- **Services/** — `TransactionImport/` (the `TransactionSource` protocol + Wealthsimple and CSV/OFX
+  adapters), `Security/` (Keychain, Face ID), `Formatting/` (CAD currency, en_CA dates).
 - **Utilities/** — small stateless helpers (safe-to-spend math, hex color).
 
 `TransactionSource` is the seam for swapping data sources: manual entry writes to SwiftData
-directly (no source needed), Plaid and CSV/OFX import are real implementations, and another
-source (e.g. a self-hosted proxy) can be added later as an additional conformance without
-touching call sites.
+directly (no source needed), the direct Wealthsimple connection and CSV/OFX import are real
+implementations, and another source (e.g. a self-hosted proxy) can be added later as an additional
+conformance without touching call sites.

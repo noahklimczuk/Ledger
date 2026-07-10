@@ -1,16 +1,16 @@
 import Foundation
 
-/// Non-secret sync metadata for the linked Plaid connection (last successful sync, last error,
-/// whether Plaid is asking the user to re-authenticate). Lives in UserDefaults, not the Keychain —
-/// only secrets (client id/secret/access token) go in the Keychain.
+/// Non-secret sync metadata for the linked Wealthsimple connection (last successful sync, last
+/// error, whether the session expired and needs a fresh login). Lives in UserDefaults, not the
+/// Keychain -- only the session tokens are secret and those go in `WealthsimpleCredentialStore`.
 @MainActor
-struct PlaidSyncStatusStore {
+struct WealthsimpleSyncStatusStore {
     private let defaults = UserDefaults.standard
 
     private enum Key {
-        static let lastSyncedAt = "plaid.lastSyncedAt"
-        static let lastError = "plaid.lastError"
-        static let needsReauth = "plaid.needsReauth"
+        static let lastSyncedAt = "wealthsimple.lastSyncedAt"
+        static let lastError = "wealthsimple.lastError"
+        static let needsReauth = "wealthsimple.needsReauth"
     }
 
     var lastSyncedAt: Date? {
