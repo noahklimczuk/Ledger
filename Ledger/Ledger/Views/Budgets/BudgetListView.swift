@@ -15,6 +15,7 @@ struct BudgetListView: View {
     @State private var isConfirmingAutoGenerate = false
     @State private var autoGenerateResult: String?
     @State private var isPresentingSuggestion = false
+    @State private var isPresentingAdvisor = false
 
     var body: some View {
         NavigationStack {
@@ -47,6 +48,9 @@ struct BudgetListView: View {
                     // Pull-to-refresh runs a real sync; the refreshCount observer below
                     // then reloads the rows with the new spent amounts.
                     .refreshable { await refresh.refresh(container: modelContext.container) }
+                    // Floating AI financial-advisor bubble, tucked in the bottom-trailing corner
+                    // above the tab bar.
+                    .overlay(alignment: .bottomTrailing) { advisorBubble }
                 } else {
                     LoadingView()
                 }
@@ -97,6 +101,11 @@ struct BudgetListView: View {
                     BudgetSuggestionView(month: viewModel.selectedMonth)
                 }
             }
+            .sheet(isPresented: $isPresentingAdvisor) {
+                if let viewModel {
+                    AIAdvisorView(month: viewModel.selectedMonth)
+                }
+            }
             .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {
                 if let viewModel {
                     BudgetEditView(month: viewModel.selectedMonth, budgetRow: nil)
@@ -131,6 +140,25 @@ struct BudgetListView: View {
             // reflect freshly imported transactions without re-opening the tab.
             .onChange(of: refresh.refreshCount) { _, _ in viewModel?.load() }
         }
+    }
+
+    // MARK: - Advisor
+
+    private var advisorBubble: some View {
+        Button {
+            isPresentingAdvisor = true
+        } label: {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(LinearGradient.brand, in: Circle())
+                .shadow(color: Color.brandTeal.opacity(0.4), radius: 8, y: 4)
+        }
+        .buttonStyle(.plain)
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
+        .accessibilityLabel("Financial advisor")
     }
 
     // MARK: - Plan card

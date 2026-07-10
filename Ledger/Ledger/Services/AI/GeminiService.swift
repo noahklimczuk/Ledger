@@ -77,13 +77,6 @@ struct GeminiService: Sendable {
     /// schema (`generationConfig.responseSchema` + `application/json`) guarantees the reply is
     /// valid JSON matching our shape.
     func suggestBudget(from summary: BudgetSuggestionService.Summary, apiKey: String) async throws -> Suggestion {
-        var request = URLRequest(url: Self.endpoint)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // Header (not the ?key= query param) so the key never lands in a URL/log.
-        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
-        request.timeoutInterval = 60
-
         let body: [String: Any] = [
             "contents": [
                 ["parts": [["text": Self.prompt(for: summary)]]]
@@ -93,6 +86,45 @@ struct GeminiService: Sendable {
                 "responseSchema": Self.outputSchema
             ]
         ]
+        let text = try await generateText(body: body, apiKey: apiKey)
+        guard let jsonData = text.data(using: .utf8) else { throw ServiceError.emptyResponse }
+        let suggestion = try JSONDecoder().decode(Suggestion.self, from: jsonData)
+        guard !suggestion.categories.isEmpty else { throw ServiceError.emptyResponse }
+        return suggestion
+    }
+
+    /// One turn of an advisor conversation.
+    struct ChatTurn: Sendable {
+        enum Role: String { case user, model }
+        let role: Role
+        let text: String
+    }
+
+    /// Freeform advisor reply for the multi-turn financial-advisor chat. `system` carries the
+    /// advisor persona plus the aggregated (never transaction-level) financial snapshot; `history`
+    /// is the running user/model exchange, oldest first, ending with the user's latest question.
+    func advise(system: String, history: [ChatTurn], apiKey: String) async throws -> String {
+        let contents = history.map { turn in
+            ["role": turn.role.rawValue, "parts": [["text": turn.text]]] as [String: Any]
+        }
+        let body: [String: Any] = [
+            "system_instruction": ["parts": [["text": system]]],
+            "contents": contents
+        ]
+        let text = try await generateText(body: body, apiKey: apiKey)
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ServiceError.emptyResponse }
+        return text
+    }
+
+    /// Shared `generateContent` call: POSTs `body`, surfaces server/safety failures, and returns
+    /// the concatenated text of the first candidate.
+    private func generateText(body: [String: Any], apiKey: String) async throws -> String {
+        var request = URLRequest(url: Self.endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Header (not the ?key= query param) so the key never lands in a URL/log.
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
+        request.timeoutInterval = 60
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await session.data(for: request)
@@ -111,13 +143,9 @@ struct GeminiService: Sendable {
         if let reason = candidate.finishReason, reason != "STOP", reason != "MAX_TOKENS" {
             throw ServiceError.blocked
         }
-        guard let text = candidate.content?.parts?.compactMap(\.text).first,
-              let jsonData = text.data(using: .utf8) else {
-            throw ServiceError.emptyResponse
-        }
-        let suggestion = try JSONDecoder().decode(Suggestion.self, from: jsonData)
-        guard !suggestion.categories.isEmpty else { throw ServiceError.emptyResponse }
-        return suggestion
+        let texts = candidate.content?.parts?.compactMap(\.text) ?? []
+        guard !texts.isEmpty else { throw ServiceError.emptyResponse }
+        return texts.joined()
     }
 
     // MARK: - Request pieces
