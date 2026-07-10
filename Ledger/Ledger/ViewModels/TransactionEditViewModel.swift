@@ -91,6 +91,9 @@ final class TransactionEditViewModel {
         if transaction.splits.isEmpty {
             if let chosen = category, chosen !== previousCategory {
                 categorizer.learn(merchant: merchant, category: chosen)
+                // Replay the fresh rule immediately so the merchant's other uncategorized
+                // transactions update now, not at the next sync.
+                categorizer.categorizeAllUncategorized()
             } else if transaction.category == nil {
                 categorizer.applyRule(to: transaction)
             }

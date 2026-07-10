@@ -1,11 +1,10 @@
 import Foundation
 import SwiftData
 
-/// Merchant-keyword -> category rule. Not yet exercised by any UI in phase 1;
-/// the schema exists now so the auto-categorization rule engine (later phase)
-/// doesn't require a migration. Rules are meant to be created automatically
-/// when a user manually overrides a transaction's category, then matched
-/// against future merchant strings (substring match on `keyword`).
+/// Merchant-keyword -> category rule, matched by `CategorizationService` with token-boundary
+/// rules. Created two ways: seeded as built-in defaults (`DefaultCategoryCatalog`, matchCount 0)
+/// and learned automatically when the user categorizes a transaction (matchCount starts at 1 so
+/// personal rules outrank same-length defaults).
 @Model
 final class CategorizationRule {
     var keyword: String

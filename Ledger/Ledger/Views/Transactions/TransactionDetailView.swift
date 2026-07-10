@@ -123,9 +123,12 @@ struct TransactionDetailView: View {
     private func applyCategory(_ category: Category?) {
         guard !isSplit else { return }
         transaction.category = category
-        // Teach the rule so future transactions from this merchant auto-categorize the same way.
+        // Teach the rule so future transactions from this merchant auto-categorize the same way,
+        // and replay it immediately so the merchant's other uncategorized transactions update now.
         if let category {
-            CategorizationService(modelContext: modelContext).learn(merchant: transaction.merchant, category: category)
+            let categorizer = CategorizationService(modelContext: modelContext)
+            categorizer.learn(merchant: transaction.merchant, category: category)
+            categorizer.categorizeAllUncategorized()
         }
         try? modelContext.save()
         UISelectionFeedbackGenerator().selectionChanged()
