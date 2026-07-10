@@ -70,10 +70,15 @@ struct DashboardView: View {
     // MARK: - This month: income / expenses / net
 
     private func monthSummaryCard(_ viewModel: DashboardViewModel) -> some View {
-        HStack(spacing: 12) {
-            summaryTile("Income", value: viewModel.monthIncome, color: .green)
-            summaryTile("Expenses", value: viewModel.monthSpending, color: .red)
-            summaryTile("Net", value: viewModel.monthNet, color: viewModel.monthNet < 0 ? .red : .primary)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("This Month · \(DateFormatting.monthYear(.now))")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+                summaryTile("Income", value: viewModel.monthIncome, color: .green)
+                summaryTile("Expenses", value: viewModel.monthSpending, color: .red)
+                summaryTile("Net", value: viewModel.monthNet, color: viewModel.monthNet < 0 ? .red : .primary)
+            }
         }
     }
 
@@ -102,7 +107,8 @@ struct DashboardView: View {
                 Chart(bars) { bar in
                     BarMark(
                         x: .value("Type", bar.label),
-                        y: .value("Amount", bar.amount.doubleValue)
+                        y: .value("Amount", bar.amount.doubleValue),
+                        width: .fixed(44)
                     )
                     .foregroundStyle(bar.color)
                     .annotation(position: .top) {
@@ -125,7 +131,8 @@ struct DashboardView: View {
                 Chart(viewModel.topCategories) { slice in
                     BarMark(
                         x: .value("Amount", slice.amount.doubleValue),
-                        y: .value("Category", slice.name)
+                        y: .value("Category", slice.name),
+                        height: .fixed(16)
                     )
                     .foregroundStyle(Color(hex: slice.colorHex))
                     .annotation(position: .trailing, alignment: .leading) {
@@ -136,7 +143,7 @@ struct DashboardView: View {
                     .cornerRadius(4)
                 }
                 .chartXAxis(.hidden)
-                .frame(height: CGFloat(viewModel.topCategories.count) * 40 + 20)
+                .frame(height: CGFloat(viewModel.topCategories.count) * 38 + 20)
             }
         }
     }

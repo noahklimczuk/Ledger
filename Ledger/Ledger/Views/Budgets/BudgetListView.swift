@@ -43,6 +43,20 @@ struct BudgetListView: View {
                                             }
                                             .tint(.accentColor)
                                         }
+                                        // Long-press menu, so editing/deleting a budget stays reachable
+                                        // even where the paged tab swipe competes with row swipes.
+                                        .contextMenu {
+                                            Button {
+                                                editingRow = row
+                                            } label: {
+                                                Label("Edit Budget", systemImage: "pencil")
+                                            }
+                                            Button(role: .destructive) {
+                                                viewModel.delete(row)
+                                            } label: {
+                                                Label("Delete Budget", systemImage: "trash")
+                                            }
+                                        }
                                 }
                             }
                             .refreshable { viewModel.load() }

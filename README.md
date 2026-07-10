@@ -99,9 +99,14 @@ Phase 8 (done): navigation + dashboard charts.
 - **Budget → category transactions** — tapping a budget row opens `CategoryTransactionsView`, listing
   every transaction in that category for the month (with the month's total); editing a budget moved
   to a leading swipe.
-- **Clear monthly income** — the dashboard shows Income / Expenses / Net tiles for the month.
-- **Dashboard charts** (Swift Charts) — an income-vs-expenses bar chart and a top-spending-categories
-  breakdown, alongside the existing balance/safe-to-spend/budget cards.
+- **Clear monthly income** — the dashboard shows Income / Expenses / Net tiles for the month, labelled
+  with the current month so the scope is unambiguous.
+- **Dashboard charts** (Swift Charts) — a (skinny-barred) income-vs-expenses chart and a
+  top-spending-categories breakdown, alongside the existing balance/safe-to-spend/budget cards.
+- **Live transactions list** — the Transactions tab now reads via SwiftData `@Query`, so it updates
+  automatically on any change (sync, add, edit, delete) with no manual reload.
+- **Reliable delete** — budget rows and transaction rows gained a long-press context menu (Edit /
+  Delete), so those actions stay reachable even where the paged-tab swipe competes with row swipes.
 
 Not yet: the optional LLM recap, the home screen widget, envelope budgeting mode, multi-currency,
 receipt photos, export, year-in-review, shared/joint view.
