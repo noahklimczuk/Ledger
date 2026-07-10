@@ -43,10 +43,12 @@ struct SavingsGoalsView: View {
                             // Long-press menu, so every action stays reachable where the paged
                             // tab swipe competes with row swipes.
                             .contextMenu {
-                                Button {
-                                    contributingGoal = goal
-                                } label: {
-                                    Label("Add Money", systemImage: "plus.circle.fill")
+                                if !goal.isAccountTracked {
+                                    Button {
+                                        contributingGoal = goal
+                                    } label: {
+                                        Label("Add Money", systemImage: "plus.circle.fill")
+                                    }
                                 }
                                 Button {
                                     editingGoal = goal
@@ -120,7 +122,7 @@ private struct GoalCard: View {
                 .tint(Color(hex: goal.colorHex))
 
             HStack {
-                Text("\(CurrencyFormatter.string(from: goal.currentAmount)) of \(CurrencyFormatter.string(from: goal.targetAmount))")
+                Text("\(CurrencyFormatter.string(from: goal.savedAmount)) of \(CurrencyFormatter.string(from: goal.targetAmount))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -131,7 +133,16 @@ private struct GoalCard: View {
                 }
             }
 
-            if !goal.isComplete {
+            if let account = goal.account {
+                // Account-tracked: progress moves with the account's real balance, so there's
+                // no Add Money — deposits into the account are the contributions.
+                Label("Tracks \(account.name) automatically", systemImage: "link")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 5)
+                    .background(Color(.systemGray6), in: Capsule())
+            } else if !goal.isComplete {
                 Button(action: onAddMoney) {
                     Label("Add Money", systemImage: "plus.circle.fill")
                         .font(.subheadline.weight(.semibold))

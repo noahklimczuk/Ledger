@@ -21,7 +21,7 @@ struct GoalContributionView: View {
         return value
     }
 
-    private var projectedTotal: Decimal { goal.currentAmount + (amount ?? 0) }
+    private var projectedTotal: Decimal { goal.savedAmount + (amount ?? 0) }
 
     private var projectedPercent: Int {
         guard goal.targetAmount > 0 else { return 0 }
@@ -89,7 +89,7 @@ struct GoalContributionView: View {
                 .background(Color(hex: goal.colorHex), in: Circle())
             Text(goal.name)
                 .font(.headline)
-            Text("\(CurrencyFormatter.string(from: goal.currentAmount)) of \(CurrencyFormatter.string(from: goal.targetAmount)) · \(CurrencyFormatter.string(from: goal.remaining)) to go")
+            Text("\(CurrencyFormatter.string(from: goal.savedAmount)) of \(CurrencyFormatter.string(from: goal.targetAmount)) · \(CurrencyFormatter.string(from: goal.remaining)) to go")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ProgressView(value: goal.progress)
