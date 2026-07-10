@@ -35,8 +35,6 @@ struct TransactionDetailView: View {
             TransactionEditView(transaction: transaction)
         }
         .task(id: transaction.persistentModelID) { loadCategories() }
-        // Pushed screen: swiping should go back, not drag to the next tab.
-        .disablesTabSwipe()
     }
 
     // MARK: - Sections
