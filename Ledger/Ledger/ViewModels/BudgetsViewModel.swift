@@ -16,7 +16,8 @@ final class BudgetsViewModel {
         var isOverBudget: Bool { spent > allocatedIncludingRollover }
 
         var progress: Double {
-            guard allocatedIncludingRollover > 0 else { return 0 }
+            // A $0 budget with spending is over budget: show a full bar, not an empty one.
+            guard allocatedIncludingRollover > 0 else { return spent > 0 ? 1 : 0 }
             let value = (spent as NSDecimalNumber).doubleValue / (allocatedIncludingRollover as NSDecimalNumber).doubleValue
             return min(max(value, 0), 1.5)
         }

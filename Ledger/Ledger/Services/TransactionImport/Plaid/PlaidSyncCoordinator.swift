@@ -28,6 +28,16 @@ struct PlaidSyncCoordinator {
         guard let credentials = credentialStore.snapshot else { return .notConnected }
 
         do {
+            // `/transactions/get` serves Plaid's *cached* copy of the bank data, which Plaid only
+            // re-pulls from the institution a few times a day on its own. Request an on-demand
+            // refresh first so a transaction that just happened can make it into this sync.
+            // Best-effort: the endpoint is a Plaid add-on, so a failure (not enabled, rate
+            // limited) must not block the sync — we still import whatever Plaid already has, and
+            // the periodic re-sync picks up anything the refresh surfaces late.
+            if (try? await apiClient.refreshTransactions(credentials: credentials)) != nil {
+                try? await Task.sleep(for: .seconds(4))
+            }
+
             let source = PlaidTransactionSource(credentials: credentials, client: apiClient)
             let importService = TransactionImportService(modelContext: modelContext)
             let summary = try await importService.importAll(from: source, sourceKind: .plaid)

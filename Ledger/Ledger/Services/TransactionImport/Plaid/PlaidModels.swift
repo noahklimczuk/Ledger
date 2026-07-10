@@ -111,6 +111,12 @@ enum PlaidDTO {
         let pending: Bool?
     }
 
+    // MARK: transactions/refresh
+
+    struct RefreshResponse: Decodable {
+        let requestId: String?
+    }
+
     // MARK: error envelope
 
     struct ErrorResponse: Decodable {

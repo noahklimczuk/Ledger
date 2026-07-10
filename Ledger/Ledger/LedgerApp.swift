@@ -40,7 +40,8 @@ struct LedgerApp: App {
                 // Refresh on cold launch too — `onChange(of: scenePhase)` isn't guaranteed to fire
                 // for the initial `.active`. The coordinator's in-flight guard makes an overlap with
                 // the scene-phase handler a no-op.
-                await refreshCoordinator.refreshOnForeground(container: sharedModelContainer)
+                refreshCoordinator.startPeriodicRefresh(container: sharedModelContainer)
+                await refreshCoordinator.refresh(container: sharedModelContainer)
             }
             .task {
                 try? await Task.sleep(nanoseconds: 1_300_000_000)
@@ -52,8 +53,10 @@ struct LedgerApp: App {
             switch newPhase {
             case .active:
                 let container = sharedModelContainer
-                Task { await refreshCoordinator.refreshOnForeground(container: container) }
+                refreshCoordinator.startPeriodicRefresh(container: container)
+                Task { await refreshCoordinator.refresh(container: container) }
             case .background:
+                refreshCoordinator.stopPeriodicRefresh()
                 lockService.lock()
             default:
                 break
