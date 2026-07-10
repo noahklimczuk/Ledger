@@ -1,16 +1,16 @@
 import SwiftUI
 import SwiftData
 
-/// The 2-minute weekly ritual, as a guided five-step flow: catch up on unreviewed transactions,
+/// The 2-minute daily ritual, as a guided five-step flow: catch up on unreviewed transactions,
 /// see which budgets drifted, confirm upcoming bills, re-zero the plan, done. Every step has an
-/// "all clear" state so the ritual is quick when the week was clean.
-struct WeeklyCheckInView: View {
+/// "all clear" state so the ritual is quick when the day was clean.
+struct DailyCheckInView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State private var viewModel: WeeklyCheckInViewModel?
+    @State private var viewModel: DailyCheckInViewModel?
     @State private var step = 0
-    @State private var weeklyReminderOn = false
+    @State private var dailyReminderOn = false
 
     private let stepCount = 5
 
@@ -32,7 +32,7 @@ struct WeeklyCheckInView: View {
                     LoadingView()
                 }
             }
-            .navigationTitle("Weekly Check-In")
+            .navigationTitle("Daily Check-In")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -44,9 +44,9 @@ struct WeeklyCheckInView: View {
                 }
             }
             .task {
-                weeklyReminderOn = WeeklyCheckInViewModel.weeklyReminderEnabled
+                dailyReminderOn = DailyCheckInViewModel.dailyReminderEnabled
                 if viewModel == nil {
-                    let model = WeeklyCheckInViewModel(modelContext: modelContext)
+                    let model = DailyCheckInViewModel(modelContext: modelContext)
                     model.load()
                     viewModel = model
                 }
@@ -69,19 +69,19 @@ struct WeeklyCheckInView: View {
         .animation(.spring(duration: 0.3), value: step)
     }
 
-    private func continueButton(_ viewModel: WeeklyCheckInViewModel) -> some View {
+    private func continueButton(_ viewModel: DailyCheckInViewModel) -> some View {
         Button {
             if step < stepCount - 1 {
                 withAnimation(.spring(duration: 0.3)) { step += 1 }
             } else {
-                let reminder = weeklyReminderOn
+                let reminder = dailyReminderOn
                 Task {
-                    await viewModel.complete(weeklyReminder: reminder)
+                    await viewModel.complete(dailyReminder: reminder)
                     dismiss()
                 }
             }
         } label: {
-            Text(step < stepCount - 1 ? "Continue" : "Done for the Week")
+            Text(step < stepCount - 1 ? "Continue" : "Done for Today")
                 .font(.headline)
                 .frame(maxWidth: .infinity)
         }
@@ -94,7 +94,7 @@ struct WeeklyCheckInView: View {
     // MARK: - Steps
 
     @ViewBuilder
-    private func stepContent(_ viewModel: WeeklyCheckInViewModel) -> some View {
+    private func stepContent(_ viewModel: DailyCheckInViewModel) -> some View {
         switch step {
         case 0: reviewStep(viewModel)
         case 1: budgetsStep(viewModel)
@@ -104,7 +104,7 @@ struct WeeklyCheckInView: View {
         }
     }
 
-    private func reviewStep(_ viewModel: WeeklyCheckInViewModel) -> some View {
+    private func reviewStep(_ viewModel: DailyCheckInViewModel) -> some View {
         VStack(spacing: 16) {
             stepHeader(
                 symbol: "checkmark.circle",
@@ -134,7 +134,7 @@ struct WeeklyCheckInView: View {
         }
     }
 
-    private func reviewRow(_ transaction: Transaction, viewModel: WeeklyCheckInViewModel) -> some View {
+    private func reviewRow(_ transaction: Transaction, viewModel: DailyCheckInViewModel) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.merchant)
@@ -161,7 +161,7 @@ struct WeeklyCheckInView: View {
         .padding(.vertical, 10)
     }
 
-    private func budgetsStep(_ viewModel: WeeklyCheckInViewModel) -> some View {
+    private func budgetsStep(_ viewModel: DailyCheckInViewModel) -> some View {
         VStack(spacing: 16) {
             stepHeader(
                 symbol: "chart.pie",
@@ -225,7 +225,7 @@ struct WeeklyCheckInView: View {
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 
-    private func billsStep(_ viewModel: WeeklyCheckInViewModel) -> some View {
+    private func billsStep(_ viewModel: DailyCheckInViewModel) -> some View {
         VStack(spacing: 16) {
             stepHeader(
                 symbol: "calendar.badge.clock",
@@ -271,7 +271,7 @@ struct WeeklyCheckInView: View {
         }
     }
 
-    private func planStep(_ viewModel: WeeklyCheckInViewModel) -> some View {
+    private func planStep(_ viewModel: DailyCheckInViewModel) -> some View {
         VStack(spacing: 16) {
             stepHeader(
                 symbol: "equal.circle",
@@ -297,13 +297,13 @@ struct WeeklyCheckInView: View {
         }
     }
 
-    private func planColor(_ viewModel: WeeklyCheckInViewModel) -> Color {
+    private func planColor(_ viewModel: DailyCheckInViewModel) -> Color {
         if viewModel.leftToAssign < 0 { return .red }
         if viewModel.leftToAssign == 0 && viewModel.incomeToAssign > 0 { return .brandEmerald }
         return .primary
     }
 
-    private func planMessage(_ viewModel: WeeklyCheckInViewModel) -> String {
+    private func planMessage(_ viewModel: DailyCheckInViewModel) -> String {
         if viewModel.incomeToAssign <= 0 && viewModel.leftToAssign == 0 {
             return "Set your income on the Budgets tab to start the plan."
         }
@@ -316,24 +316,24 @@ struct WeeklyCheckInView: View {
         return "Head to the Budgets tab and give this money a job — savings count too."
     }
 
-    private func doneStep(_ viewModel: WeeklyCheckInViewModel) -> some View {
+    private func doneStep(_ viewModel: DailyCheckInViewModel) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 56))
                 .foregroundStyle(LinearGradient.brand)
                 .padding(.top, 12)
-            Text("You're Set for the Week")
+            Text("You're Set for Today")
                 .font(.title2.bold())
             HStack(spacing: 12) {
                 doneTile(value: "\(viewModel.reviewedThisSession)", label: "reviewed")
                 doneTile(value: "\(viewModel.overBudget.count)", label: "over budget")
                 doneTile(value: CurrencyFormatter.string(from: viewModel.upcomingBillsTotal), label: "bills ahead")
             }
-            Toggle(isOn: $weeklyReminderOn) {
+            Toggle(isOn: $dailyReminderOn) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Remind me weekly")
+                    Text("Remind me daily")
                         .font(.subheadline.weight(.medium))
-                    Text("Sundays at 6 PM")
+                    Text("Every night at 10 PM")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -395,6 +395,6 @@ struct WeeklyCheckInView: View {
 }
 
 #Preview {
-    WeeklyCheckInView()
+    DailyCheckInView()
         .modelContainer(for: LedgerSchema.models, inMemory: true)
 }

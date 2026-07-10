@@ -75,29 +75,34 @@ enum NotificationService {
         }
     }
 
-    // MARK: - Weekly check-in
+    // MARK: - Daily check-in
 
-    static let weeklyCheckInIdentifier = "weekly-check-in"
+    static let dailyCheckInIdentifier = "daily-check-in"
+    /// Identifier from when the check-in reminder was weekly — always removed alongside the daily
+    /// one so upgraders don't keep a stale Sunday notification.
+    private static let legacyWeeklyCheckInIdentifier = "weekly-check-in"
 
-    /// Repeating reminder for the weekly check-in ritual, Sundays at 6 PM local time.
-    static func scheduleWeeklyCheckIn() async {
+    /// Repeating reminder for the daily check-in ritual, every night at 10 PM local time.
+    static func scheduleDailyCheckIn() async {
         let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: [weeklyCheckInIdentifier])
+        center.removePendingNotificationRequests(withIdentifiers: [dailyCheckInIdentifier, legacyWeeklyCheckInIdentifier])
 
         let content = UNMutableNotificationContent()
-        content.title = "Weekly Check-In"
-        content.body = "Take 2 minutes: review the week's spending, catch any overruns, and zero out your plan."
+        content.title = "Daily Check-In"
+        content.body = "Take 2 minutes: review today's spending, categorize what's left, and keep the plan at zero."
         content.sound = .default
 
         var components = DateComponents()
-        components.weekday = 1 // Sunday
-        components.hour = 18
+        components.hour = 22
+        components.minute = 0
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
-        let request = UNNotificationRequest(identifier: weeklyCheckInIdentifier, content: content, trigger: trigger)
+        let request = UNNotificationRequest(identifier: dailyCheckInIdentifier, content: content, trigger: trigger)
         try? await center.add(request)
     }
 
-    static func cancelWeeklyCheckIn() {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [weeklyCheckInIdentifier])
+    static func cancelDailyCheckIn() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: [dailyCheckInIdentifier, legacyWeeklyCheckInIdentifier]
+        )
     }
 }

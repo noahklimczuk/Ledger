@@ -2,15 +2,17 @@ import Foundation
 import Observation
 import SwiftData
 
-/// Backs the 2-minute weekly check-in ritual: catch up on unreviewed transactions, see which
+/// Backs the 2-minute daily check-in ritual: catch up on unreviewed transactions, see which
 /// budgets drifted, confirm the money already spoken for, and re-zero the plan. Tracks when the
-/// ritual last happened so the Dashboard can nudge when a week has passed.
+/// ritual last happened so the Dashboard can nudge on days it hasn't been done yet.
 @MainActor
 @Observable
-final class WeeklyCheckInViewModel {
+final class DailyCheckInViewModel {
     private enum Key {
         static let lastCompletedAt = "checkIn.lastCompletedAt"
-        static let weeklyReminderEnabled = "checkIn.weeklyReminderEnabled"
+        static let dailyReminderEnabled = "checkIn.dailyReminderEnabled"
+        /// Pre-daily-cadence flag; read as a fallback so upgraders keep their opt-in.
+        static let legacyWeeklyReminderEnabled = "checkIn.weeklyReminderEnabled"
     }
 
     private(set) var unreviewed: [Transaction] = []
@@ -32,15 +34,15 @@ final class WeeklyCheckInViewModel {
         upcomingBills.reduce(Decimal(0)) { $0 + $1.amount }
     }
 
-    /// Due when never completed, or the last completion is more than 6 days old — keeps a weekly
-    /// Sunday ritual "due" on Sunday even if last week's ran on Monday.
+    /// Due whenever today's check-in hasn't happened yet.
     static func isDue(now: Date = .now) -> Bool {
         guard let last = UserDefaults.standard.object(forKey: Key.lastCompletedAt) as? Date else { return true }
-        return now.timeIntervalSince(last) > 6 * 24 * 60 * 60
+        return !Calendar.current.isDate(last, inSameDayAs: now)
     }
 
-    static var weeklyReminderEnabled: Bool {
-        UserDefaults.standard.bool(forKey: Key.weeklyReminderEnabled)
+    static var dailyReminderEnabled: Bool {
+        let defaults = UserDefaults.standard
+        return defaults.bool(forKey: Key.dailyReminderEnabled) || defaults.bool(forKey: Key.legacyWeeklyReminderEnabled)
     }
 
     func load() {
@@ -83,14 +85,16 @@ final class WeeklyCheckInViewModel {
         unreviewed = []
     }
 
-    func complete(weeklyReminder: Bool) async {
-        UserDefaults.standard.set(Date(), forKey: Key.lastCompletedAt)
-        UserDefaults.standard.set(weeklyReminder, forKey: Key.weeklyReminderEnabled)
-        if weeklyReminder {
+    func complete(dailyReminder: Bool) async {
+        let defaults = UserDefaults.standard
+        defaults.set(Date(), forKey: Key.lastCompletedAt)
+        defaults.set(dailyReminder, forKey: Key.dailyReminderEnabled)
+        defaults.removeObject(forKey: Key.legacyWeeklyReminderEnabled)
+        if dailyReminder {
             _ = await NotificationService.requestAuthorization()
-            await NotificationService.scheduleWeeklyCheckIn()
+            await NotificationService.scheduleDailyCheckIn()
         } else {
-            NotificationService.cancelWeeklyCheckIn()
+            NotificationService.cancelDailyCheckIn()
         }
     }
 }
