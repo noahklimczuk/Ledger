@@ -2,13 +2,26 @@ import Foundation
 import SwiftData
 
 /// Learns merchant → category rules from the user's manual categorizations and replays them onto
-/// future and imported transactions. Rules are stored as `CategorizationRule` (schema present since
-/// phase 1). Keywords are normalized the same way `RecurringDetectionService` normalizes merchants,
-/// so store numbers, punctuation and casing don't defeat matching (e.g. "SQ *BLUE BOTTLE #123" and
+/// future and imported transactions. Rules are stored as `CategorizationRule`. Keywords are
+/// normalized the same way `RecurringDetectionService` normalizes merchants, so store numbers,
+/// punctuation and casing don't defeat matching (e.g. "SQ *BLUE BOTTLE #123" and
 /// "SQ *BLUE BOTTLE #987" both reduce to "blue bottle").
+///
+/// Matching is token-aware, not raw substring: a keyword must start at a word boundary, and short
+/// keywords (under 5 characters) must match a whole token. That's what keeps "esso" from firing
+/// inside "espresso", "gym" inside "gymboree", or "rent" inside "rental car", while still letting
+/// "mcdonald" match "mcdonalds" and "chiropract" match "chiropractor".
 @MainActor
 final class CategorizationService {
+    /// Keywords at least this long may match as a token *prefix* ("mcdonald" → "mcdonalds");
+    /// shorter ones must match a whole token exactly.
+    private static let prefixMatchMinimumLength = 5
+
     private let modelContext: ModelContext
+    /// Rules are fetched once per service instance and reused across every match — a sync that
+    /// imports hundreds of transactions does one fetch, not one per transaction. Invalidated by
+    /// `learn`, the only path that changes the rule set mid-instance.
+    private var cachedRules: [CategorizationRule]?
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -25,6 +38,7 @@ final class CategorizationService {
         } else {
             modelContext.insert(CategorizationRule(keyword: keyword, category: category))
         }
+        cachedRules = nil
     }
 
     /// The category a stored rule would assign to `merchant`, or nil. Read-only — no match counting.
@@ -44,8 +58,9 @@ final class CategorizationService {
     }
 
     /// Applies the learned/built-in rules to every currently uncategorized, non-split transaction.
-    /// Called on launch and after a sync/import so that as rules grow (or defaults are seeded),
-    /// previously-unmatched transactions get filled in. Returns the number newly categorized.
+    /// Called on launch, after a sync/import, and right after the user teaches a new rule, so a
+    /// manual categorization propagates to the merchant's other transactions immediately.
+    /// Returns the number newly categorized.
     @discardableResult
     func categorizeAllUncategorized() -> Int {
         let descriptor = FetchDescriptor<Transaction>()
@@ -60,16 +75,33 @@ final class CategorizationService {
 
     // MARK: - Matching
 
-    /// The most specific rule whose keyword is contained in the (normalized) merchant. Longest
-    /// keyword wins; ties break toward the rule that has matched more often.
+    /// The most specific rule matching the (normalized) merchant. Longest keyword wins; ties break
+    /// toward the rule that has matched more often — so "uber eats" outranks "uber", and a user's
+    /// learned rule (matchCount ≥ 1) outranks a built-in default (matchCount 0) of equal length.
     private func bestRule(forMerchant merchant: String) -> CategorizationRule? {
         let normalized = Self.keyword(for: merchant)
         guard !normalized.isEmpty else { return nil }
 
-        let rules = (try? modelContext.fetch(FetchDescriptor<CategorizationRule>())) ?? []
-        return rules
-            .filter { !$0.keyword.isEmpty && normalized.contains($0.keyword) }
+        return rules()
+            .filter { Self.matches(keyword: $0.keyword, normalizedMerchant: normalized) }
             .max { ($0.keyword.count, $0.matchCount) < ($1.keyword.count, $1.matchCount) }
+    }
+
+    /// Token-boundary matching. The keyword must begin at a token boundary; keywords shorter than
+    /// `prefixMatchMinimumLength` must also *end* on one.
+    static func matches(keyword: String, normalizedMerchant: String) -> Bool {
+        guard !keyword.isEmpty else { return false }
+        let padded = " " + normalizedMerchant + " "
+        if padded.contains(" " + keyword + " ") { return true }
+        guard keyword.count >= prefixMatchMinimumLength else { return false }
+        return padded.contains(" " + keyword)
+    }
+
+    private func rules() -> [CategorizationRule] {
+        if let cachedRules { return cachedRules }
+        let fetched = (try? modelContext.fetch(FetchDescriptor<CategorizationRule>())) ?? []
+        cachedRules = fetched
+        return fetched
     }
 
     static func keyword(for merchant: String) -> String {
