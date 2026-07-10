@@ -3,6 +3,7 @@ import SwiftData
 
 struct BudgetListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppRefreshCoordinator.self) private var refresh
     @State private var viewModel: BudgetsViewModel?
     @State private var isPresentingNew = false
     @State private var editingRow: BudgetsViewModel.BudgetRow?
@@ -59,7 +60,9 @@ struct BudgetListView: View {
                                         }
                                 }
                             }
-                            .refreshable { viewModel.load() }
+                            // Pull-to-refresh runs a real sync; the refreshCount observer below
+                            // then reloads the rows with the new spent amounts.
+                            .refreshable { await refresh.refresh(container: modelContext.container) }
                         }
                     }
                 } else {
@@ -115,6 +118,9 @@ struct BudgetListView: View {
                 if viewModel == nil { viewModel = BudgetsViewModel(modelContext: modelContext) }
                 viewModel?.load()
             }
+            // Reload once a background refresh (sync + categorize) finishes, so spent amounts
+            // reflect freshly imported transactions without re-opening the tab.
+            .onChange(of: refresh.refreshCount) { _, _ in viewModel?.load() }
         }
     }
 
@@ -133,22 +139,23 @@ struct BudgetListView: View {
 
     private func monthPicker(_ viewModel: BudgetsViewModel) -> some View {
         HStack {
-            Button {
-                shiftMonth(viewModel, by: -1)
-            } label: {
-                Image(systemName: "chevron.left")
-            }
+            monthChevron("chevron.left") { shiftMonth(viewModel, by: -1) }
             Spacer()
             Text(DateFormatting.monthYear(viewModel.selectedMonth))
                 .font(.headline)
             Spacer()
-            Button {
-                shiftMonth(viewModel, by: 1)
-            } label: {
-                Image(systemName: "chevron.right")
-            }
+            monthChevron("chevron.right") { shiftMonth(viewModel, by: 1) }
         }
-        .padding()
+        .padding(.horizontal)
+    }
+
+    /// A 44pt hit area — the bare chevron glyph is far too small a tap target on its own.
+    private func monthChevron(_ systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
     }
 
     private func shiftMonth(_ viewModel: BudgetsViewModel, by value: Int) {
@@ -166,13 +173,18 @@ private struct BudgetRowView: View {
             HStack {
                 Image(systemName: row.budget.category?.sfSymbolName ?? "tag")
                     .foregroundStyle(row.budget.category.map { Color(hex: $0.colorHex) } ?? .gray)
+                // A long category name truncates instead of wrapping and pushing the
+                // amounts onto a second line.
                 Text(row.budget.category?.name ?? "Uncategorized")
                     .fontWeight(.medium)
-                Spacer()
+                    .lineLimit(1)
+                Spacer(minLength: 8)
                 Text(CurrencyFormatter.string(from: row.spent))
                     .foregroundStyle(row.isOverBudget ? Color.red : Color.primary)
+                    .layoutPriority(1)
                 Text("/ \(CurrencyFormatter.string(from: row.allocatedIncludingRollover))")
                     .foregroundStyle(.secondary)
+                    .layoutPriority(1)
             }
             .font(.subheadline)
             BudgetProgressBar(progress: row.progress, isOverBudget: row.isOverBudget)
@@ -184,4 +196,5 @@ private struct BudgetRowView: View {
 #Preview {
     BudgetListView()
         .modelContainer(for: LedgerSchema.models, inMemory: true)
+        .environment(AppRefreshCoordinator())
 }
