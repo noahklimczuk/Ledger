@@ -3,8 +3,8 @@ import SwiftData
 
 /// Reviewable AI budget proposal for one month. Everything is a *proposal* until the user taps
 /// Apply: amounts are editable, categories can be excluded, and cancelling changes nothing.
-/// The statistics come from on-device aggregation; the optional Anthropic refinement only ever
-/// receives category totals (see `AnthropicService`).
+/// The statistics come from on-device aggregation; the optional Gemini refinement only ever
+/// receives category totals (see `GeminiService`).
 struct BudgetSuggestionView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -207,21 +207,21 @@ struct BudgetSuggestionView: View {
         NavigationStack {
             Form {
                 Section {
-                    SecureField("sk-ant-…", text: Binding(
+                    SecureField("AIza…", text: Binding(
                         get: { viewModel.apiKeyText },
                         set: { viewModel.apiKeyText = $0 }
                     ))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                 } header: {
-                    Text("Anthropic API Key")
+                    Text("Google Gemini API Key")
                 } footer: {
-                    Text("Stored in the iOS Keychain only. Used solely to tailor budget suggestions — only aggregated category totals are sent, never your transactions or account details. Get a key at console.anthropic.com.")
+                    Text("Free with a Google account — no credit card. Stored in the iOS Keychain only, and used solely to tailor budget suggestions: only aggregated category totals are sent, never your transactions or account details. Get a key at aistudio.google.com/apikey.")
                 }
                 if viewModel.hasAPIKey {
                     Section {
                         Button("Remove Key", role: .destructive) {
-                            AnthropicService.setAPIKey(nil)
+                            GeminiService.setAPIKey(nil)
                             isEditingKey = false
                         }
                     }

@@ -4,7 +4,7 @@ import SwiftData
 
 /// Drives the AI budget proposal sheet. The flow never touches stored budgets until the user
 /// explicitly applies: an on-device baseline proposal is built first (always works, offline),
-/// then — when an Anthropic API key is configured — the aggregated numbers are sent for
+/// then — when a (free) Google Gemini API key is configured — the aggregated numbers are sent for
 /// AI-tailored amounts and rationales. An API failure quietly leaves the on-device proposal
 /// in place with a note, never an empty screen.
 @MainActor
@@ -40,7 +40,7 @@ final class BudgetSuggestionViewModel {
     private(set) var appliedCount = 0
 
     var apiKeyText: String = ""
-    var hasAPIKey: Bool { AnthropicService.storedAPIKey != nil }
+    var hasAPIKey: Bool { GeminiService.storedAPIKey != nil }
 
     let month: Date
     private let modelContext: ModelContext
@@ -91,16 +91,16 @@ final class BudgetSuggestionViewModel {
     /// Sends the aggregated summary (never raw transactions) for tailored amounts. Failures
     /// leave the on-device proposal untouched.
     private func refineWithAI(summary: BudgetSuggestionService.Summary) async {
-        guard let apiKey = AnthropicService.storedAPIKey else {
-            aiStatus = "On-device estimate. Add an Anthropic API key for tailored suggestions."
+        guard let apiKey = GeminiService.storedAPIKey else {
+            aiStatus = "On-device estimate. Add a free Google Gemini API key for tailored suggestions."
             return
         }
 
         isRefining = true
         defer { isRefining = false }
         do {
-            let suggestion = try await AnthropicService().suggestBudget(from: summary, apiKey: apiKey)
-            var byName: [String: AnthropicService.SuggestedCategory] = [:]
+            let suggestion = try await GeminiService().suggestBudget(from: summary, apiKey: apiKey)
+            var byName: [String: GeminiService.SuggestedCategory] = [:]
             for category in suggestion.categories {
                 byName[category.name.lowercased().trimmingCharacters(in: .whitespaces)] = category
             }
@@ -129,7 +129,7 @@ final class BudgetSuggestionViewModel {
     }
 
     func saveAPIKey() {
-        AnthropicService.setAPIKey(apiKeyText)
+        GeminiService.setAPIKey(apiKeyText)
         apiKeyText = ""
     }
 

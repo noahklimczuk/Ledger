@@ -4,7 +4,7 @@ import SwiftData
 /// On-device statistical aggregation behind the AI budget proposal. Everything here runs locally:
 /// it reduces the last few months of categorized spending to per-category monthly totals,
 /// averages, and a simple trend, and derives a baseline suggested budget from those numbers.
-/// The Anthropic call (`AnthropicService`) only ever sees this summary — aggregated category
+/// The Gemini call (`GeminiService`) only ever sees this summary — aggregated category
 /// totals and monthly income — never raw transactions, merchants, account names, or balances.
 @MainActor
 struct BudgetSuggestionService {

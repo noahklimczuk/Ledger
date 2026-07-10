@@ -1,28 +1,31 @@
 import Foundation
 
-/// Minimal hand-rolled client for the Anthropic Messages API (no SDK dependency, same approach
-/// as `WealthsimpleAPIClient`). Used for exactly one thing: turning the on-device budget summary
+/// Minimal hand-rolled client for Google's Gemini API (no SDK dependency, same approach as
+/// `WealthsimpleAPIClient`). Used for exactly one thing: turning the on-device budget summary
 /// (aggregated per-category monthly totals — never raw transactions, merchants, accounts, or
-/// balances) into suggested amounts with a plain-English rationale. The API key comes from the
-/// user's own Anthropic console, is stored in the Keychain only, and the feature degrades to the
-/// on-device numbers whenever the key or network is missing.
-struct AnthropicService: Sendable {
+/// balances) into suggested amounts with a plain-English rationale.
+///
+/// Gemini has a genuinely free tier (no credit card — just a Google account at
+/// aistudio.google.com), which is why it replaced the paid Anthropic path. The key comes from the
+/// user's own Google AI Studio account, is stored in the Keychain only, and the feature degrades
+/// to the on-device numbers whenever the key or network is missing.
+struct GeminiService: Sendable {
     enum ServiceError: Error, LocalizedError {
         case missingAPIKey
         case invalidResponse
         case server(status: Int, message: String?)
-        case refused
+        case blocked
         case emptyResponse
 
         var errorDescription: String? {
             switch self {
             case .missingAPIKey:
-                "Add your Anthropic API key to get AI-tailored suggestions."
+                "Add your free Google Gemini API key to get AI-tailored suggestions."
             case .invalidResponse:
                 "The AI service returned an unexpected response."
             case .server(let status, let message):
                 "AI request failed (\(status)): \(message ?? "no details")"
-            case .refused:
+            case .blocked:
                 "The AI declined this request."
             case .emptyResponse:
                 "The AI returned no suggestions."
@@ -43,9 +46,13 @@ struct AnthropicService: Sendable {
         let summary: String
     }
 
-    private static let endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
-    private static let model = "claude-opus-4-8"
-    static let apiKeyKeychainKey = "anthropic.apiKey"
+    /// Gemini 2.5 Flash is on the free tier and supports structured (schema-constrained) output.
+    private static let model = "gemini-2.5-flash"
+    static let apiKeyKeychainKey = "gemini.apiKey"
+
+    private static var endpoint: URL {
+        URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent")!
+    }
 
     private let session: URLSession
 
@@ -66,22 +73,24 @@ struct AnthropicService: Sendable {
         }
     }
 
-    /// Asks the model to propose per-category budgets from the aggregated summary. Structured
-    /// output (`output_config.format`) guarantees the reply is valid JSON matching our schema.
+    /// Asks the model to propose per-category budgets from the aggregated summary. A response
+    /// schema (`generationConfig.responseSchema` + `application/json`) guarantees the reply is
+    /// valid JSON matching our shape.
     func suggestBudget(from summary: BudgetSuggestionService.Summary, apiKey: String) async throws -> Suggestion {
         var request = URLRequest(url: Self.endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        // Header (not the ?key= query param) so the key never lands in a URL/log.
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         request.timeoutInterval = 60
 
         let body: [String: Any] = [
-            "model": Self.model,
-            "max_tokens": 4096,
-            "output_config": ["format": Self.outputSchema],
-            "messages": [
-                ["role": "user", "content": Self.prompt(for: summary)]
+            "contents": [
+                ["parts": [["text": Self.prompt(for: summary)]]]
+            ],
+            "generationConfig": [
+                "responseMimeType": "application/json",
+                "responseSchema": Self.outputSchema
             ]
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -93,9 +102,16 @@ struct AnthropicService: Sendable {
             throw ServiceError.server(status: httpResponse.statusCode, message: envelope?.error?.message)
         }
 
-        let message = try JSONDecoder().decode(MessageResponse.self, from: data)
-        if message.stopReason == "refusal" { throw ServiceError.refused }
-        guard let text = message.content?.first(where: { $0.type == "text" })?.text,
+        let message = try JSONDecoder().decode(GenerateResponse.self, from: data)
+        // No candidate usually means the prompt was blocked by a safety filter.
+        guard let candidate = message.candidates?.first else {
+            if message.promptFeedback?.blockReason != nil { throw ServiceError.blocked }
+            throw ServiceError.emptyResponse
+        }
+        if let reason = candidate.finishReason, reason != "STOP", reason != "MAX_TOKENS" {
+            throw ServiceError.blocked
+        }
+        guard let text = candidate.content?.parts?.compactMap(\.text).first,
               let jsonData = text.data(using: .utf8) else {
             throw ServiceError.emptyResponse
         }
@@ -135,46 +151,52 @@ struct AnthropicService: Sendable {
         """
     }
 
+    /// Gemini's schema dialect is an OpenAPI 3.0 subset: type names are UPPERCASE and
+    /// `additionalProperties` isn't supported, so it's omitted here.
     private static let outputSchema: [String: Any] = [
-        "type": "json_schema",
-        "schema": [
-            "type": "object",
-            "properties": [
-                "categories": [
-                    "type": "array",
-                    "items": [
-                        "type": "object",
-                        "properties": [
-                            "name": ["type": "string"],
-                            "amount": ["type": "number"],
-                            "rationale": ["type": "string"]
-                        ],
-                        "required": ["name", "amount", "rationale"],
-                        "additionalProperties": false
-                    ] as [String: Any]
-                ] as [String: Any],
-                "summary": ["type": "string"]
+        "type": "OBJECT",
+        "properties": [
+            "categories": [
+                "type": "ARRAY",
+                "items": [
+                    "type": "OBJECT",
+                    "properties": [
+                        "name": ["type": "STRING"],
+                        "amount": ["type": "NUMBER"],
+                        "rationale": ["type": "STRING"]
+                    ] as [String: Any],
+                    "required": ["name", "amount", "rationale"],
+                    "propertyOrdering": ["name", "amount", "rationale"]
+                ] as [String: Any]
             ] as [String: Any],
-            "required": ["categories", "summary"],
-            "additionalProperties": false
-        ] as [String: Any]
+            "summary": ["type": "STRING"]
+        ] as [String: Any],
+        "required": ["categories", "summary"],
+        "propertyOrdering": ["categories", "summary"]
     ]
 
     // MARK: - Response envelope
 
-    private struct MessageResponse: Decodable {
-        let content: [ContentBlock]?
-        let stopReason: String?
-
-        enum CodingKeys: String, CodingKey {
-            case content
-            case stopReason = "stop_reason"
-        }
+    private struct GenerateResponse: Decodable {
+        let candidates: [Candidate]?
+        let promptFeedback: PromptFeedback?
     }
 
-    private struct ContentBlock: Decodable {
-        let type: String
+    private struct Candidate: Decodable {
+        let content: Content?
+        let finishReason: String?
+    }
+
+    private struct Content: Decodable {
+        let parts: [Part]?
+    }
+
+    private struct Part: Decodable {
         let text: String?
+    }
+
+    private struct PromptFeedback: Decodable {
+        let blockReason: String?
     }
 
     private struct ErrorEnvelope: Decodable {
