@@ -115,19 +115,29 @@ final class BudgetsViewModel {
 
     // MARK: - Loading
 
+    /// How many months back a rollover chain is followed. Bounds the per-load work; a year of
+    /// history is plenty for a monthly budgeting habit.
+    private static let rolloverLookbackMonths = 12
+
     func load() {
         let calendar = Calendar.current
         let month = selectedMonth
         let monthEnd = calendar.date(byAdding: DateComponents(month: 1), to: month) ?? month
-        let previousMonth = calendar.date(byAdding: DateComponents(month: -1), to: month) ?? month
 
         let budgets = (try? modelContext.fetch(FetchDescriptor<Budget>(predicate: #Predicate { $0.month == month }))) ?? []
-        let previousBudgets = (try? modelContext.fetch(FetchDescriptor<Budget>(predicate: #Predicate { $0.month == previousMonth }))) ?? []
         let allTransactions = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
             .filter(\.countsTowardTotals)
 
+        // Budgets over the rollover lookback window, bucketed by month, so a chain of
+        // rollover-enabled months can be followed backwards from the selected month.
+        let chainStart = calendar.date(byAdding: .month, value: -Self.rolloverLookbackMonths, to: month) ?? month
+        let chainBudgets = (try? modelContext.fetch(FetchDescriptor<Budget>(
+            predicate: #Predicate { $0.month >= chainStart && $0.month < month }
+        ))) ?? []
+        var budgetsByMonth: [Date: [Budget]] = [:]
+        for budget in chainBudgets { budgetsByMonth[budget.month, default: []].append(budget) }
+
         let budgetedIds = Set(budgets.compactMap { $0.category?.persistentModelID })
-        let previousBudgetedIds = Set(previousBudgets.compactMap { $0.category?.persistentModelID })
 
         // Net outflow per category over a window: outflows minus refunds, so a return credited
         // back to a category frees its budget up again.
@@ -151,6 +161,32 @@ final class BudgetsViewModel {
             return ids
         }
 
+        // Leftover budget carried into the selected month, compounding across every consecutive
+        // rollover-enabled month before it: each month's carry is
+        // max(allocated + carry-in − spent, 0), so unused money keeps accumulating and an
+        // overspent month eats into (but never inverts) what was saved up. The chain breaks at
+        // the first month without a rollover-enabled budget for the category.
+        func rolloverIntoSelectedMonth(for category: Category) -> Decimal {
+            let categoryId = category.persistentModelID
+            var carry: Decimal = 0
+            var cursor = chainStart
+            while cursor < month {
+                let cursorEnd = calendar.date(byAdding: .month, value: 1, to: cursor) ?? month
+                let monthBudgets = budgetsByMonth[cursor] ?? []
+                if let budget = monthBudgets.first(where: { $0.category?.persistentModelID == categoryId }),
+                   budget.rolloverEnabled {
+                    let monthBudgetedIds = Set(monthBudgets.compactMap { $0.category?.persistentModelID })
+                    let covered = coverage(of: category, budgeted: monthBudgetedIds)
+                    let spent = netOutflow(coveredIds: covered, from: cursor, to: cursorEnd)
+                    carry = max(budget.allocatedAmount + carry - spent, 0)
+                } else {
+                    carry = 0
+                }
+                cursor = cursorEnd
+            }
+            return carry
+        }
+
         var coveredIds = Set<PersistentIdentifier>()
 
         rows = budgets.map { budget in
@@ -161,13 +197,7 @@ final class BudgetsViewModel {
             coveredIds.formUnion(covered)
             let spent = netOutflow(coveredIds: covered, from: month, to: monthEnd)
 
-            var rollover: Decimal = 0
-            if budget.rolloverEnabled,
-               let previousBudget = previousBudgets.first(where: { $0.category?.persistentModelID == category.persistentModelID }) {
-                let previousCovered = coverage(of: category, budgeted: previousBudgetedIds)
-                let previousSpent = netOutflow(coveredIds: previousCovered, from: previousMonth, to: month)
-                rollover = max(previousBudget.allocatedAmount - previousSpent, 0)
-            }
+            let rollover = budget.rolloverEnabled ? rolloverIntoSelectedMonth(for: category) : 0
 
             return BudgetRow(budget: budget, spent: spent, rolloverFromPreviousMonth: rollover)
         }
