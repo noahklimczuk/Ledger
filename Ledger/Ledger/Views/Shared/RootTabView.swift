@@ -3,11 +3,12 @@ import SwiftData
 
 struct RootTabView: View {
     @State private var selection = 0
-    @State private var tabSwipe = TabSwipeCoordinator()
 
     var body: some View {
-        // A paged TabView so the screens can be swiped between left/right. The native tab bar
-        // doesn't support swiping, so we hide its page indicator and supply our own bar below.
+        // A paged TabView keeps the left/right swipe between the five root screens. We no longer
+        // put `scrollDisabled` on it: that modifier propagates through the environment and was
+        // disabling the *inner* Lists/ScrollViews (so pushed screens couldn't scroll at all).
+        // The floating Liquid Glass bar below is our own; the native page indicator stays hidden.
         TabView(selection: $selection) {
             DashboardView().tag(0)
             AccountListView().tag(1)
@@ -16,18 +17,16 @@ struct RootTabView: View {
             MoreView().tag(4)
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        // While a screen is pushed inside any tab, the paging swipe is disabled so a horizontal
-        // swipe pops back to the previous screen instead of dragging to the next tab.
-        .scrollDisabled(!tabSwipe.isTabSwipeEnabled)
-        .environment(tabSwipe)
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            CustomTabBar(selection: $selection)
+            FloatingTabBar(selection: $selection)
         }
     }
 }
 
-private struct CustomTabBar: View {
+/// A floating, pill-shaped tab bar rendered in Liquid Glass on iOS 26+ (with a material fallback
+/// on earlier releases). Sits inset from the screen edges so content scrolls behind/under it.
+private struct FloatingTabBar: View {
     @Binding var selection: Int
 
     private let items: [(title: String, icon: String)] = [
@@ -39,7 +38,13 @@ private struct CustomTabBar: View {
     ]
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
+        bar
+            .padding(.horizontal, 16)
+            .padding(.top, 6)
+    }
+
+    private var content: some View {
+        HStack(alignment: .center, spacing: 0) {
             ForEach(items.indices, id: \.self) { index in
                 let item = items[index]
                 Button {
@@ -61,10 +66,21 @@ private struct CustomTabBar: View {
                 .accessibilityAddTraits(selection == index ? [.isSelected] : [])
             }
         }
-        .padding(.top, 10)
-        .padding(.bottom, 4)
-        .background(.bar)
-        .overlay(alignment: .top) { Divider() }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
+    }
+
+    /// The pill background: real Liquid Glass where available, a material capsule otherwise.
+    @ViewBuilder
+    private var bar: some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular, in: Capsule())
+        } else {
+            content
+                .background(.regularMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.06)))
+                .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
+        }
     }
 }
 
@@ -83,53 +99,53 @@ private struct MoreView: View {
                 }
                 Section("Insights") {
                     NavigationLink {
-                        InsightsView().disablesTabSwipe()
+                        InsightsView()
                     } label: {
                         Label("Insights", systemImage: "sparkles")
                     }
                     NavigationLink {
-                        ReportsView().disablesTabSwipe()
+                        ReportsView()
                     } label: {
                         Label("Reports", systemImage: "chart.bar.xaxis")
                     }
                     NavigationLink {
-                        RecurringView().disablesTabSwipe()
+                        RecurringView()
                     } label: {
                         Label("Recurring", systemImage: "arrow.triangle.2.circlepath")
                     }
                 }
                 Section("Planning") {
                     NavigationLink {
-                        SavingsGoalsView().disablesTabSwipe()
+                        SavingsGoalsView()
                     } label: {
                         Label("Savings Goals", systemImage: "target")
                     }
                     NavigationLink {
-                        DebtListView().disablesTabSwipe()
+                        DebtListView()
                     } label: {
                         Label("Debt Tracker", systemImage: "creditcard.trianglebadge.exclamationmark")
                     }
                     NavigationLink {
-                        BillRemindersView().disablesTabSwipe()
+                        BillRemindersView()
                     } label: {
                         Label("Bill Reminders", systemImage: "bell.badge")
                     }
                 }
                 Section("Organize") {
                     NavigationLink {
-                        CategoryEditorView().disablesTabSwipe()
+                        CategoryEditorView()
                     } label: {
                         Label("Categories", systemImage: "tag.fill")
                     }
                 }
                 Section("Data Sources") {
                     NavigationLink {
-                        IntegrationsSettingsView().disablesTabSwipe()
+                        IntegrationsSettingsView()
                     } label: {
                         Label("Connect Wealthsimple", systemImage: "link")
                     }
                     NavigationLink {
-                        CSVImportView().disablesTabSwipe()
+                        CSVImportView()
                     } label: {
                         Label("Import CSV / OFX", systemImage: "square.and.arrow.down")
                     }
