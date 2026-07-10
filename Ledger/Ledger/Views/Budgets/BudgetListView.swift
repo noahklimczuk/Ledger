@@ -144,7 +144,7 @@ struct BudgetListView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: viewModel.leftToAssign))
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
                     .foregroundStyle(leftToAssignColor(viewModel))
                     .contentTransition(.numericText())
                 planStatusChip(viewModel)

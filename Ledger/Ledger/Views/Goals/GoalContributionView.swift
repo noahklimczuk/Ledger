@@ -37,7 +37,7 @@ struct GoalContributionView: View {
                     TextField("0.00", text: $amountText)
                         .keyboardType(.decimalPad)
                         .focused($amountFocused)
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
                         .padding(.vertical, 8)
 
