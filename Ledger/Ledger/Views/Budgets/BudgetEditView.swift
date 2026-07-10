@@ -7,12 +7,17 @@ struct BudgetEditView: View {
 
     let month: Date
     let budgetRow: BudgetsViewModel.BudgetRow?
+    /// Pre-picks the category (used by the off-plan spending quick-add), leaving just the amount.
+    var preselectedCategory: Category? = nil
 
     @State private var categories: [Category] = []
     @State private var category: Category?
     @State private var amountText = ""
     @State private var rolloverEnabled = false
     @State private var isPresentingNewCategory = false
+    /// Income minus everything already assigned this month (an edited budget's own allocation is
+    /// handed back to the pool, since saving replaces it).
+    @State private var leftToAssign: Decimal?
 
     /// Budgets track spending, so income categories stay out of the picker — but an existing
     /// budget that already points at one keeps its selection visible instead of showing blank.
@@ -40,10 +45,29 @@ struct BudgetEditView: View {
                         }
                     }
                 }
-                Section("Amount") {
+                Section {
                     TextField("0.00", text: $amountText)
                         .keyboardType(.decimalPad)
+                    if let leftToAssign, leftToAssign > 0 {
+                        Button {
+                            amountText = NSDecimalNumber(decimal: leftToAssign).stringValue
+                        } label: {
+                            Label("Assign Remaining (\(CurrencyFormatter.string(from: leftToAssign)))", systemImage: "arrow.down.to.line")
+                        }
+                    }
                     Toggle("Roll Over Unused Amount", isOn: $rolloverEnabled)
+                } header: {
+                    Text("Amount")
+                } footer: {
+                    if let leftToAssign {
+                        if leftToAssign > 0 {
+                            Text("\(CurrencyFormatter.string(from: leftToAssign)) of your income is still unassigned. Assigning all of it zeroes out the plan.")
+                        } else if leftToAssign == 0 {
+                            Text("Every dollar of your income is already assigned — anything added here over-assigns the plan.")
+                        } else {
+                            Text("The plan is over-assigned by \(CurrencyFormatter.string(from: -leftToAssign)).")
+                        }
+                    }
                 }
             }
             .navigationTitle(budgetRow == nil ? "New Budget" : "Edit Budget")
@@ -69,13 +93,22 @@ struct BudgetEditView: View {
                     category = budgetRow.budget.category
                     amountText = NSDecimalNumber(decimal: budgetRow.budget.allocatedAmount).stringValue
                     rolloverEnabled = budgetRow.budget.rolloverEnabled
+                } else if let preselectedCategory {
+                    category = preselectedCategory
                 }
+                computeLeftToAssign()
             }
         }
     }
 
     private func loadCategories() {
         categories = (try? modelContext.fetch(FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)]))) ?? []
+    }
+
+    private func computeLeftToAssign() {
+        let viewModel = BudgetsViewModel(modelContext: modelContext)
+        viewModel.selectedMonth = month
+        leftToAssign = viewModel.leftToAssign + (budgetRow?.budget.allocatedAmount ?? 0)
     }
 
     /// After the New Category sheet closes, pick out whatever it added (a cancelled sheet adds
