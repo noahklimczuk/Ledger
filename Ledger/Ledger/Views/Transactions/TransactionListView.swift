@@ -3,6 +3,7 @@ import SwiftData
 
 struct TransactionListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppRefreshCoordinator.self) private var refresh
     // @Query keeps this list live: any change to the store — a sync, a manual add/edit, a delete —
     // updates it automatically, so transactions always reflect the latest data without a manual reload.
     @Query(sort: [SortDescriptor(\Transaction.date, order: .reverse)]) private var allTransactions: [Transaction]
@@ -109,6 +110,9 @@ struct TransactionListView: View {
                 }
             }
             .navigationTitle("Transactions")
+            // Pull-to-refresh runs a real sync (not just a local re-read); the live @Query then
+            // shows whatever the sync inserted.
+            .refreshable { await refresh.refresh(container: modelContext.container) }
             .searchable(text: $searchText, prompt: "Search merchants")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -146,4 +150,5 @@ struct TransactionListView: View {
 #Preview {
     TransactionListView()
         .modelContainer(for: LedgerSchema.models, inMemory: true)
+        .environment(AppRefreshCoordinator())
 }

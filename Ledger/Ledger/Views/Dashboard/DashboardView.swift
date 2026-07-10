@@ -24,7 +24,8 @@ struct DashboardView: View {
             // Reload once a background refresh (sync + categorize) finishes, so balances and
             // recent transactions reflect the latest data without needing to re-open the tab.
             .onChange(of: refresh.refreshCount) { _, _ in viewModel?.load() }
-            .refreshable { viewModel?.load() }
+            // Pull-to-refresh runs a real sync; the refreshCount bump above then reloads the VM.
+            .refreshable { await refresh.refresh(container: modelContext.container) }
         }
     }
 

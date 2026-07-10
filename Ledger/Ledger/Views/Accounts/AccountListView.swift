@@ -37,7 +37,9 @@ struct AccountListView: View {
                                 }
                             }
                         }
-                        .refreshable { viewModel.load() }
+                        // Pull-to-refresh runs a real sync; the refreshCount observer below then
+                        // reloads the VM with the new balances.
+                        .refreshable { await refresh.refresh(container: modelContext.container) }
                     }
                 } else {
                     LoadingView()

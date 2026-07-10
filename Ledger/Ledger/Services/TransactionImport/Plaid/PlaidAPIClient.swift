@@ -133,6 +133,19 @@ struct PlaidAPIClient: Sendable {
         return try await post(environment: credentials.environment, path: "/transactions/get", body: body)
     }
 
+    /// Asks Plaid to pull fresh data from the institution *now* instead of waiting for Plaid's own
+    /// periodic refresh (which can lag hours behind). The extraction runs asynchronously on Plaid's
+    /// side — a follow-up `/transactions/get` shortly after picks up whatever completed.
+    @discardableResult
+    func refreshTransactions(credentials: PlaidCredentials) async throws -> PlaidDTO.RefreshResponse {
+        let body: [String: Any] = [
+            "client_id": credentials.clientId,
+            "secret": credentials.secret,
+            "access_token": credentials.accessToken
+        ]
+        return try await post(environment: credentials.environment, path: "/transactions/refresh", body: body)
+    }
+
     // MARK: - Request plumbing
 
     private func post<Response: Decodable>(
