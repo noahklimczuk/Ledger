@@ -6,7 +6,9 @@ import SwiftData
 @Observable
 final class RecurringViewModel {
     struct UpcomingCharge: Identifiable {
-        let id: PersistentIdentifier
+        /// Series id + occurrence date: one series can now appear several times in the forecast
+        /// (a weekly charge shows every expected hit, not just the next one).
+        let id: String
         let series: RecurringSeries
         let date: Date
     }
@@ -69,8 +71,17 @@ final class RecurringViewModel {
                 next = series.cadence.nextDate(after: next)
                 guardCounter += 1
             }
-            if next <= horizon {
-                charges.append(UpcomingCharge(id: series.persistentModelID, series: series, date: next))
+            // Every expected occurrence inside the horizon, not just the first — a weekly charge
+            // hits ~9 times in 60 days and the outflow totals below must reflect that.
+            var occurrenceCount = 0
+            while next <= horizon && occurrenceCount < 24 {
+                charges.append(UpcomingCharge(
+                    id: "\(series.merchantKey)|\(next.timeIntervalSince1970)",
+                    series: series,
+                    date: next
+                ))
+                next = series.cadence.nextDate(after: next)
+                occurrenceCount += 1
             }
         }
 
