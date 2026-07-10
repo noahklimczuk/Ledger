@@ -7,6 +7,7 @@ enum LedgerSchema {
         SplitAllocation.self,
         Category.self,
         Budget.self,
+        BudgetPeriod.self,
         Tag.self,
         CategorizationRule.self,
         RecurringSeries.self,
