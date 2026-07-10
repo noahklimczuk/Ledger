@@ -24,6 +24,9 @@ struct BudgetProgressBar: View {
         }
         .frame(height: 10)
         .animation(.easeOut(duration: 0.25), value: progress)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Budget used")
+        .accessibilityValue(isOverBudget ? "Over budget, \(Int(progress * 100)) percent" : "\(Int(progress * 100)) percent")
     }
 }
 

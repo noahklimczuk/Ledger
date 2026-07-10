@@ -108,6 +108,9 @@ struct ReportsView: View {
                 .interpolationMethod(.catmullRom)
             }
             .frame(height: 200)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Net worth over time")
+            .accessibilityValue(netWorthAccessibilitySummary(viewModel))
         }
     }
 
@@ -131,6 +134,14 @@ struct ReportsView: View {
                 }
                 .chartXAxis(.hidden)
                 .frame(height: CGFloat(viewModel.categorySpending.count) * 40 + 20)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Spending by category")
+                .accessibilityValue(
+                    viewModel.categorySpending
+                        .prefix(6)
+                        .map { "\($0.name) \(CurrencyFormatter.string(from: $0.amount))" }
+                        .joined(separator: ", ")
+                )
 
                 Divider()
 
@@ -241,6 +252,13 @@ struct ReportsView: View {
                 }
                 .chartForegroundStyleScale(["Income": Color.green, "Expense": Color.red])
                 .frame(height: 220)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Monthly income versus expenses")
+                .accessibilityValue(
+                    viewModel.monthlyFlows
+                        .map { "\(DateFormatting.monthYear($0.month)): income \(CurrencyFormatter.string(from: $0.income)), expenses \(CurrencyFormatter.string(from: $0.expense))" }
+                        .joined(separator: ". ")
+                )
             }
         }
     }
@@ -268,6 +286,13 @@ struct ReportsView: View {
                 }
             }
         }
+    }
+
+    private func netWorthAccessibilitySummary(_ viewModel: ReportsViewModel) -> String {
+        guard let first = viewModel.netWorthPoints.first, let last = viewModel.netWorthPoints.last else {
+            return "No data"
+        }
+        return "From \(CurrencyFormatter.string(from: first.value)) to \(CurrencyFormatter.string(from: last.value))"
     }
 
     // MARK: - Card chrome

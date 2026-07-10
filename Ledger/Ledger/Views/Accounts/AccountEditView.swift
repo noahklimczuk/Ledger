@@ -69,7 +69,7 @@ struct AccountEditView: View {
     }
 
     private func save() {
-        let balance = Decimal(string: startingBalanceText, locale: Locale(identifier: "en_CA")) ?? 0
+        let balance = ImportValueParsing.decimal(from: startingBalanceText) ?? 0
         let viewModel = viewModel ?? AccountsViewModel(modelContext: modelContext)
         if let account {
             viewModel.updateAccount(

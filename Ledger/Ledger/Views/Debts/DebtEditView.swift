@@ -16,11 +16,10 @@ struct DebtEditView: View {
     @State private var notes = ""
 
     private var isEditing: Bool { debt != nil }
-    private static let decimalLocale = Locale(identifier: "en_CA")
 
-    private var balance: Decimal { Decimal(string: balanceText, locale: Self.decimalLocale) ?? 0 }
+    private var balance: Decimal { ImportValueParsing.decimal(from: balanceText) ?? 0 }
     private var interest: Double { Double(interestText.replacingOccurrences(of: ",", with: ".")) ?? 0 }
-    private var payment: Decimal { Decimal(string: paymentText, locale: Self.decimalLocale) ?? 0 }
+    private var payment: Decimal { ImportValueParsing.decimal(from: paymentText) ?? 0 }
 
     var body: some View {
         NavigationStack {

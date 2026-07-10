@@ -4,10 +4,16 @@ import Foundation
 /// `sandbox` returns fake test institutions and is only useful for wiring the flow up.
 enum PlaidEnvironment: String, CaseIterable, Sendable, Identifiable {
     case sandbox
+    /// Retired: Plaid shut the Development environment down in 2024. The case is kept so a value
+    /// stored in the Keychain before then still decodes, but it's hidden from the picker and its
+    /// requests go to the production host (the development one no longer resolves).
     case development
     case production
 
     var id: String { rawValue }
+
+    /// The environments a user can actually pick today.
+    static var selectableCases: [PlaidEnvironment] { [.sandbox, .production] }
 
     var displayName: String {
         switch self {
@@ -20,8 +26,7 @@ enum PlaidEnvironment: String, CaseIterable, Sendable, Identifiable {
     var baseURL: URL {
         switch self {
         case .sandbox: URL(string: "https://sandbox.plaid.com")!
-        case .development: URL(string: "https://development.plaid.com")!
-        case .production: URL(string: "https://production.plaid.com")!
+        case .development, .production: URL(string: "https://production.plaid.com")!
         }
     }
 }
@@ -61,7 +66,12 @@ final class PlaidCredentialStore {
     }
 
     var environment: PlaidEnvironment {
-        get { KeychainService.getString(forKey: Key.environment).flatMap(PlaidEnvironment.init) ?? .production }
+        get {
+            let stored = KeychainService.getString(forKey: Key.environment).flatMap(PlaidEnvironment.init) ?? .production
+            // Development was retired by Plaid; treat an old stored value as production so the
+            // environment picker always shows a real selection.
+            return stored == .development ? .production : stored
+        }
         set { try? KeychainService.set(newValue.rawValue, forKey: Key.environment) }
     }
 

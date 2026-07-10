@@ -50,7 +50,7 @@ final class DailyCheckInViewModel {
             predicate: #Predicate { !$0.isReviewed },
             sortBy: [SortDescriptor(\.date, order: .reverse)]
         )
-        unreviewed = (try? modelContext.fetch(descriptor)) ?? []
+        unreviewed = ((try? modelContext.fetch(descriptor)) ?? []).filter(\.countsTowardTotals)
 
         let budgets = BudgetsViewModel(modelContext: modelContext)
         budgets.selectedMonth = Budget.normalize(.now)

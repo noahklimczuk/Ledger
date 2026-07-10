@@ -283,7 +283,7 @@ struct DailyCheckInView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: viewModel.leftToAssign))
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
                     .foregroundStyle(planColor(viewModel))
                 Text(planMessage(viewModel))
                     .font(.subheadline)

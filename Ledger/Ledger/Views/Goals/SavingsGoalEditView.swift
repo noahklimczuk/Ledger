@@ -17,8 +17,6 @@ struct SavingsGoalEditView: View {
     @State private var trackedAccount: Account?
     @State private var accounts: [Account] = []
 
-    private let locale = Locale(identifier: "en_CA")
-
     var body: some View {
         NavigationStack {
             Form {
@@ -71,7 +69,7 @@ struct SavingsGoalEditView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
                         .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            || Decimal(string: targetAmountText, locale: locale) == nil)
+                            || ImportValueParsing.decimal(from: targetAmountText) == nil)
                 }
             }
             .onAppear(perform: populate)
@@ -99,8 +97,8 @@ struct SavingsGoalEditView: View {
     }
 
     private func save() {
-        let target = Decimal(string: targetAmountText, locale: locale) ?? 0
-        let current = Decimal(string: currentAmountText, locale: locale) ?? 0
+        let target = ImportValueParsing.decimal(from: targetAmountText) ?? 0
+        let current = ImportValueParsing.decimal(from: currentAmountText) ?? 0
         let date = hasTargetDate ? targetDate : nil
 
         let viewModel = SavingsGoalsViewModel(modelContext: modelContext)

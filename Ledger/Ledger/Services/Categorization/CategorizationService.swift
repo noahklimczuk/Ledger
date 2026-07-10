@@ -99,7 +99,10 @@ final class CategorizationService {
 
     private func rules() -> [CategorizationRule] {
         if let cachedRules { return cachedRules }
-        let fetched = (try? modelContext.fetch(FetchDescriptor<CategorizationRule>())) ?? []
+        // A rule whose category was deleted can never apply, but if it kept matching it would
+        // shadow a shorter live rule via longest-keyword-wins. Drop those here.
+        let fetched = ((try? modelContext.fetch(FetchDescriptor<CategorizationRule>())) ?? [])
+            .filter { $0.category != nil }
         cachedRules = fetched
         return fetched
     }

@@ -23,6 +23,9 @@ final class TransactionImportService {
     func importAll(from source: TransactionSource, sourceKind: TransactionSourceKind, since: Date? = nil) async throws -> ImportSummary {
         var summary = ImportSummary()
         let importedAccounts = try await source.fetchAccounts()
+        // One dedup-set fetch for the whole run — a sync of hundreds of rows shouldn't do a
+        // store-wide fetch per row.
+        var knownExternalIds = existingExternalIds()
 
         for imported in importedAccounts {
             let account = try upsertAccount(imported, sourceIdentifier: source.sourceIdentifier, summary: &summary)
@@ -31,7 +34,7 @@ final class TransactionImportService {
             if account.isArchived { continue }
             let importedTransactions = try await source.fetchTransactions(accountExternalId: imported.id, since: since)
             for transaction in importedTransactions {
-                if try insertTransactionIfNeeded(transaction, into: account, sourceKind: sourceKind) {
+                if insertTransactionIfNeeded(transaction, into: account, sourceKind: sourceKind, knownExternalIds: &knownExternalIds) {
                     summary.transactionsCreated += 1
                 } else {
                     summary.transactionsSkipped += 1
@@ -49,8 +52,9 @@ final class TransactionImportService {
     @discardableResult
     func importTransactions(_ transactions: [ImportedTransaction], into account: Account, sourceKind: TransactionSourceKind) throws -> ImportSummary {
         var summary = ImportSummary()
+        var knownExternalIds = existingExternalIds()
         for transaction in transactions {
-            if try insertTransactionIfNeeded(transaction, into: account, sourceKind: sourceKind) {
+            if insertTransactionIfNeeded(transaction, into: account, sourceKind: sourceKind, knownExternalIds: &knownExternalIds) {
                 summary.transactionsCreated += 1
             } else {
                 summary.transactionsSkipped += 1
@@ -107,10 +111,15 @@ final class TransactionImportService {
         account.startingBalance = signedReported - transactionSum
     }
 
-    private func insertTransactionIfNeeded(_ imported: ImportedTransaction, into account: Account, sourceKind: TransactionSourceKind) throws -> Bool {
-        let externalId = imported.id
-        let descriptor = FetchDescriptor<Transaction>(predicate: #Predicate { $0.externalId == externalId })
-        guard try modelContext.fetch(descriptor).first == nil else { return false }
+    /// Inserts unless `knownExternalIds` already contains the id; records the id either way so a
+    /// duplicate later in the same batch is also skipped.
+    private func insertTransactionIfNeeded(
+        _ imported: ImportedTransaction,
+        into account: Account,
+        sourceKind: TransactionSourceKind,
+        knownExternalIds: inout Set<String>
+    ) -> Bool {
+        guard knownExternalIds.insert(imported.id).inserted else { return false }
 
         let transaction = Transaction(
             date: imported.date,

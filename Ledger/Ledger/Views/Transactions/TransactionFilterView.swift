@@ -4,7 +4,7 @@ import SwiftData
 struct TransactionFilterView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @Binding var filter: TransactionListViewModel.Filter
+    @Binding var filter: TransactionFilter
 
     @State private var accounts: [Account] = []
     @State private var categories: [Category] = []
@@ -54,7 +54,7 @@ struct TransactionFilterView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Reset") {
-                        filter = TransactionListViewModel.Filter()
+                        filter = TransactionFilter()
                         dismiss()
                     }
                 }
@@ -80,7 +80,7 @@ struct TransactionFilterView: View {
     private func apply() {
         filter.startDate = useDateRange ? startDate : nil
         filter.endDate = useDateRange ? endDate : nil
-        filter.minAmount = useAmountRange ? Decimal(string: minAmountText, locale: Locale(identifier: "en_CA")) : nil
-        filter.maxAmount = useAmountRange ? Decimal(string: maxAmountText, locale: Locale(identifier: "en_CA")) : nil
+        filter.minAmount = useAmountRange ? ImportValueParsing.decimal(from: minAmountText) : nil
+        filter.maxAmount = useAmountRange ? ImportValueParsing.decimal(from: maxAmountText) : nil
     }
 }

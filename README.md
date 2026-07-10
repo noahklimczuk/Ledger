@@ -108,6 +108,32 @@ Phase 8 (done): navigation + dashboard charts.
 - **Reliable delete** — budget rows and transaction rows gained a long-press context menu (Edit /
   Delete), so those actions stay reachable even where the paged-tab swipe competes with row swipes.
 
+Phase 9 (done): a bug-fix / polish / feature-completion pass, plus AI budget suggestions.
+- **Fixes** — Plaid sync skips pending transactions (they re-post under a new id, defeating dedup)
+  and scopes `/transactions/get` per account; archived (removed) accounts' transactions no longer
+  count toward any aggregate (dashboard, budgets, reports, net worth, insights, recurring);
+  user-entered amounts parse robustly ("1,234.56" no longer silently read as 1); deleting a
+  category cleans up its budgets and learned rules; Plaid's retired Development environment is
+  hidden from the picker.
+- **Budget rollover compounds** across consecutive rollover-enabled months (bounded to 12), with
+  overspent months drawing the accumulated carry down.
+- **Recurring forecasts count every occurrence** in the window — a weekly charge reserves ~4-5
+  hits per month in the 30-day outflow and Safe to Spend, not one.
+- **Manual entry** gained an Expense/Income control: amounts are typed unsigned and default to
+  expense, so "12.50" for a coffee no longer records as income.
+- **AI budget suggestions** — Budgets → "Suggest a Budget" builds a reviewable per-category
+  proposal from the last 6 months. Aggregation is fully on-device; with an Anthropic API key
+  (entered in the sheet, stored in the Keychain) the summary — aggregated category totals only,
+  never transactions — is sent to the Anthropic API for tailored amounts and plain-English
+  rationales. No key or no network falls back to the on-device numbers. Nothing is written until
+  Apply.
+- **Accessibility & onboarding** — VoiceOver summaries for charts and budget bars, tab-bar
+  selected states, Dynamic Type on hero figures, and a first-run getting-started guide on the
+  empty dashboard.
+- **Tests** — a `LedgerTests` target (Swift Testing) covering parsing, categorization matching,
+  recurring detection, rollover math, Safe to Spend, debt payoff, net worth, and the budget
+  suggestion aggregation.
+
 Not yet: the optional LLM recap, the home screen widget, envelope budgeting mode, multi-currency,
 receipt photos, export, year-in-review, shared/joint view.
 

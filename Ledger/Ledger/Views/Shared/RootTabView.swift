@@ -57,6 +57,8 @@ private struct CustomTabBar: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(item.title)
+                .accessibilityAddTraits(selection == index ? [.isSelected] : [])
             }
         }
         .padding(.top, 10)

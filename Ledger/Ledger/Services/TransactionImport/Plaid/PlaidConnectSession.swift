@@ -15,11 +15,15 @@ final class PlaidConnectSession: NSObject, ASWebAuthenticationPresentationContex
     enum ConnectError: Error {
         case cancelled
         case failedToStart
+        case alreadyInProgress
     }
 
     private var continuation: CheckedContinuation<Void, Error>?
 
     func connect(hostedLinkURL: URL, callbackScheme: String = "ledger") async throws {
+        // Starting a second session while one is pending would silently overwrite (and leak) the
+        // first continuation, hanging its caller forever. Refuse instead.
+        guard continuation == nil else { throw ConnectError.alreadyInProgress }
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             self.continuation = continuation
 

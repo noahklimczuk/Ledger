@@ -36,11 +36,30 @@ enum SafeToSpendCalculator {
             .filter { series in
                 !series.isIgnored
                     && !series.isIncome
-                    && series.nextExpected >= now && series.nextExpected < monthEnd
                     && !billNames.contains(series.displayName.lowercased().trimmingCharacters(in: .whitespaces))
             }
-            .reduce(Decimal(0)) { $0 + (-$1.averageAmount) }
+            .reduce(Decimal(0)) { total, series in
+                total + Decimal(occurrences(of: series, from: now, before: monthEnd, calendar: calendar)) * (-series.averageAmount)
+            }
 
         return billTotal + recurringTotal
+    }
+
+    /// Expected hits of a recurring series in `[from, before)` — a weekly charge late in the
+    /// month can land several more times before month end, and each one needs reserving.
+    private static func occurrences(of series: RecurringSeries, from: Date, before end: Date, calendar: Calendar) -> Int {
+        var next = series.nextExpected
+        var guardCounter = 0
+        // Roll a stale next-expected forward to the window first.
+        while next < from && guardCounter < 24 {
+            next = series.cadence.nextDate(after: next, calendar: calendar)
+            guardCounter += 1
+        }
+        var count = 0
+        while next < end && count < 24 {
+            count += 1
+            next = series.cadence.nextDate(after: next, calendar: calendar)
+        }
+        return count
     }
 }

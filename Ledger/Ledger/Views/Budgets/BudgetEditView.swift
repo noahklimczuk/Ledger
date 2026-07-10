@@ -78,7 +78,7 @@ struct BudgetEditView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
-                        .disabled(category == nil || Decimal(string: amountText, locale: Locale(identifier: "en_CA")) == nil)
+                        .disabled(category == nil || ImportValueParsing.decimal(from: amountText) == nil)
                 }
             }
             .sheet(isPresented: $isPresentingNewCategory, onDismiss: selectNewlyAddedCategory) {
@@ -122,7 +122,7 @@ struct BudgetEditView: View {
     }
 
     private func save() {
-        guard let category, let amount = Decimal(string: amountText, locale: Locale(identifier: "en_CA")) else { return }
+        guard let category, let amount = ImportValueParsing.decimal(from: amountText) else { return }
         let viewModel = BudgetsViewModel(modelContext: modelContext)
         viewModel.selectedMonth = month
         viewModel.addOrUpdateBudget(category: category, allocatedAmount: amount, rolloverEnabled: rolloverEnabled)

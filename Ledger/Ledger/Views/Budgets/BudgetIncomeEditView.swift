@@ -22,7 +22,7 @@ struct BudgetIncomeEditView: View {
     }
 
     private var parsedAmount: Decimal? {
-        Decimal(string: amountText.trimmingCharacters(in: .whitespaces), locale: Locale(identifier: "en_CA"))
+        ImportValueParsing.decimal(from: amountText.trimmingCharacters(in: .whitespaces))
     }
 
     var body: some View {

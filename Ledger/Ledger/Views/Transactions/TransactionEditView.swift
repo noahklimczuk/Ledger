@@ -17,6 +17,12 @@ struct TransactionEditView: View {
                 if let viewModel {
                     Form {
                         Section("Details") {
+                            Picker("Type", selection: Binding(get: { viewModel.direction }, set: { viewModel.direction = $0 })) {
+                                ForEach(TransactionEditViewModel.Direction.allCases) { direction in
+                                    Text(direction.label).tag(direction)
+                                }
+                            }
+                            .pickerStyle(.segmented)
                             TextField("Merchant", text: Binding(get: { viewModel.merchant }, set: { viewModel.merchant = $0 }))
                             TextField("Amount", text: Binding(get: { viewModel.amountText }, set: { viewModel.amountText = $0 }))
                                 .keyboardType(.decimalPad)

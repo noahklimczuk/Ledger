@@ -115,20 +115,28 @@ struct PlaidAPIClient: Sendable {
         return try await post(environment: credentials.environment, path: "/accounts/balance/get", body: body)
     }
 
+    /// Pass `accountId` to scope the request to one account server-side (`options.account_ids`);
+    /// without it Plaid returns every linked account's transactions, so a multi-account item would
+    /// re-download the full history once per account.
     func transactions(
         credentials: PlaidCredentials,
+        accountId: String? = nil,
         startDate: Date,
         endDate: Date,
         offset: Int,
         count: Int
     ) async throws -> PlaidDTO.TransactionsResponse {
+        var options: [String: Any] = ["count": count, "offset": offset]
+        if let accountId {
+            options["account_ids"] = [accountId]
+        }
         let body: [String: Any] = [
             "client_id": credentials.clientId,
             "secret": credentials.secret,
             "access_token": credentials.accessToken,
             "start_date": dateOnlyFormatter.string(from: startDate),
             "end_date": dateOnlyFormatter.string(from: endDate),
-            "options": ["count": count, "offset": offset]
+            "options": options
         ]
         return try await post(environment: credentials.environment, path: "/transactions/get", body: body)
     }

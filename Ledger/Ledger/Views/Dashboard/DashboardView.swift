@@ -41,11 +41,7 @@ struct DashboardView: View {
     @ViewBuilder
     private func content(_ viewModel: DashboardViewModel) -> some View {
         if viewModel.accounts.isEmpty {
-            EmptyStateView(
-                systemImage: "banknote",
-                title: "Welcome to Ledger",
-                message: "Add your first account to start tracking balances and budgets."
-            )
+            onboardingCard
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -63,6 +59,74 @@ struct DashboardView: View {
                 .padding()
             }
         }
+    }
+
+    /// First-run guidance: a blank dashboard should say what to do, not just that it's empty.
+    private var onboardingCard: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(spacing: 8) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(LinearGradient.brand)
+                    Text("Welcome to Ledger")
+                        .font(.title2.bold())
+                    Text("Three ways to get your money in — pick whichever fits.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 24)
+
+                onboardingStep(
+                    number: 1,
+                    symbol: "banknote",
+                    title: "Add an account",
+                    detail: "Accounts tab → +. A chequing account with a starting balance is enough to begin."
+                )
+                onboardingStep(
+                    number: 2,
+                    symbol: "link",
+                    title: "Or connect Wealthsimple",
+                    detail: "More → Connect Wealthsimple pulls in accounts and transactions automatically via Plaid."
+                )
+                onboardingStep(
+                    number: 3,
+                    symbol: "square.and.arrow.down",
+                    title: "Or import a file",
+                    detail: "More → Import CSV / OFX brings in a statement export from any bank, with automatic deduplication."
+                )
+
+                Text("Once transactions are in, Ledger auto-categorizes them, spots recurring bills, and can suggest a monthly budget from your real spending.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+            }
+            .padding()
+        }
+    }
+
+    private func onboardingStep(number: Int, symbol: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(number)")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 26, height: 26)
+                .background(LinearGradient.brand, in: Circle())
+            VStack(alignment: .leading, spacing: 3) {
+                Label(title, systemImage: symbol)
+                    .font(.subheadline.weight(.semibold))
+                Text(detail)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
     }
 
     /// Shown on days the check-in hasn't been done yet — the ritual only sticks if the app
@@ -102,7 +166,7 @@ struct DashboardView: View {
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.85))
             Text(CurrencyFormatter.string(from: viewModel.totalBalance))
-                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .font(.system(.largeTitle, design: .rounded, weight: .bold))
                 .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -164,6 +228,9 @@ struct DashboardView: View {
                 }
                 .chartYAxis(.hidden)
                 .frame(height: 180)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Income versus expenses this month")
+                .accessibilityValue("Income \(CurrencyFormatter.string(from: viewModel.monthIncome)), expenses \(CurrencyFormatter.string(from: viewModel.monthSpending))")
             }
         }
     }
@@ -188,6 +255,13 @@ struct DashboardView: View {
                 }
                 .chartXAxis(.hidden)
                 .frame(height: CGFloat(viewModel.topCategories.count) * 38 + 20)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Top spending categories")
+                .accessibilityValue(
+                    viewModel.topCategories
+                        .map { "\($0.name) \(CurrencyFormatter.string(from: $0.amount))" }
+                        .joined(separator: ", ")
+                )
             }
         }
     }
