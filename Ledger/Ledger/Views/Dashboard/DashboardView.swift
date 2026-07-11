@@ -8,6 +8,7 @@ struct DashboardView: View {
     @State private var viewModel: DashboardViewModel?
     @State private var isPresentingCheckIn = false
     @State private var isCheckInDue = false
+    @State private var drilldownCategory: Category?
 
     var body: some View {
         NavigationStack {
@@ -19,6 +20,9 @@ struct DashboardView: View {
                 }
             }
             .navigationTitle("Dashboard")
+            .navigationDestination(item: $drilldownCategory) { category in
+                CategoryTransactionsView(category: category, month: .now)
+            }
             .task {
                 if viewModel == nil { viewModel = DashboardViewModel(modelContext: modelContext) }
                 viewModel?.load()
@@ -52,7 +56,12 @@ struct DashboardView: View {
                     monthSummaryCard(viewModel)
                     incomeExpenseChartCard(viewModel)
                     categoryChartCard(viewModel)
-                    safeToSpendCard(viewModel)
+                    NavigationLink {
+                        SafeToSpendDetailView()
+                    } label: {
+                        safeToSpendCard(viewModel)
+                    }
+                    .buttonStyle(.plain)
                     budgetCard(viewModel)
                     recentTransactionsSection(viewModel)
                 }
@@ -239,29 +248,26 @@ struct DashboardView: View {
     private func categoryChartCard(_ viewModel: DashboardViewModel) -> some View {
         if !viewModel.topCategories.isEmpty {
             card(title: "Top Spending Categories") {
-                Chart(viewModel.topCategories) { slice in
-                    BarMark(
-                        x: .value("Amount", slice.amount.doubleValue),
-                        y: .value("Category", slice.name),
-                        height: .fixed(16)
-                    )
-                    .foregroundStyle(Color(hex: slice.colorHex))
-                    .annotation(position: .trailing, alignment: .leading) {
-                        Text(CurrencyFormatter.string(from: slice.amount))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                InteractiveDonutChart(
+                    segments: viewModel.topCategories.map { slice in
+                        DonutSegment(
+                            id: slice.id,
+                            label: slice.name,
+                            value: slice.amount,
+                            color: Color(hex: slice.colorHex),
+                            isSelectable: slice.category != nil
+                        )
+                    },
+                    centerCaption: "Spent",
+                    onSelect: { segment in
+                        if let slice = viewModel.topCategories.first(where: { $0.id == segment.id }) {
+                            drilldownCategory = slice.category
+                        }
                     }
-                    .cornerRadius(4)
-                }
-                .chartXAxis(.hidden)
-                .frame(height: CGFloat(viewModel.topCategories.count) * 38 + 20)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Top spending categories")
-                .accessibilityValue(
-                    viewModel.topCategories
-                        .map { "\($0.name) \(CurrencyFormatter.string(from: $0.amount))" }
-                        .joined(separator: ", ")
                 )
+                Text("Tap a slice to see its transactions.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -295,6 +301,9 @@ struct DashboardView: View {
             Image(systemName: viewModel.safeToSpend < 0 ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                 .foregroundStyle(viewModel.safeToSpend < 0 ? .red : .green)
                 .font(.title)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
         .padding()
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
@@ -313,16 +322,30 @@ struct DashboardView: View {
                     .foregroundStyle(.secondary)
             }
             if viewModel.monthBudgetTotal > 0 {
-                let spent = (viewModel.monthSpending as NSDecimalNumber).doubleValue
-                let budgeted = (viewModel.monthBudgetTotal as NSDecimalNumber).doubleValue
-                let progress = min(max(spent / budgeted, 0), 1)
-                ProgressView(value: progress)
-                    .tint(progress >= 1 ? .red : .accentColor)
+                budgetGauge(spent: viewModel.monthSpending, budget: viewModel.monthBudgetTotal)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// A spent-vs-remaining ring: the spent portion (red once it overruns) against the leftover
+    /// budget, with the percentage of the budget used in the centre.
+    private func budgetGauge(spent: Decimal, budget: Decimal) -> some View {
+        let isOver = spent > budget
+        let spentPortion = min(spent, budget)
+        let remaining = max(budget - spent, 0)
+        let percent = Int((spent.doubleValue / budget.doubleValue * 100).rounded())
+        return InteractiveDonutChart(
+            segments: [
+                DonutSegment(id: "spent", label: "Spent", value: spentPortion, color: isOver ? .red : .accentColor, isSelectable: false),
+                DonutSegment(id: "remaining", label: "Remaining", value: remaining, color: Color(.systemGray4), isSelectable: false)
+            ],
+            centerCaption: isOver ? "over budget" : "of budget spent",
+            centerValueText: "\(percent)%",
+            showLegend: false
+        )
     }
 
     private func recentTransactionsSection(_ viewModel: DashboardViewModel) -> some View {

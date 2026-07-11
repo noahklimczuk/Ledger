@@ -103,6 +103,12 @@ Phase 8 (done): navigation + dashboard charts.
   with the current month so the scope is unambiguous.
 - **Dashboard charts** (Swift Charts) — a (skinny-barred) income-vs-expenses chart and a
   top-spending-categories breakdown, alongside the existing balance/safe-to-spend/budget cards.
+- **Interactive doughnut charts** (`InteractiveDonutChart`, `SectorMark` + angle selection) —
+  the dashboard's top-spending-categories and the Reports "Spending by Category" are doughnuts
+  whose slices/legend rows tap through to that category's transactions (scoped to the month, or the
+  report's date range); Spending-vs-Budget is a spent-vs-remaining gauge ring; and tapping the
+  Safe-to-Spend card opens a screen with a composition ring (budgeted / reserved for bills / safe to
+  spend) plus a spending-by-category doughnut. Drill-downs reuse `CategoryTransactionsView`.
 - **Live transactions list** — the Transactions tab now reads via SwiftData `@Query`, so it updates
   automatically on any change (sync, add, edit, delete) with no manual reload.
 - **Reliable delete** — budget rows and transaction rows gained a long-press context menu (Edit /

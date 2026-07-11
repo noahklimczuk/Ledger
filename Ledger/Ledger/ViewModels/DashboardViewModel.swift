@@ -10,6 +10,9 @@ final class DashboardViewModel {
         let name: String
         let colorHex: String
         let amount: Decimal
+        /// The category behind this slice, so a tapped doughnut slice can drill into its
+        /// transactions. Nil for the synthetic "Uncategorized" bucket.
+        let category: Category?
     }
 
     private(set) var accounts: [Account] = []
@@ -75,26 +78,29 @@ final class DashboardViewModel {
 
     /// The month's biggest spending categories (split-aware), for the dashboard breakdown chart.
     private func computeTopCategories(_ transactions: [Transaction]) -> [CategorySlice] {
-        var totals: [String: (colorHex: String, amount: Decimal)] = [:]
+        var totals: [String: (colorHex: String, amount: Decimal, category: Category?)] = [:]
 
-        func add(name: String, colorHex: String, amount: Decimal) {
+        func add(category: Category?, amount: Decimal) {
             guard amount < 0 else { return }
-            let existing = totals[name] ?? (colorHex, 0)
-            totals[name] = (existing.colorHex, existing.amount + (-amount))
+            let name = category?.name ?? "Uncategorized"
+            let colorHex = category?.colorHex ?? "#8E8E93"
+            let existing = totals[name] ?? (colorHex, 0, category)
+            // Keep the first real category seen for this name so the slice can drill in.
+            totals[name] = (existing.colorHex, existing.amount + (-amount), existing.category ?? category)
         }
 
         for transaction in transactions {
             if transaction.isSplit {
                 for split in transaction.splits {
-                    add(name: split.category?.name ?? "Uncategorized", colorHex: split.category?.colorHex ?? "#8E8E93", amount: split.amount)
+                    add(category: split.category, amount: split.amount)
                 }
             } else {
-                add(name: transaction.category?.name ?? "Uncategorized", colorHex: transaction.category?.colorHex ?? "#8E8E93", amount: transaction.amount)
+                add(category: transaction.category, amount: transaction.amount)
             }
         }
 
         return totals
-            .map { CategorySlice(name: $0.key, colorHex: $0.value.colorHex, amount: $0.value.amount) }
+            .map { CategorySlice(name: $0.key, colorHex: $0.value.colorHex, amount: $0.value.amount, category: $0.value.category) }
             .sorted { $0.amount > $1.amount }
             .prefix(5)
             .map { $0 }
