@@ -11,6 +11,8 @@ struct DailyCheckInView: View {
     @State private var viewModel: DailyCheckInViewModel?
     @State private var step = 0
     @State private var dailyReminderOn = false
+    /// The transaction whose detail popup is open, if any. Tapping a review row sets this.
+    @State private var selectedTransaction: Transaction?
 
     private let stepCount = 5
 
@@ -23,6 +25,10 @@ struct DailyCheckInView: View {
                         ScrollView {
                             stepContent(viewModel)
                                 .padding()
+                                // Each step is its own identity, so advancing slides the old step
+                                // out and the new one in (and resets the scroll to the top).
+                                .id(step)
+                                .transition(.push(from: .trailing))
                         }
                     }
                     .safeAreaInset(edge: .bottom) {
@@ -51,6 +57,18 @@ struct DailyCheckInView: View {
                     viewModel = model
                 }
             }
+            // Tapping a review row opens that exact transaction in a popup, so its category and
+            // details can be edited without leaving the check-in.
+            .sheet(item: $selectedTransaction) { transaction in
+                NavigationStack {
+                    TransactionDetailView(transaction: transaction)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") { selectedTransaction = nil }
+                            }
+                        }
+                }
+            }
         }
         .interactiveDismissDisabled(step > 0 && step < stepCount - 1)
     }
@@ -72,6 +90,7 @@ struct DailyCheckInView: View {
     private func continueButton(_ viewModel: DailyCheckInViewModel) -> some View {
         Button {
             if step < stepCount - 1 {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 withAnimation(.spring(duration: 0.3)) { step += 1 }
             } else {
                 let reminder = dailyReminderOn
@@ -137,9 +156,16 @@ struct DailyCheckInView: View {
     private func reviewRow(_ transaction: Transaction, viewModel: DailyCheckInViewModel) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.merchant)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
+                // Tapping the merchant opens the full transaction popup. The category menu below
+                // stays its own control so the quick-set dropdown still works.
+                Button { selectedTransaction = transaction } label: {
+                    Text(transaction.merchant)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
                 HStack(spacing: 6) {
                     Text(DateFormatting.relativeDay(transaction.date))
                         .font(.caption)
@@ -148,9 +174,13 @@ struct DailyCheckInView: View {
                 }
             }
             Spacer(minLength: 8)
-            Text(CurrencyFormatter.string(from: transaction.amount))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(transaction.amount < 0 ? Color.primary : Color.green)
+            Button { selectedTransaction = transaction } label: {
+                Text(CurrencyFormatter.string(from: transaction.amount))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(transaction.amount < 0 ? Color.primary : Color.green)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
             Button {
                 withAnimation { viewModel.markReviewed(transaction) }
             } label: {
