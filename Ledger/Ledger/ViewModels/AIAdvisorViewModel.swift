@@ -25,7 +25,6 @@ final class AIAdvisorViewModel {
     }
 
     private(set) var messages: [Message] = []
-    var input: String = ""
     private(set) var isSending = false
     private(set) var errorText: String?
 
@@ -72,7 +71,6 @@ final class AIAdvisorViewModel {
             return
         }
 
-        input = ""
         errorText = nil
         messages.append(Message(role: .user, text: text))
         apiHistory.append(.user(text))
