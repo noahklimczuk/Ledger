@@ -5,7 +5,8 @@ import SwiftData
 /// `RecurringSeries` set. Signal is regularity of spacing: a merchant whose transactions land at a
 /// consistent cadence (weekly/biweekly/monthly/quarterly/yearly) with ≥3 occurrences is recurring;
 /// irregular high-frequency merchants (groceries, restaurants) fail the regularity check.
-@MainActor
+// Not main-actor isolated: pure SwiftData work, so a background ModelContext (see RefreshDBWorker)
+// can run detection off the main thread.
 final class RecurringDetectionService {
     private let modelContext: ModelContext
     private let minimumOccurrences = 3
