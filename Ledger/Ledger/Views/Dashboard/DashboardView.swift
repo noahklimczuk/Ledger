@@ -1,6 +1,11 @@
-import Charts
 import SwiftUI
 import SwiftData
+
+/// A tapped spending slice's drill-down target: a real category, or the uncategorized bucket.
+private enum CategoryDrilldown: Hashable {
+    case category(Category)
+    case uncategorized
+}
 
 struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
@@ -8,7 +13,7 @@ struct DashboardView: View {
     @State private var viewModel: DashboardViewModel?
     @State private var isPresentingCheckIn = false
     @State private var isCheckInDue = false
-    @State private var drilldownCategory: Category?
+    @State private var drilldown: CategoryDrilldown?
 
     var body: some View {
         NavigationStack {
@@ -20,8 +25,13 @@ struct DashboardView: View {
                 }
             }
             .navigationTitle("Dashboard")
-            .navigationDestination(item: $drilldownCategory) { category in
-                CategoryTransactionsView(category: category, month: .now)
+            .navigationDestination(item: $drilldown) { target in
+                switch target {
+                case .category(let category):
+                    CategoryTransactionsView(category: category, month: .now)
+                case .uncategorized:
+                    CategoryTransactionsView(uncategorizedForMonth: .now)
+                }
             }
             .task {
                 if viewModel == nil { viewModel = DashboardViewModel(modelContext: modelContext) }
@@ -54,7 +64,6 @@ struct DashboardView: View {
                     }
                     balanceCard(viewModel)
                     monthSummaryCard(viewModel)
-                    incomeExpenseChartCard(viewModel)
                     categoryChartCard(viewModel)
                     NavigationLink {
                         SafeToSpendDetailView()
@@ -214,37 +223,6 @@ struct DashboardView: View {
     }
 
     @ViewBuilder
-    private func incomeExpenseChartCard(_ viewModel: DashboardViewModel) -> some View {
-        if viewModel.monthIncome > 0 || viewModel.monthSpending > 0 {
-            let bars = [
-                FlowBar(label: "Income", amount: viewModel.monthIncome, color: .green),
-                FlowBar(label: "Expenses", amount: viewModel.monthSpending, color: .red),
-            ]
-            card(title: "Income vs. Expenses") {
-                Chart(bars) { bar in
-                    BarMark(
-                        x: .value("Type", bar.label),
-                        y: .value("Amount", bar.amount.doubleValue),
-                        width: .fixed(44)
-                    )
-                    .foregroundStyle(bar.color)
-                    .annotation(position: .top) {
-                        Text(CurrencyFormatter.string(from: bar.amount))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    .cornerRadius(6)
-                }
-                .chartYAxis(.hidden)
-                .frame(height: 180)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Income versus expenses this month")
-                .accessibilityValue("Income \(CurrencyFormatter.string(from: viewModel.monthIncome)), expenses \(CurrencyFormatter.string(from: viewModel.monthSpending))")
-            }
-        }
-    }
-
-    @ViewBuilder
     private func categoryChartCard(_ viewModel: DashboardViewModel) -> some View {
         if !viewModel.topCategories.isEmpty {
             card(title: "Top Spending Categories") {
@@ -254,14 +232,13 @@ struct DashboardView: View {
                             id: slice.id,
                             label: slice.name,
                             value: slice.amount,
-                            color: Color(hex: slice.colorHex),
-                            isSelectable: slice.category != nil
+                            color: Color(hex: slice.colorHex)
                         )
                     },
                     centerCaption: "Spent",
                     onSelect: { segment in
                         if let slice = viewModel.topCategories.first(where: { $0.id == segment.id }) {
-                            drilldownCategory = slice.category
+                            drilldown = slice.category.map(CategoryDrilldown.category) ?? .uncategorized
                         }
                     }
                 )
@@ -371,13 +348,6 @@ struct DashboardView: View {
             }
         }
     }
-}
-
-private struct FlowBar: Identifiable {
-    var id: String { label }
-    let label: String
-    let amount: Decimal
-    let color: Color
 }
 
 private extension Decimal {
