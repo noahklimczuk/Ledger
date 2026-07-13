@@ -28,6 +28,8 @@ final class RecurringDetectionService {
     func refresh() {
         let transactions = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
             .filter(\.countsTowardTotals)
+            // Transfers between accounts aren't bills/subscriptions, so keep them out of detection.
+            .filter { !$0.isTransfer }
         let detected = detect(in: transactions)
         let detectedKeys = Set(detected.map(\.merchantKey))
 

@@ -55,9 +55,11 @@ final class DashboardViewModel {
         recentTransactions = Array(allTransactions.prefix(5))
 
         let monthTransactions = allTransactions.filter { $0.date >= monthStart && $0.date < monthEnd }
-        monthSpending = monthTransactions.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
-        monthIncome = monthTransactions.filter { $0.amount > 0 }.reduce(Decimal(0)) { $0 + $1.amount }
-        topCategories = computeTopCategories(monthTransactions)
+        // Transfers between accounts aren't income or spending, so keep them out of these totals.
+        let nonTransfer = monthTransactions.filter { !$0.isTransfer }
+        monthSpending = nonTransfer.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
+        monthIncome = nonTransfer.filter { $0.amount > 0 }.reduce(Decimal(0)) { $0 + $1.amount }
+        topCategories = computeTopCategories(nonTransfer)
 
         let budgetDescriptor = FetchDescriptor<Budget>(predicate: #Predicate { $0.month == monthStart })
         let budgets = (try? modelContext.fetch(budgetDescriptor)) ?? []
@@ -81,7 +83,7 @@ final class DashboardViewModel {
         var totals: [String: (colorHex: String, amount: Decimal, category: Category?)] = [:]
 
         func add(category: Category?, amount: Decimal) {
-            guard amount < 0 else { return }
+            guard amount < 0, category?.isTransfer != true else { return }
             let name = category?.name ?? "Uncategorized"
             let colorHex = category?.colorHex ?? "#8E8E93"
             let existing = totals[name] ?? (colorHex, 0, category)

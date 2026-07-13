@@ -23,7 +23,8 @@ struct InsightsEngine {
     ) {
         self.now = now
         self.calendar = calendar
-        self.transactions = transactions
+        // Transfers between accounts aren't income or spending, so no detector should react to them.
+        self.transactions = transactions.filter { !$0.isTransfer }
         self.currentMonthBudgets = currentMonthBudgets
         self.recurringSeries = recurringSeries
         self.categoryByID = Dictionary(categories.map { ($0.persistentModelID, $0) }, uniquingKeysWith: { first, _ in first })

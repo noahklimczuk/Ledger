@@ -64,12 +64,15 @@ final class ReportsViewModel {
         let allTransactions = ((try? modelContext.fetch(descriptor)) ?? [])
             .filter(\.countsTowardTotals)
         let inRange = allTransactions.filter { $0.date >= interval.start && $0.date < interval.end }
+        // Transfers between accounts aren't income or spending; keep them out of the flow charts
+        // and totals (net worth below still includes them — the two sides of a transfer cancel).
+        let flows = inRange.filter { !$0.isTransfer }
 
-        computeCategorySpending(inRange)
-        computeMonthlyFlows(inRange, interval: interval)
+        computeCategorySpending(flows)
+        computeMonthlyFlows(flows, interval: interval)
 
-        totalIncome = inRange.filter { $0.amount > 0 }.reduce(Decimal(0)) { $0 + $1.amount }
-        totalExpense = inRange.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
+        totalIncome = flows.filter { $0.amount > 0 }.reduce(Decimal(0)) { $0 + $1.amount }
+        totalExpense = flows.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
 
         let accounts = ((try? modelContext.fetch(FetchDescriptor<Account>())) ?? []).filter { !$0.isArchived }
         netWorthPoints = NetWorthCalculator.monthlySeries(accounts: accounts, transactions: allTransactions, interval: interval)

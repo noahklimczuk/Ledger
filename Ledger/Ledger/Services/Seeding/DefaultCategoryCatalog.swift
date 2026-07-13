@@ -23,10 +23,12 @@ enum DefaultCategoryCatalog {
         /// Seed-catalog version that introduced this category. Lets `DefaultDataSeeder` add new
         /// categories to existing installs without resurrecting older ones the user deleted.
         var introducedInVersion: Int = 1
+        /// A transfer category — its transactions don't count as income or spending.
+        var isTransfer: Bool = false
     }
 
     /// Bump when adding categories or keywords so existing installs pick the additions up.
-    static let version = 2
+    static let version = 3
 
     /// Ordered so `sortOrder` reflects a natural grouping (income first, then essentials, then
     /// discretionary). Colors are drawn from the system palette for good light/dark contrast.
@@ -143,7 +145,7 @@ enum DefaultCategoryCatalog {
         CategorySeed(name: "Transfers", symbol: "arrow.left.arrow.right.circle.fill", colorHex: "#98989D", isIncome: false,
                      keywords: ["e transfer", "etransfer", "interac e transfer", "transfer",
                                 "wealthsimple", "questrade", "wise"],
-                     introducedInVersion: 2),
+                     introducedInVersion: 2, isTransfer: true),
 
         CategorySeed(name: "Other", symbol: "square.grid.2x2.fill", colorHex: "#8E8E93", isIncome: false,
                      keywords: []),
