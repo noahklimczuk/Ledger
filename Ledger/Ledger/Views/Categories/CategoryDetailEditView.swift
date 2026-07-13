@@ -11,15 +11,38 @@ struct CategoryDetailEditView: View {
     @State private var name = ""
     @State private var symbol = "tag.fill"
     @State private var colorHex = "#8E8E93"
-    @State private var isIncome = false
+    @State private var kind: CategoryKind = .expense
     @State private var parent: Category?
+
+    /// Mutually exclusive category kind. Transfers are excluded from income and spending totals.
+    private enum CategoryKind: String, CaseIterable, Identifiable {
+        case expense, income, transfer
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .expense: "Expense"
+            case .income: "Income"
+            case .transfer: "Transfer"
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Name") {
+                Section {
                     TextField("Category name", text: $name)
-                    Toggle("Income Category", isOn: $isIncome)
+                    Picker("Kind", selection: $kind) {
+                        ForEach(CategoryKind.allCases) { kind in
+                            Text(kind.label).tag(kind)
+                        }
+                    }
+                } header: {
+                    Text("Name")
+                } footer: {
+                    if kind == .transfer {
+                        Text("Transfers move money between your own accounts, so they don't count as income or spending.")
+                    }
                 }
                 Section("Parent") {
                     Picker("Parent Category", selection: $parent) {
@@ -56,18 +79,20 @@ struct CategoryDetailEditView: View {
         name = category.name
         symbol = category.sfSymbolName
         colorHex = category.colorHex
-        isIncome = category.isIncome
+        kind = category.isTransfer ? .transfer : (category.isIncome ? .income : .expense)
         parent = category.parent
     }
 
     private func save() {
         let viewModel = CategoryEditorViewModel(modelContext: modelContext)
+        let isIncome = kind == .income
+        let isTransfer = kind == .transfer
         if let category {
-            viewModel.updateCategory(category, name: name, sfSymbolName: symbol, colorHex: colorHex, isIncome: isIncome)
+            viewModel.updateCategory(category, name: name, sfSymbolName: symbol, colorHex: colorHex, isIncome: isIncome, isTransfer: isTransfer)
             category.parent = parent
             try? modelContext.save()
         } else {
-            viewModel.addCategory(name: name, sfSymbolName: symbol, colorHex: colorHex, isIncome: isIncome, parent: parent)
+            viewModel.addCategory(name: name, sfSymbolName: symbol, colorHex: colorHex, isIncome: isIncome, isTransfer: isTransfer, parent: parent)
         }
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()

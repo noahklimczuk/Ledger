@@ -10,6 +10,9 @@ final class ReportsViewModel {
         let name: String
         let colorHex: String
         let amount: Decimal
+        /// The category behind this row, so a tapped doughnut slice/legend row can drill into its
+        /// transactions for the selected range. Nil for the synthetic "Uncategorized" bucket.
+        let category: Category?
     }
 
     struct MonthlyFlow: Identifiable {
@@ -41,6 +44,12 @@ final class ReportsViewModel {
 
     var topCategory: CategorySpending? { categorySpending.first }
 
+    /// The date range currently in view — used to scope a category drill-down to what the chart shows.
+    var currentInterval: DateInterval { range.interval(customStart: customStart, customEnd: customEnd) }
+
+    /// Human label for the current range (e.g. "Last 3 Months"), shown as the drill-down subtitle.
+    var rangeLabel: String { range.displayName }
+
     /// Month-over-month change in spending between the two most recent months in range.
     var monthOverMonthDelta: (previous: Decimal, current: Decimal)? {
         guard monthlyFlows.count >= 2 else { return nil }
@@ -52,16 +61,20 @@ final class ReportsViewModel {
         let interval = range.interval(customStart: customStart, customEnd: customEnd)
 
         let descriptor = FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date)])
-        let allTransactions = (try? modelContext.fetch(descriptor)) ?? []
+        let allTransactions = ((try? modelContext.fetch(descriptor)) ?? [])
+            .filter(\.countsTowardTotals)
         let inRange = allTransactions.filter { $0.date >= interval.start && $0.date < interval.end }
+        // Transfers between accounts aren't income or spending; keep them out of the flow charts
+        // and totals (net worth below still includes them — the two sides of a transfer cancel).
+        let flows = inRange.filter { !$0.isTransfer }
 
-        computeCategorySpending(inRange)
-        computeMonthlyFlows(inRange, interval: interval)
+        computeCategorySpending(flows)
+        computeMonthlyFlows(flows, interval: interval)
 
-        totalIncome = inRange.filter { $0.amount > 0 }.reduce(Decimal(0)) { $0 + $1.amount }
-        totalExpense = inRange.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
+        totalIncome = flows.filter { $0.amount > 0 }.reduce(Decimal(0)) { $0 + $1.amount }
+        totalExpense = flows.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
 
-        let accounts = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
+        let accounts = ((try? modelContext.fetch(FetchDescriptor<Account>())) ?? []).filter { !$0.isArchived }
         netWorthPoints = NetWorthCalculator.monthlySeries(accounts: accounts, transactions: allTransactions, interval: interval)
 
         hasData = !inRange.isEmpty
@@ -69,35 +82,31 @@ final class ReportsViewModel {
 
     private func computeCategorySpending(_ transactions: [Transaction]) {
         // (category name, colorHex) -> summed expense magnitude, attributing split allocations
-        // to their own categories.
-        var totals: [String: (colorHex: String, amount: Decimal)] = [:]
+        // to their own categories. Alongside the totals, keep the transactions themselves so a
+        // category row can expand into its list.
+        var totals: [String: (colorHex: String, amount: Decimal, category: Category?)] = [:]
 
-        func add(categoryName: String, colorHex: String, amount: Decimal) {
+        func add(category: Category?, amount: Decimal) {
             guard amount < 0 else { return }
-            let existing = totals[categoryName] ?? (colorHex, 0)
-            totals[categoryName] = (existing.colorHex, existing.amount + (-amount))
+            let name = category?.name ?? "Uncategorized"
+            let colorHex = category?.colorHex ?? "#8E8E93"
+            let existing = totals[name] ?? (colorHex, 0, category)
+            // Keep the first real category seen for this name so the slice can drill in.
+            totals[name] = (existing.colorHex, existing.amount + (-amount), existing.category ?? category)
         }
 
         for transaction in transactions {
             if transaction.isSplit {
                 for split in transaction.splits {
-                    add(
-                        categoryName: split.category?.name ?? "Uncategorized",
-                        colorHex: split.category?.colorHex ?? "#8E8E93",
-                        amount: split.amount
-                    )
+                    add(category: split.category, amount: split.amount)
                 }
             } else {
-                add(
-                    categoryName: transaction.category?.name ?? "Uncategorized",
-                    colorHex: transaction.category?.colorHex ?? "#8E8E93",
-                    amount: transaction.amount
-                )
+                add(category: transaction.category, amount: transaction.amount)
             }
         }
 
         categorySpending = totals
-            .map { CategorySpending(name: $0.key, colorHex: $0.value.colorHex, amount: $0.value.amount) }
+            .map { CategorySpending(name: $0.key, colorHex: $0.value.colorHex, amount: $0.value.amount, category: $0.value.category) }
             .sorted { $0.amount > $1.amount }
     }
 

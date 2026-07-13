@@ -8,7 +8,18 @@
 
 /* Begin PBXFileReference section */
 		4F75EF713000036C00641475 /* Ledger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ledger.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4F75EFB03000036C00641475 /* LedgerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LedgerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXContainerItemProxy section */
+		4F75EFB63000036C00641475 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4F75EF693000036C00641475 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4F75EF703000036C00641475;
+			remoteInfo = Ledger;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		4F75EFA13000036C00641475 /* Exceptions for "Ledger" folder in "Ledger" target */ = {
@@ -29,9 +40,21 @@
 			path = Ledger;
 			sourceTree = "<group>";
 		};
+		4F75EFB13000036C00641475 /* LedgerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LedgerTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		4F75EFB43000036C00641475 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4F75EF6E3000036C00641475 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -46,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				4F75EF733000036C00641475 /* Ledger */,
+				4F75EFB13000036C00641475 /* LedgerTests */,
 				4F75EF723000036C00641475 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				4F75EF713000036C00641475 /* Ledger.app */,
+				4F75EFB03000036C00641475 /* LedgerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,6 +86,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		4F75EFB23000036C00641475 /* LedgerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4F75EFB83000036C00641475 /* Build configuration list for PBXNativeTarget "LedgerTests" */;
+			buildPhases = (
+				4F75EFB33000036C00641475 /* Sources */,
+				4F75EFB43000036C00641475 /* Frameworks */,
+				4F75EFB53000036C00641475 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4F75EFB73000036C00641475 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4F75EFB13000036C00641475 /* LedgerTests */,
+			);
+			name = LedgerTests;
+			packageProductDependencies = (
+			);
+			productName = LedgerTests;
+			productReference = 4F75EFB03000036C00641475 /* LedgerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		4F75EF703000036C00641475 /* Ledger */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4F75EF7C3000037800641475 /* Build configuration list for PBXNativeTarget "Ledger" */;
@@ -96,6 +144,10 @@
 					4F75EF703000036C00641475 = {
 						CreatedOnToolsVersion = 26.5;
 					};
+					4F75EFB23000036C00641475 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = 4F75EF703000036C00641475;
+					};
 				};
 			};
 			buildConfigurationList = 4F75EF6C3000036C00641475 /* Build configuration list for PBXProject "Ledger" */;
@@ -113,11 +165,19 @@
 			projectRoot = "";
 			targets = (
 				4F75EF703000036C00641475 /* Ledger */,
+				4F75EFB23000036C00641475 /* LedgerTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		4F75EFB53000036C00641475 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4F75EF6F3000036C00641475 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -128,6 +188,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		4F75EFB33000036C00641475 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4F75EF6D3000036C00641475 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -136,6 +203,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4F75EFB73000036C00641475 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4F75EF703000036C00641475 /* Ledger */;
+			targetProxy = 4F75EFB63000036C00641475 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		4F75EF7A3000037800641475 /* Debug */ = {
@@ -317,6 +392,50 @@
 			};
 			name = Release;
 		};
+		4F75EFB93000036C00641475 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+					BUNDLE_LOADER = "$(TEST_HOST)";
+					CODE_SIGN_STYLE = Automatic;
+					CURRENT_PROJECT_VERSION = 1;
+					DEVELOPMENT_TEAM = G7QJ43W8M3;
+					GENERATE_INFOPLIST_FILE = YES;
+					IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_BUNDLE_IDENTIFIER = com.noah.LedgerTests;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					SWIFT_APPROACHABLE_CONCURRENCY = YES;
+					SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+					SWIFT_EMIT_LOC_STRINGS = NO;
+					SWIFT_STRICT_CONCURRENCY = complete;
+					SWIFT_VERSION = 6.0;
+					TARGETED_DEVICE_FAMILY = "1,2";
+					TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ledger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Ledger";
+			};
+			name = Debug;
+		};
+		4F75EFBA3000036C00641475 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+					BUNDLE_LOADER = "$(TEST_HOST)";
+					CODE_SIGN_STYLE = Automatic;
+					CURRENT_PROJECT_VERSION = 1;
+					DEVELOPMENT_TEAM = G7QJ43W8M3;
+					GENERATE_INFOPLIST_FILE = YES;
+					IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+					MARKETING_VERSION = 1.0;
+					PRODUCT_BUNDLE_IDENTIFIER = com.noah.LedgerTests;
+					PRODUCT_NAME = "$(TARGET_NAME)";
+					SWIFT_APPROACHABLE_CONCURRENCY = YES;
+					SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+					SWIFT_EMIT_LOC_STRINGS = NO;
+					SWIFT_STRICT_CONCURRENCY = complete;
+					SWIFT_VERSION = 6.0;
+					TARGETED_DEVICE_FAMILY = "1,2";
+					TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ledger.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Ledger";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -334,6 +453,15 @@
 			buildConfigurations = (
 				4F75EF7D3000037800641475 /* Debug */,
 				4F75EF7E3000037800641475 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4F75EFB83000036C00641475 /* Build configuration list for PBXNativeTarget "LedgerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4F75EFB93000036C00641475 /* Debug */,
+				4F75EFBA3000036C00641475 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

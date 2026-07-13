@@ -20,30 +20,34 @@ final class SavingsGoalsViewModel {
         goals = (try? modelContext.fetch(descriptor)) ?? []
     }
 
-    func addGoal(name: String, sfSymbolName: String, colorHex: String, targetAmount: Decimal, currentAmount: Decimal, targetDate: Date?) {
+    func addGoal(name: String, sfSymbolName: String, colorHex: String, targetAmount: Decimal, currentAmount: Decimal, targetDate: Date?, account: Account?) {
         let goal = SavingsGoal(
             name: name,
             sfSymbolName: sfSymbolName,
             colorHex: colorHex,
             targetAmount: targetAmount,
             currentAmount: currentAmount,
-            targetDate: targetDate
+            targetDate: targetDate,
+            account: account
         )
         modelContext.insert(goal)
         save()
     }
 
-    func updateGoal(_ goal: SavingsGoal, name: String, sfSymbolName: String, colorHex: String, targetAmount: Decimal, currentAmount: Decimal, targetDate: Date?) {
+    func updateGoal(_ goal: SavingsGoal, name: String, sfSymbolName: String, colorHex: String, targetAmount: Decimal, currentAmount: Decimal, targetDate: Date?, account: Account?) {
         goal.name = name
         goal.sfSymbolName = sfSymbolName
         goal.colorHex = colorHex
         goal.targetAmount = targetAmount
         goal.currentAmount = currentAmount
         goal.targetDate = targetDate
+        goal.account = account
         save()
     }
 
+    /// Manual goals only — an account-tracked goal moves when money lands in the account.
     func addContribution(_ amount: Decimal, to goal: SavingsGoal) {
+        guard !goal.isAccountTracked else { return }
         goal.currentAmount += amount
         save()
     }

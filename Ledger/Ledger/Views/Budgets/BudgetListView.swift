@@ -1,48 +1,56 @@
 import SwiftUI
 import SwiftData
 
+/// The zero-based Budgets tab. A plan card up top shows the month's headline — Left to Assign —
+/// with income, assignments, spending, and pace; below it every category budget gets a rich row,
+/// and spending that escaped the plan is called out so it can be budgeted in one tap.
 struct BudgetListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppRefreshCoordinator.self) private var refresh
     @State private var viewModel: BudgetsViewModel?
     @State private var isPresentingNew = false
     @State private var editingRow: BudgetsViewModel.BudgetRow?
+    @State private var quickBudgetCategory: Category?
+    @State private var isEditingIncome = false
     @State private var isConfirmingAutoGenerate = false
     @State private var autoGenerateResult: String?
+    @State private var isPresentingSuggestion = false
+    @State private var isPresentingAdvisor = false
 
     var body: some View {
         NavigationStack {
             Group {
                 if let viewModel {
-                    VStack(spacing: 0) {
-                        monthPicker(viewModel)
+                    List {
+                        Section {
+                            planCard(viewModel)
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+
                         if viewModel.rows.isEmpty {
-                            EmptyStateView(
-                                systemImage: "chart.pie",
-                                title: "No Budgets",
-                                message: "Set a monthly budget for a category to start tracking progress.",
-                                actionTitle: "Add Budget"
-                            ) {
-                                isPresentingNew = true
+                            Section {
+                                emptyPlanCard
                             }
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         } else {
-                            List {
-                                ForEach(viewModel.rows) { row in
-                                    Button { editingRow = row } label: {
-                                        BudgetRowView(row: row)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) {
-                                            viewModel.delete(row)
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    }
-                                }
-                            }
-                            .refreshable { viewModel.load() }
+                            budgetsSection(viewModel)
+                        }
+
+                        if !viewModel.unbudgeted.isEmpty {
+                            unbudgetedSection(viewModel)
                         }
                     }
+                    .listStyle(.insetGrouped)
+                    // Pull-to-refresh runs a real sync; the refreshCount observer below
+                    // then reloads the rows with the new spent amounts.
+                    .refreshable { await refresh.refresh(container: modelContext.container) }
+                    // Floating AI financial-advisor bubble, tucked in the bottom-trailing corner
+                    // above the tab bar.
+                    .overlay(alignment: .bottomTrailing) { advisorBubble }
                 } else {
                     LoadingView()
                 }
@@ -53,6 +61,12 @@ struct BudgetListView: View {
                     Menu {
                         Button { isPresentingNew = true } label: {
                             Label("Add Budget", systemImage: "plus")
+                        }
+                        Button { isEditingIncome = true } label: {
+                            Label("Set Monthly Income", systemImage: "dollarsign.circle")
+                        }
+                        Button { isPresentingSuggestion = true } label: {
+                            Label("Suggest a Budget", systemImage: "sparkles")
                         }
                         Button { isConfirmingAutoGenerate = true } label: {
                             Label("Auto-Generate from Last 3 Months", systemImage: "wand.and.stars")
@@ -82,6 +96,16 @@ struct BudgetListView: View {
             } message: {
                 Text(autoGenerateResult ?? "")
             }
+            .sheet(isPresented: $isPresentingSuggestion, onDismiss: { viewModel?.load() }) {
+                if let viewModel {
+                    BudgetSuggestionView(month: viewModel.selectedMonth)
+                }
+            }
+            .sheet(isPresented: $isPresentingAdvisor) {
+                if let viewModel {
+                    AIAdvisorView(month: viewModel.selectedMonth)
+                }
+            }
             .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {
                 if let viewModel {
                     BudgetEditView(month: viewModel.selectedMonth, budgetRow: nil)
@@ -92,31 +116,183 @@ struct BudgetListView: View {
                     BudgetEditView(month: viewModel.selectedMonth, budgetRow: row)
                 }
             }
+            .sheet(item: $quickBudgetCategory, onDismiss: { viewModel?.load() }) { category in
+                if let viewModel {
+                    BudgetEditView(month: viewModel.selectedMonth, budgetRow: nil, preselectedCategory: category)
+                }
+            }
+            .sheet(isPresented: $isEditingIncome) {
+                if let viewModel {
+                    BudgetIncomeEditView(
+                        month: viewModel.selectedMonth,
+                        actualIncome: viewModel.actualIncome,
+                        currentOverride: viewModel.incomeOverride
+                    ) { amount in
+                        viewModel.setIncomeOverride(amount)
+                    }
+                }
+            }
             .task {
                 if viewModel == nil { viewModel = BudgetsViewModel(modelContext: modelContext) }
                 viewModel?.load()
             }
+            // Reload once a background refresh (sync + categorize) finishes, so spent amounts
+            // reflect freshly imported transactions without re-opening the tab.
+            .onChange(of: refresh.refreshCount) { _, _ in viewModel?.load() }
         }
+    }
+
+    // MARK: - Advisor
+
+    private var advisorBubble: some View {
+        Button {
+            isPresentingAdvisor = true
+        } label: {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(LinearGradient.brand, in: Circle())
+                .shadow(color: Color.brandTeal.opacity(0.4), radius: 8, y: 4)
+        }
+        .buttonStyle(.plain)
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
+        .accessibilityLabel("Financial advisor")
+    }
+
+    // MARK: - Plan card
+
+    private func planCard(_ viewModel: BudgetsViewModel) -> some View {
+        VStack(spacing: 16) {
+            monthPicker(viewModel)
+
+            VStack(spacing: 6) {
+                Text("Left to Assign")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text(CurrencyFormatter.string(from: viewModel.leftToAssign))
+                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                    .foregroundStyle(leftToAssignColor(viewModel))
+                    .contentTransition(.numericText())
+                planStatusChip(viewModel)
+            }
+
+            Divider()
+
+            HStack(spacing: 12) {
+                Button { isEditingIncome = true } label: {
+                    planTile(
+                        label: viewModel.incomeOverride == nil ? "Income · actual" : "Income · planned",
+                        value: viewModel.incomeToAssign,
+                        color: .green,
+                        showsChevron: true
+                    )
+                }
+                .buttonStyle(.plain)
+                planTile(label: "Assigned", value: viewModel.totalAllocated, color: .primary)
+                planTile(label: "Spent", value: viewModel.totalSpent + viewModel.totalUnbudgetedSpent, color: .red)
+            }
+
+            if viewModel.totalAvailable > 0 || viewModel.totalSpent > 0 {
+                VStack(spacing: 6) {
+                    BudgetProgressBar(
+                        progress: viewModel.overallProgress,
+                        isOverBudget: viewModel.isOverallOverBudget,
+                        paceMarker: paceMarker(viewModel)
+                    )
+                    HStack {
+                        Text("\(CurrencyFormatter.string(from: viewModel.totalSpent)) of \(CurrencyFormatter.string(from: viewModel.totalAvailable)) budget spent")
+                        Spacer()
+                        if let daysRemaining = viewModel.daysRemaining {
+                            Text("\(daysRemaining) day\(daysRemaining == 1 ? "" : "s") left")
+                        } else if viewModel.monthProgress >= 1 {
+                            Text("Month complete")
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding()
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(.top, 4)
+    }
+
+    private func leftToAssignColor(_ viewModel: BudgetsViewModel) -> Color {
+        if viewModel.leftToAssign < 0 { return .red }
+        if viewModel.leftToAssign == 0 && viewModel.incomeToAssign > 0 { return .brandEmerald }
+        return .primary
+    }
+
+    @ViewBuilder
+    private func planStatusChip(_ viewModel: BudgetsViewModel) -> some View {
+        let (text, symbol, color): (String, String, Color) = {
+            if viewModel.incomeToAssign <= 0 && viewModel.totalAllocated <= 0 {
+                return ("Set your income to start the plan", "info.circle.fill", .secondary)
+            }
+            if viewModel.leftToAssign < 0 {
+                return ("Over-assigned by \(CurrencyFormatter.string(from: -viewModel.leftToAssign))", "exclamationmark.triangle.fill", .red)
+            }
+            if viewModel.leftToAssign == 0 {
+                return ("Every dollar has a job", "checkmark.seal.fill", .brandEmerald)
+            }
+            return ("Assign \(CurrencyFormatter.string(from: viewModel.leftToAssign)) to finish the plan", "arrow.down.circle.fill", .orange)
+        }()
+
+        Label(text, systemImage: symbol)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(color.opacity(0.12), in: Capsule())
+    }
+
+    private func planTile(label: String, value: Decimal, color: Color, showsChevron: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 3) {
+                Text(label)
+                if showsChevron {
+                    Image(systemName: "pencil")
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            Text(CurrencyFormatter.string(from: value))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(color)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Show the pace tick only for the current month — a fully past or future month has no
+    /// meaningful "you are here".
+    private func paceMarker(_ viewModel: BudgetsViewModel) -> Double? {
+        viewModel.monthProgress > 0 && viewModel.monthProgress < 1 ? viewModel.monthProgress : nil
     }
 
     private func monthPicker(_ viewModel: BudgetsViewModel) -> some View {
         HStack {
-            Button {
-                shiftMonth(viewModel, by: -1)
-            } label: {
-                Image(systemName: "chevron.left")
-            }
+            monthChevron("chevron.left") { shiftMonth(viewModel, by: -1) }
             Spacer()
             Text(DateFormatting.monthYear(viewModel.selectedMonth))
                 .font(.headline)
             Spacer()
-            Button {
-                shiftMonth(viewModel, by: 1)
-            } label: {
-                Image(systemName: "chevron.right")
-            }
+            monthChevron("chevron.right") { shiftMonth(viewModel, by: 1) }
         }
-        .padding()
+    }
+
+    /// A 44pt hit area — the bare chevron glyph is far too small a tap target on its own.
+    private func monthChevron(_ systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
     }
 
     private func shiftMonth(_ viewModel: BudgetsViewModel, by value: Int) {
@@ -124,26 +300,232 @@ struct BudgetListView: View {
             viewModel.selectedMonth = Budget.normalize(newMonth)
         }
     }
+
+    // MARK: - Budgets section
+
+    @ViewBuilder
+    private func budgetsSection(_ viewModel: BudgetsViewModel) -> some View {
+        Section {
+            ForEach(viewModel.rows) { row in
+                budgetRow(row, viewModel: viewModel)
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            viewModel.delete(row)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .swipeActions(edge: .leading) {
+                        Button {
+                            editingRow = row
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        .tint(.accentColor)
+                    }
+                    // Long-press menu, so editing/deleting a budget stays reachable
+                    // even where the paged tab swipe competes with row swipes.
+                    .contextMenu {
+                        Button {
+                            editingRow = row
+                        } label: {
+                            Label("Edit Budget", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            viewModel.delete(row)
+                        } label: {
+                            Label("Delete Budget", systemImage: "trash")
+                        }
+                    }
+            }
+        } header: {
+            HStack {
+                Text("Category Budgets")
+                Spacer()
+                if viewModel.overBudgetCount > 0 {
+                    Text("\(viewModel.overBudgetCount) over")
+                        .foregroundStyle(.red)
+                }
+            }
+        } footer: {
+            if viewModel.totalRollover > 0 {
+                Text("Includes \(CurrencyFormatter.string(from: viewModel.totalRollover)) rolled over from last month.")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func budgetRow(_ row: BudgetsViewModel.BudgetRow, viewModel: BudgetsViewModel) -> some View {
+        if let category = row.budget.category {
+            NavigationLink {
+                CategoryTransactionsView(category: category, month: viewModel.selectedMonth)
+            } label: {
+                BudgetRowView(row: row, paceMarker: paceMarker(viewModel))
+            }
+        } else {
+            BudgetRowView(row: row, paceMarker: paceMarker(viewModel))
+        }
+    }
+
+    // MARK: - Unbudgeted section
+
+    private func unbudgetedSection(_ viewModel: BudgetsViewModel) -> some View {
+        Section {
+            ForEach(viewModel.unbudgeted) { item in
+                if let category = item.category {
+                    Button {
+                        quickBudgetCategory = category
+                    } label: {
+                        UnbudgetedRowView(
+                            symbol: category.sfSymbolName,
+                            color: Color(hex: category.colorHex),
+                            name: category.name,
+                            detail: "Tap to set a budget",
+                            spent: item.spent
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    UnbudgetedRowView(
+                        symbol: "questionmark",
+                        color: .gray,
+                        name: "Uncategorized",
+                        detail: "Categorize these transactions to budget them",
+                        spent: item.spent
+                    )
+                }
+            }
+        } header: {
+            Text("Off-Plan Spending")
+        } footer: {
+            Text("Money spent outside the plan this month. Give it a budget so every dollar has a job.")
+        }
+    }
+
+    // MARK: - Empty state
+
+    private var emptyPlanCard: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "chart.pie")
+                .font(.system(size: 34))
+                .foregroundStyle(Color.accentColor)
+            Text("No Budgets Yet")
+                .font(.headline)
+            Text("Assign your income to categories until Left to Assign hits zero. Start from scratch, or build the plan from your recent spending.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            HStack(spacing: 12) {
+                Button {
+                    isPresentingSuggestion = true
+                } label: {
+                    Label("Suggest a Budget", systemImage: "sparkles")
+                }
+                .buttonStyle(.borderedProminent)
+                Button {
+                    isPresentingNew = true
+                } label: {
+                    Label("Add Budget", systemImage: "plus")
+                }
+                .buttonStyle(.bordered)
+            }
+            .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+        .padding(.horizontal)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
 }
+
+// MARK: - Rows
 
 private struct BudgetRowView: View {
     let row: BudgetsViewModel.BudgetRow
+    var paceMarker: Double?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: row.budget.category?.sfSymbolName ?? "tag")
-                    .foregroundStyle(row.budget.category.map { Color(hex: $0.colorHex) } ?? .gray)
-                Text(row.budget.category?.name ?? "Uncategorized")
-                    .fontWeight(.medium)
-                Spacer()
-                Text(CurrencyFormatter.string(from: row.spent))
-                    .foregroundStyle(row.isOverBudget ? Color.red : Color.primary)
-                Text("/ \(CurrencyFormatter.string(from: row.allocatedIncludingRollover))")
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: row.budget.category?.sfSymbolName ?? "tag")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(row.budget.category.map { Color(hex: $0.colorHex) } ?? .gray, in: Circle())
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    // A long category name truncates instead of wrapping and pushing the
+                    // remaining pill onto a second line.
+                    Text(row.budget.category?.name ?? "Uncategorized")
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    remainingPill
+                }
+                BudgetProgressBar(progress: row.progress, isOverBudget: row.isOverBudget, paceMarker: paceMarker)
+                HStack {
+                    Text(detailText)
+                    Spacer()
+                    if let percentUsed = row.percentUsed {
+                        Text("\(percentUsed)%")
+                            .foregroundStyle(row.isOverBudget ? .red : .secondary)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    private var remainingPill: some View {
+        Text(row.isOverBudget
+             ? "\(CurrencyFormatter.string(from: -row.remaining)) over"
+             : "\(CurrencyFormatter.string(from: row.remaining)) left")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(row.isOverBudget ? Color.red : Color.brandTeal)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background((row.isOverBudget ? Color.red : Color.brandEmerald).opacity(0.14), in: Capsule())
+            .layoutPriority(1)
+    }
+
+    private var detailText: String {
+        var text = "\(CurrencyFormatter.string(from: row.spent)) of \(CurrencyFormatter.string(from: row.allocatedIncludingRollover))"
+        if row.rolloverFromPreviousMonth > 0 {
+            text += " · incl. \(CurrencyFormatter.string(from: row.rolloverFromPreviousMonth)) rollover"
+        }
+        return text
+    }
+}
+
+private struct UnbudgetedRowView: View {
+    let symbol: String
+    let color: Color
+    let name: String
+    let detail: String
+    let spent: Decimal
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(color, in: Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+                Text(detail)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .font(.subheadline)
-            BudgetProgressBar(progress: row.progress, isOverBudget: row.isOverBudget)
+            Spacer(minLength: 8)
+            Text(CurrencyFormatter.string(from: spent))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.orange)
+                .layoutPriority(1)
         }
         .padding(.vertical, 4)
     }
@@ -152,4 +534,5 @@ private struct BudgetRowView: View {
 #Preview {
     BudgetListView()
         .modelContainer(for: LedgerSchema.models, inMemory: true)
+        .environment(AppRefreshCoordinator())
 }

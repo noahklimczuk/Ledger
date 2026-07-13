@@ -7,10 +7,17 @@ final class SavingsGoal {
     var sfSymbolName: String
     var colorHex: String
     var targetAmount: Decimal
+    /// Manually tracked contributions. Ignored while `account` is linked — the account's live
+    /// balance drives progress instead.
     var currentAmount: Decimal
     var targetDate: Date?
     var isArchived: Bool
     var createdAt: Date
+
+    /// When set, the goal tracks this account's balance instead of manual contributions —
+    /// e.g. a "House Down Payment" goal pointed at the savings account the money actually
+    /// lives in, so progress moves with real deposits and never needs manual upkeep.
+    var account: Account?
 
     init(
         name: String,
@@ -19,6 +26,7 @@ final class SavingsGoal {
         targetAmount: Decimal,
         currentAmount: Decimal = 0,
         targetDate: Date? = nil,
+        account: Account? = nil,
         isArchived: Bool = false
     ) {
         self.name = name
@@ -27,25 +35,36 @@ final class SavingsGoal {
         self.targetAmount = targetAmount
         self.currentAmount = currentAmount
         self.targetDate = targetDate
+        self.account = account
         self.isArchived = isArchived
         self.createdAt = .now
     }
 
-    var remaining: Decimal { max(targetAmount - currentAmount, 0) }
+    var isAccountTracked: Bool { account != nil }
 
-    var isComplete: Bool { currentAmount >= targetAmount }
+    /// What counts toward the goal: the linked account's live balance (never below zero), or
+    /// the manually tracked contributions when no account is linked.
+    var savedAmount: Decimal {
+        if let account { return max(account.currentBalance, 0) }
+        return currentAmount
+    }
+
+    var remaining: Decimal { max(targetAmount - savedAmount, 0) }
+
+    var isComplete: Bool { savedAmount >= targetAmount }
 
     var progress: Double {
         guard targetAmount > 0 else { return 0 }
-        let value = (currentAmount as NSDecimalNumber).doubleValue / (targetAmount as NSDecimalNumber).doubleValue
+        let value = (savedAmount as NSDecimalNumber).doubleValue / (targetAmount as NSDecimalNumber).doubleValue
         return min(max(value, 0), 1)
     }
 
-    /// Contribution per month needed to hit the target by `targetDate`, or nil if no date/overdue.
+    /// Contribution per month needed to hit the target by `targetDate`, or nil if no date or the
+    /// date has passed. Inside the final month the whole remaining amount is due.
     var requiredMonthlyContribution: Decimal? {
-        guard let targetDate, !isComplete else { return nil }
+        guard let targetDate, !isComplete, targetDate > .now else { return nil }
         let months = Calendar.current.dateComponents([.month], from: .now, to: targetDate).month ?? 0
-        guard months > 0 else { return nil }
+        guard months > 0 else { return remaining }
         return remaining / Decimal(months)
     }
 }

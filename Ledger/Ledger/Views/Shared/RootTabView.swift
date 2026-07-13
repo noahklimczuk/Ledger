@@ -2,30 +2,132 @@ import SwiftUI
 import SwiftData
 
 struct RootTabView: View {
+    @State private var selection = 0
+    /// The page currently snapped under the horizontal pager. Kept in sync with `selection` so a
+    /// swipe updates the floating bar and a bar tap scrolls the pager.
+    @State private var scrolledIndex: Int? = 0
+
     var body: some View {
-        TabView {
-            DashboardView()
-                .tabItem { Label("Dashboard", systemImage: "house.fill") }
+        // A horizontal paging ScrollView keeps the left/right swipe between the five root screens
+        // *without* the paged TabView we used before. That TabView is a UIPageViewController, which
+        // keeps adjacent pages' NavigationStacks mounted at once; when two large-title nav bars
+        // overlap mid-swipe UIKit crashes with "nest wrapped navigation controllers". A plain
+        // ScrollView has no page/navigation controller to nest, so each tab's NavigationStack keeps
+        // its large title and back stack while the swipe still works. Inner Lists still scroll
+        // vertically since the pager only claims horizontal drags.
+        GeometryReader { proxy in
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 0) {
+                    page(DashboardView(), size: proxy.size, index: 0)
+                    page(AccountListView(), size: proxy.size, index: 1)
+                    page(TransactionListView(), size: proxy.size, index: 2)
+                    page(BudgetListView(), size: proxy.size, index: 3)
+                    page(MoreView(), size: proxy.size, index: 4)
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $scrolledIndex)
+            .scrollIndicators(.hidden)
+        }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            FloatingTabBar(selection: $selection)
+        }
+        // A bar tap changes `selection`; scroll the pager to match.
+        .onChange(of: selection) { _, newValue in
+            guard scrolledIndex != newValue else { return }
+            withAnimation(.easeInOut(duration: 0.25)) { scrolledIndex = newValue }
+        }
+        // A swipe settles the pager on a new page; move the bar's highlight to match.
+        .onChange(of: scrolledIndex) { _, newValue in
+            guard let newValue, selection != newValue else { return }
+            selection = newValue
+        }
+    }
 
-            AccountListView()
-                .tabItem { Label("Accounts", systemImage: "banknote.fill") }
+    /// One full-screen page in the pager, tagged with its index so `scrollPosition` can track and
+    /// drive it.
+    private func page<Content: View>(_ content: Content, size: CGSize, index: Int) -> some View {
+        content
+            .frame(width: size.width, height: size.height)
+            .id(index)
+    }
+}
 
-            TransactionListView()
-                .tabItem { Label("Transactions", systemImage: "list.bullet") }
+/// A floating, pill-shaped tab bar rendered in Liquid Glass on iOS 26+ (with a material fallback
+/// on earlier releases). Sits inset from the screen edges so content scrolls behind/under it.
+private struct FloatingTabBar: View {
+    @Binding var selection: Int
 
-            BudgetListView()
-                .tabItem { Label("Budgets", systemImage: "chart.pie.fill") }
+    private let items: [(title: String, icon: String)] = [
+        ("Dashboard", "house.fill"),
+        ("Accounts", "banknote.fill"),
+        ("Transactions", "list.bullet"),
+        ("Budgets", "chart.pie.fill"),
+        ("More", "ellipsis.circle.fill"),
+    ]
 
-            MoreView()
-                .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }
+    var body: some View {
+        bar
+            .padding(.horizontal, 16)
+            .padding(.top, 6)
+    }
+
+    private var content: some View {
+        HStack(alignment: .center, spacing: 0) {
+            ForEach(items.indices, id: \.self) { index in
+                let item = items[index]
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { selection = index }
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: item.icon)
+                            .font(.system(size: 18))
+                        Text(item.title)
+                            .font(.system(size: 10))
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .foregroundStyle(selection == index ? Color.accentColor : Color.secondary)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(item.title)
+                .accessibilityAddTraits(selection == index ? [.isSelected] : [])
+            }
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
+    }
+
+    /// The pill background: real Liquid Glass where available, a material capsule otherwise.
+    @ViewBuilder
+    private var bar: some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular, in: Capsule())
+        } else {
+            content
+                .background(.regularMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.06)))
+                .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
         }
     }
 }
 
 private struct MoreView: View {
+    @State private var isPresentingCheckIn = false
+
     var body: some View {
         NavigationStack {
             List {
+                Section("Routine") {
+                    Button {
+                        isPresentingCheckIn = true
+                    } label: {
+                        Label("Daily Check-In", systemImage: "checklist")
+                    }
+                }
                 Section("Insights") {
                     NavigationLink {
                         InsightsView()
@@ -81,6 +183,9 @@ private struct MoreView: View {
                 }
             }
             .navigationTitle("More")
+            .sheet(isPresented: $isPresentingCheckIn) {
+                DailyCheckInView()
+            }
         }
     }
 }
@@ -88,4 +193,5 @@ private struct MoreView: View {
 #Preview {
     RootTabView()
         .modelContainer(for: LedgerSchema.models, inMemory: true)
+        .environment(AppRefreshCoordinator())
 }

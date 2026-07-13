@@ -11,9 +11,25 @@ final class TransactionEditViewModel {
         var amountText: String = ""
     }
 
+    /// Whether the entered amount is money out or money in. Users type unsigned amounts; the
+    /// sign is applied on save. Without this, "12.50" for a coffee silently recorded as income.
+    enum Direction: String, CaseIterable, Identifiable {
+        case expense
+        case income
+
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .expense: "Expense"
+            case .income: "Income"
+            }
+        }
+    }
+
     var date: Date = .now
     var merchant: String = ""
     var amountText: String = ""
+    var direction: Direction = .expense
     var account: Account?
     var category: Category?
     var notes: String = ""
@@ -21,7 +37,6 @@ final class TransactionEditViewModel {
 
     private let modelContext: ModelContext
     private let existingTransaction: Transaction?
-    private static let decimalLocale = Locale(identifier: "en_CA")
 
     var isEditing: Bool { existingTransaction != nil }
 
@@ -32,20 +47,22 @@ final class TransactionEditViewModel {
         if let transaction {
             date = transaction.date
             merchant = transaction.merchant
-            amountText = Self.string(from: transaction.amount)
+            direction = transaction.amount > 0 ? .income : .expense
+            amountText = Self.string(from: abs(transaction.amount))
             account = transaction.account
             category = transaction.category
             notes = transaction.notes ?? ""
-            splits = transaction.splits.map { SplitDraft(category: $0.category, amountText: Self.string(from: $0.amount)) }
+            splits = transaction.splits.map { SplitDraft(category: $0.category, amountText: Self.string(from: abs($0.amount))) }
         }
     }
 
+    /// The signed amount that will be saved: the typed magnitude with `direction`'s sign.
     var amount: Decimal? {
-        Decimal(string: amountText, locale: Self.decimalLocale)
+        ImportValueParsing.decimal(from: amountText).map { signed(abs($0)) }
     }
 
     var splitTotal: Decimal {
-        splits.reduce(Decimal(0)) { $0 + (Decimal(string: $1.amountText, locale: Self.decimalLocale) ?? 0) }
+        splits.reduce(Decimal(0)) { $0 + (ImportValueParsing.decimal(from: $1.amountText).map { signed(abs($0)) } ?? 0) }
     }
 
     var isSplitValid: Bool {
@@ -91,6 +108,9 @@ final class TransactionEditViewModel {
         if transaction.splits.isEmpty {
             if let chosen = category, chosen !== previousCategory {
                 categorizer.learn(merchant: merchant, category: chosen)
+                // Replay the fresh rule immediately so the merchant's other uncategorized
+                // transactions update now, not at the next sync.
+                categorizer.categorizeAllUncategorized()
             } else if transaction.category == nil {
                 categorizer.applyRule(to: transaction)
             }
@@ -100,6 +120,10 @@ final class TransactionEditViewModel {
         return transaction
     }
 
+    private func signed(_ magnitude: Decimal) -> Decimal {
+        direction == .expense ? -magnitude : magnitude
+    }
+
     private func syncSplits(on transaction: Transaction) {
         for existing in transaction.splits {
             modelContext.delete(existing)
@@ -107,8 +131,8 @@ final class TransactionEditViewModel {
         transaction.splits = []
 
         for draft in splits {
-            guard let amount = Decimal(string: draft.amountText, locale: Self.decimalLocale) else { continue }
-            let split = SplitAllocation(amount: amount, category: draft.category)
+            guard let amount = ImportValueParsing.decimal(from: draft.amountText) else { continue }
+            let split = SplitAllocation(amount: signed(abs(amount)), category: draft.category)
             split.transaction = transaction
             modelContext.insert(split)
             transaction.splits.append(split)

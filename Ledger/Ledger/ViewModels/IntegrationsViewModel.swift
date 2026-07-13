@@ -2,39 +2,39 @@ import Foundation
 import Observation
 import SwiftData
 
-/// Drives the "Connect Wealthsimple" screen using **Plaid** (a bank-account aggregator), so the
-/// accounts pulled in are Wealthsimple *Cash*/chequing/savings -- the bank side -- rather than
-/// brokerage/trading accounts. Plaid slots in behind the shared `TransactionSource` seam.
+/// Drives the "Connect Wealthsimple" screen using a **direct** connection to Wealthsimple's own
+/// API -- the user signs in with their Wealthsimple email/password (and 2FA) and the app reads
+/// their Wealthsimple Cash account and its activity. No third-party aggregator, no API keys, no
+/// paid plan; this is the free replacement for the old Plaid path.
 ///
-/// Sync itself runs through `PlaidSyncCoordinator` (shared with the app-level auto-sync), which
+/// Sync runs through `WealthsimpleSyncCoordinator` (shared with the app-level auto-sync), which
 /// records last-synced/error/needs-reauth state; this view model mirrors that state for the UI.
 @MainActor
 @Observable
 final class IntegrationsViewModel {
     enum ConnectionState: Equatable {
-        case notConfigured
-        case configuredNotConnected
+        case notConnected
         case connected
     }
 
-    var clientId: String = ""
-    var secret: String = ""
-    var environment: PlaidEnvironment = .production
-    private(set) var connectionState: ConnectionState = .notConfigured
+    var email: String = ""
+    var password: String = ""
+    var otp: String = ""
+    /// Set once Wealthsimple asks for a 2-step code; the UI reveals the OTP field and the next
+    /// `connect()` retries with it.
+    private(set) var needsOTP = false
+    private(set) var connectionState: ConnectionState = .notConnected
     private(set) var isBusy = false
     private(set) var lastError: String?
     private(set) var lastSyncedAt: Date?
     private(set) var needsReauth = false
     private(set) var lastSyncSummary: TransactionImportService.ImportSummary?
 
-    private let credentialStore = PlaidCredentialStore()
-    private let statusStore = PlaidSyncStatusStore()
-    private let apiClient = PlaidAPIClient()
-    private let connectSession = PlaidConnectSession()
-    private let coordinator = PlaidSyncCoordinator()
+    private let credentialStore = WealthsimpleCredentialStore()
+    private let statusStore = WealthsimpleSyncStatusStore()
+    private let client = WealthsimpleAPIClient()
+    private let coordinator = WealthsimpleSyncCoordinator()
     private let modelContext: ModelContext
-
-    private let completionRedirectURI = "ledger://plaid-callback"
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -42,30 +42,17 @@ final class IntegrationsViewModel {
     }
 
     func refreshState() {
-        clientId = credentialStore.clientId ?? ""
-        secret = credentialStore.secret ?? ""
-        environment = credentialStore.environment
         lastSyncedAt = statusStore.lastSyncedAt
         needsReauth = statusStore.needsReauth
-        if credentialStore.isConnected {
-            connectionState = .connected
-        } else if credentialStore.hasAPICredentials {
-            connectionState = .configuredNotConnected
-        } else {
-            connectionState = .notConfigured
-        }
+        connectionState = credentialStore.isConnected ? .connected : .notConnected
     }
 
-    func saveAPICredentials() {
-        credentialStore.clientId = clientId.trimmingCharacters(in: .whitespacesAndNewlines)
-        credentialStore.secret = secret.trimmingCharacters(in: .whitespacesAndNewlines)
-        credentialStore.environment = environment
-        refreshState()
-    }
-
-    func connectWealthsimple() async {
-        guard let storedClientId = credentialStore.clientId, let storedSecret = credentialStore.secret else {
-            lastError = "Enter your Plaid client ID and secret first."
+    /// Logs in and, on success, kicks off the first sync. If Wealthsimple asks for a 2-step code,
+    /// `needsOTP` flips on and the user is prompted to enter it and tap Connect again.
+    func connect() async {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedEmail.isEmpty, !password.isEmpty else {
+            lastError = "Enter your Wealthsimple email and password."
             return
         }
 
@@ -73,95 +60,23 @@ final class IntegrationsViewModel {
         lastError = nil
         defer { isBusy = false }
 
-        do {
-            // 1. Create a Hosted Link token and open Plaid's hosted UI.
-            let linkToken = try await apiClient.createLinkToken(
-                clientId: storedClientId,
-                secret: storedSecret,
-                environment: credentialStore.environment,
-                clientUserId: credentialStore.clientUserId,
-                completionRedirectURI: completionRedirectURI
-            )
-            guard let hostedLink = linkToken.hostedLinkUrl, let hostedURL = URL(string: hostedLink) else {
-                throw PlaidAPIClient.ClientError.missingLinkURL
-            }
-            guard let token = linkToken.linkToken else {
-                throw PlaidAPIClient.ClientError.invalidResponse
-            }
-
-            // 2. Wait for the user to complete (or cancel) the flow.
-            try await connectSession.connect(hostedLinkURL: hostedURL)
-
-            // 3. Retrieve the public token the connection produced, then exchange it.
-            let results = try await apiClient.linkTokenResults(
-                clientId: storedClientId,
-                secret: storedSecret,
-                environment: credentialStore.environment,
-                linkToken: token
-            )
-            guard let publicToken = results.firstPublicToken else {
-                throw PlaidAPIClient.ClientError.noConnectionCompleted
-            }
-
-            let exchange = try await apiClient.exchangePublicToken(
-                clientId: storedClientId,
-                secret: storedSecret,
-                environment: credentialStore.environment,
-                publicToken: publicToken
-            )
-            guard let accessToken = exchange.accessToken else {
-                throw PlaidAPIClient.ClientError.exchangeFailed
-            }
-
-            credentialStore.accessToken = accessToken
-            credentialStore.itemId = exchange.itemId
-            statusStore.needsReauth = false
-            refreshState()
-            await sync()
-        } catch PlaidConnectSession.ConnectError.cancelled {
-            // User backed out of Plaid Link; nothing to surface as an error.
-        } catch {
-            lastError = error.localizedDescription
-        }
-    }
-
-    /// Re-authenticates the existing connection via Plaid Link **update mode** (used after Plaid
-    /// flags `ITEM_LOGIN_REQUIRED`). The Item's access token stays valid, so there's no new token
-    /// to exchange -- completing the hosted flow is enough to clear the re-auth flag.
-    func reconnect() async {
-        guard let storedClientId = credentialStore.clientId,
-              let storedSecret = credentialStore.secret,
-              let accessToken = credentialStore.accessToken else {
-            lastError = "Connect Wealthsimple first."
-            return
-        }
-
-        isBusy = true
-        lastError = nil
-        defer { isBusy = false }
+        let otpAnswer = needsOTP ? otp.trimmingCharacters(in: .whitespacesAndNewlines) : nil
 
         do {
-            let linkToken = try await apiClient.createLinkToken(
-                clientId: storedClientId,
-                secret: storedSecret,
-                environment: credentialStore.environment,
-                clientUserId: credentialStore.clientUserId,
-                completionRedirectURI: completionRedirectURI,
-                accessToken: accessToken
-            )
-            guard let hostedLink = linkToken.hostedLinkUrl, let hostedURL = URL(string: hostedLink) else {
-                throw PlaidAPIClient.ClientError.missingLinkURL
-            }
-
-            try await connectSession.connect(hostedLinkURL: hostedURL)
-            statusStore.needsReauth = false
-            statusStore.lastError = nil
+            let session = try await client.logIn(email: trimmedEmail, password: password, otp: otpAnswer)
+            credentialStore.session = session
+            statusStore.recordSuccess()
+            // Clear the entered secrets from memory now that we hold a token instead.
+            password = ""
+            otp = ""
+            needsOTP = false
             refreshState()
             await sync()
-        } catch PlaidConnectSession.ConnectError.cancelled {
-            // User backed out; leave the needs-reauth flag as it was.
+        } catch WealthsimpleAPIClient.ClientError.otpRequired {
+            needsOTP = true
+            lastError = "Enter the 2-step verification code Wealthsimple just sent you."
         } catch {
-            lastError = error.localizedDescription
+            lastError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
     }
 
@@ -187,6 +102,7 @@ final class IntegrationsViewModel {
         credentialStore.disconnect()
         statusStore.clear()
         lastSyncSummary = nil
+        needsOTP = false
         refreshState()
     }
 }

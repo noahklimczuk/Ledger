@@ -6,7 +6,9 @@ struct ImportedAccount: Sendable, Identifiable {
     var institutionName: String?
     var type: AccountType
     var currencyCode: String
-    var currentBalance: Decimal
+    /// The balance the institution reports, if available. Nil when the source can't provide one
+    /// (so the caller leaves the derived balance alone rather than reconciling to a bogus value).
+    var currentBalance: Decimal?
 }
 
 struct ImportedTransaction: Sendable, Identifiable {
@@ -22,7 +24,7 @@ struct ImportedTransaction: Sendable, Identifiable {
 ///
 /// Manual entry does **not** go through this protocol -- it writes directly to SwiftData via
 /// `TransactionEditViewModel`. This protocol exists purely for bulk/external ingestion: CSV/OFX
-/// import and Plaid (bank/cash accounts) today, with room for another source to slot in later
+/// import and Wealthsimple (bank/cash accounts) today, with room for another source to slot in later
 /// behind the same interface without touching any call sites.
 protocol TransactionSource: Sendable {
     var sourceIdentifier: String { get }

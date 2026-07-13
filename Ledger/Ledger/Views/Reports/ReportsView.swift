@@ -5,6 +5,8 @@ import SwiftData
 struct ReportsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: ReportsViewModel?
+    /// The category whose transactions are being drilled into from the spending doughnut.
+    @State private var drilldownCategory: Category?
 
     var body: some View {
         Group {
@@ -34,6 +36,15 @@ struct ReportsView: View {
             }
         }
         .navigationTitle("Reports")
+        .navigationDestination(item: $drilldownCategory) { category in
+            if let viewModel {
+                CategoryTransactionsView(
+                    category: category,
+                    interval: viewModel.currentInterval,
+                    subtitle: viewModel.rangeLabel
+                )
+            }
+        }
         .task {
             if viewModel == nil { viewModel = ReportsViewModel(modelContext: modelContext) }
             viewModel?.load()
@@ -106,6 +117,9 @@ struct ReportsView: View {
                 .interpolationMethod(.catmullRom)
             }
             .frame(height: 200)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Net worth over time")
+            .accessibilityValue(netWorthAccessibilitySummary(viewModel))
         }
     }
 
@@ -115,20 +129,26 @@ struct ReportsView: View {
     private func categoryCard(_ viewModel: ReportsViewModel) -> some View {
         if !viewModel.categorySpending.isEmpty {
             card(title: "Spending by Category") {
-                Chart(viewModel.categorySpending) { item in
-                    BarMark(
-                        x: .value("Amount", item.amount.doubleValue),
-                        y: .value("Category", item.name)
-                    )
-                    .foregroundStyle(Color(hex: item.colorHex))
-                    .annotation(position: .trailing, alignment: .leading) {
-                        Text(CurrencyFormatter.string(from: item.amount))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                InteractiveDonutChart(
+                    segments: viewModel.categorySpending.map { item in
+                        DonutSegment(
+                            id: item.id,
+                            label: item.name,
+                            value: item.amount,
+                            color: Color(hex: item.colorHex),
+                            isSelectable: item.category != nil
+                        )
+                    },
+                    centerCaption: "Spent",
+                    onSelect: { segment in
+                        if let item = viewModel.categorySpending.first(where: { $0.id == segment.id }) {
+                            drilldownCategory = item.category
+                        }
                     }
-                }
-                .chartXAxis(.hidden)
-                .frame(height: CGFloat(viewModel.categorySpending.count) * 40 + 20)
+                )
+                Text("Tap a slice or row to see its transactions.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -155,6 +175,13 @@ struct ReportsView: View {
                 }
                 .chartForegroundStyleScale(["Income": Color.green, "Expense": Color.red])
                 .frame(height: 220)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Monthly income versus expenses")
+                .accessibilityValue(
+                    viewModel.monthlyFlows
+                        .map { "\(DateFormatting.monthYear($0.month)): income \(CurrencyFormatter.string(from: $0.income)), expenses \(CurrencyFormatter.string(from: $0.expense))" }
+                        .joined(separator: ". ")
+                )
             }
         }
     }
@@ -182,6 +209,13 @@ struct ReportsView: View {
                 }
             }
         }
+    }
+
+    private func netWorthAccessibilitySummary(_ viewModel: ReportsViewModel) -> String {
+        guard let first = viewModel.netWorthPoints.first, let last = viewModel.netWorthPoints.last else {
+            return "No data"
+        }
+        return "From \(CurrencyFormatter.string(from: first.value)) to \(CurrencyFormatter.string(from: last.value))"
     }
 
     // MARK: - Card chrome

@@ -29,6 +29,7 @@ struct TransactionRowView: View {
                     Circle()
                         .fill(.orange)
                         .frame(width: 6, height: 6)
+                        .accessibilityLabel("Needs review")
                 }
             }
         }

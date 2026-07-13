@@ -7,6 +7,11 @@ final class Category {
     var sfSymbolName: String
     var colorHex: String
     var isIncome: Bool
+    /// A transfer category (e.g. moving money between your own accounts). Its transactions are
+    /// excluded from income and spending totals — they aren't earnings or purchases — while still
+    /// affecting account balances and net worth (the two sides of a transfer cancel out). A
+    /// category is at most one of income or transfer; both false means an ordinary expense.
+    var isTransfer: Bool = false
     var sortOrder: Int
     var createdAt: Date
 
@@ -20,6 +25,7 @@ final class Category {
         sfSymbolName: String = "circle.fill",
         colorHex: String = "#8E8E93",
         isIncome: Bool = false,
+        isTransfer: Bool = false,
         parent: Category? = nil,
         sortOrder: Int = 0
     ) {
@@ -27,6 +33,7 @@ final class Category {
         self.sfSymbolName = sfSymbolName
         self.colorHex = colorHex
         self.isIncome = isIncome
+        self.isTransfer = isTransfer
         self.parent = parent
         self.sortOrder = sortOrder
         self.createdAt = .now

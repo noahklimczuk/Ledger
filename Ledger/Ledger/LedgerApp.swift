@@ -1,11 +1,19 @@
 import SwiftData
 import SwiftUI
+import UserNotifications
 
 @main
 struct LedgerApp: App {
     @State private var lockService = AppLockService()
+    @State private var refreshCoordinator = AppRefreshCoordinator()
     @State private var showSplash = true
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        // Budget guardrail alerts fire while the app is foregrounded (the sync loop only runs
+        // then); the delegate lets them present as banners instead of arriving silently.
+        UNUserNotificationCenter.current().delegate = NotificationCenterDelegate.shared
+    }
 
     private var sharedModelContainer: ModelContainer = {
         let schema = Schema(LedgerSchema.models)
@@ -32,13 +40,15 @@ struct LedgerApp: App {
                 }
             }
             .tint(.accentColor)
+            .environment(refreshCoordinator)
             .animation(.default, value: lockService.isUnlocked)
             .animation(.easeOut(duration: 0.4), value: showSplash)
             .task {
                 // Refresh on cold launch too — `onChange(of: scenePhase)` isn't guaranteed to fire
                 // for the initial `.active`. The coordinator's in-flight guard makes an overlap with
                 // the scene-phase handler a no-op.
-                await AppRefreshCoordinator.refreshOnForeground(container: sharedModelContainer)
+                refreshCoordinator.startPeriodicRefresh(container: sharedModelContainer)
+                await refreshCoordinator.refresh(container: sharedModelContainer)
             }
             .task {
                 try? await Task.sleep(nanoseconds: 1_300_000_000)
@@ -50,8 +60,10 @@ struct LedgerApp: App {
             switch newPhase {
             case .active:
                 let container = sharedModelContainer
-                Task { await AppRefreshCoordinator.refreshOnForeground(container: container) }
+                refreshCoordinator.startPeriodicRefresh(container: container)
+                Task { await refreshCoordinator.refresh(container: container) }
             case .background:
+                refreshCoordinator.stopPeriodicRefresh()
                 lockService.lock()
             default:
                 break
