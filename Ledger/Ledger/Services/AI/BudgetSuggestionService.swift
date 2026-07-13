@@ -66,6 +66,8 @@ struct BudgetSuggestionService {
         var incomeByMonth = [Decimal](repeating: 0, count: boundaries.count)
 
         func add(category: Category?, amount: Decimal, monthIdx: Int) {
+            // Transfers between accounts are neither spending nor income — skip them entirely.
+            if category?.isTransfer == true { return }
             if let category, !category.isIncome {
                 categoriesById[category.persistentModelID] = category
                 var series = totals[category.persistentModelID] ?? [Decimal](repeating: 0, count: boundaries.count)

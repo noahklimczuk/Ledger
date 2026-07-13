@@ -36,6 +36,11 @@ Phase 4 (done): rules-based insights, entirely on-device (nothing leaves the pho
   `CategorizationRule` (merchant keyword → category, normalized so store numbers don't defeat it).
   New manual entries with a blank category and every imported/synced transaction (Wealthsimple,
   CSV, OFX) are auto-categorized from the learned rules; the most specific keyword wins.
+- **Transfer categories** — a category can be marked as a **Transfer** (the built-in "Transfers"
+  category is one; set it via the category editor's Kind picker). Transfers move money between your
+  own accounts, so their transactions are excluded from income, spending, category breakdowns,
+  budgets, recurring detection, and insights — while still affecting account balances and net worth
+  (the two sides cancel). `Category.isTransfer` / `Transaction.isTransfer` back this everywhere.
 - **Insights engine** (`InsightsEngine`) — six detectors: categories trending up vs their 3-month
   average, budgets projected to overshoot, duplicate subscriptions, the priciest recurring charge
   to review, unusually large recent purchases, and leftover-cash change month-over-month.

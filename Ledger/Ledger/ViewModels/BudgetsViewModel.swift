@@ -144,6 +144,7 @@ final class BudgetsViewModel {
         func netOutflow(coveredIds: Set<PersistentIdentifier>, from start: Date, to end: Date) -> Decimal {
             allTransactions
                 .filter { transaction in
+                    guard !transaction.isTransfer else { return false }
                     guard transaction.date >= start && transaction.date < end else { return false }
                     guard let id = transaction.category?.persistentModelID else { return false }
                     return coveredIds.contains(id)
@@ -222,7 +223,7 @@ final class BudgetsViewModel {
                 continue
             }
             let id = category.persistentModelID
-            if category.isIncome || coveredIds.contains(id) { continue }
+            if category.isIncome || category.isTransfer || coveredIds.contains(id) { continue }
             byCategory[id, default: (category, 0)].spent += -transaction.amount
         }
 
@@ -323,7 +324,7 @@ final class BudgetsViewModel {
 
         var totals: [PersistentIdentifier: Decimal] = [:]
         for transaction in inWindow {
-            guard let category = transaction.category, !category.isIncome else { continue }
+            guard let category = transaction.category, !category.isIncome, !category.isTransfer else { continue }
             totals[category.persistentModelID, default: 0] += -transaction.amount
         }
         guard !totals.isEmpty else { return 0 }

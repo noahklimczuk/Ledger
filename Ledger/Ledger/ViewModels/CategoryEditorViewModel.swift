@@ -26,17 +26,18 @@ final class CategoryEditorViewModel {
         return categories.filter { $0.parent?.persistentModelID == parentId }
     }
 
-    func addCategory(name: String, sfSymbolName: String, colorHex: String, isIncome: Bool, parent: Category?) {
-        let category = Category(name: name, sfSymbolName: sfSymbolName, colorHex: colorHex, isIncome: isIncome, parent: parent)
+    func addCategory(name: String, sfSymbolName: String, colorHex: String, isIncome: Bool, isTransfer: Bool, parent: Category?) {
+        let category = Category(name: name, sfSymbolName: sfSymbolName, colorHex: colorHex, isIncome: isIncome, isTransfer: isTransfer, parent: parent)
         modelContext.insert(category)
         save()
     }
 
-    func updateCategory(_ category: Category, name: String, sfSymbolName: String, colorHex: String, isIncome: Bool) {
+    func updateCategory(_ category: Category, name: String, sfSymbolName: String, colorHex: String, isIncome: Bool, isTransfer: Bool) {
         category.name = name
         category.sfSymbolName = sfSymbolName
         category.colorHex = colorHex
         category.isIncome = isIncome
+        category.isTransfer = isTransfer
         save()
     }
 

@@ -48,6 +48,7 @@ enum DefaultDataSeeder {
                     sfSymbolName: seed.symbol,
                     colorHex: seed.colorHex,
                     isIncome: seed.isIncome,
+                    isTransfer: seed.isTransfer,
                     sortOrder: index
                 )
                 modelContext.insert(created)
@@ -56,6 +57,12 @@ enum DefaultDataSeeder {
             }
 
             guard let category else { continue }
+
+            // Non-destructively adopt the transfer flag onto an existing built-in category (e.g. an
+            // older install's "Transfers"), so transfers stop counting toward income/spending.
+            if seed.isTransfer && !category.isTransfer {
+                category.isTransfer = true
+            }
 
             for rawKeyword in seed.keywords {
                 let keyword = CategorizationService.keyword(for: rawKeyword)
