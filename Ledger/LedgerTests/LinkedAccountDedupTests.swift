@@ -85,4 +85,23 @@ struct LinkedAccountDedupTests {
         // The manual account plus the one linked account — the manual one is never merged away.
         #expect(accounts.count == 2)
     }
+
+    /// The cleanup must work on its own — the app refresh runs it even when no sync happens (a
+    /// disconnected or re-auth-needed connection never reaches `importAll`).
+    @Test func mergeRunsWithoutASync() throws {
+        let context = try makeContext()
+        let real = Account(name: "Wealthsimple Cash", type: .chequing, externalSourceId: "wealthsimple", externalAccountId: "cash-1")
+        context.insert(real)
+        context.insert(Transaction(date: .now, merchant: "A", amount: -10, account: real, sourceKind: .wealthsimple, externalId: "t1"))
+        let duplicate = Account(name: "Wealthsimple Cash", type: .chequing, externalSourceId: "wealthsimple", externalAccountId: "cash-1")
+        context.insert(duplicate)
+        try context.save()
+
+        let removed = TransactionImportService(modelContext: context).mergeDuplicateLinkedAccounts()
+
+        #expect(removed == 1)
+        let accounts = try context.fetch(FetchDescriptor<Account>())
+        #expect(accounts.count == 1)
+        #expect(accounts.first?.transactions.count == 1)
+    }
 }
