@@ -136,13 +136,16 @@ struct DailyCheckInView: View {
 
     private func reviewRow(_ transaction: Transaction, viewModel: DailyCheckInViewModel) -> some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(transaction.merchant)
                     .font(.subheadline.weight(.medium))
                     .lineLimit(1)
-                Text("\(DateFormatting.relativeDay(transaction.date)) · \(transaction.category?.name ?? "Uncategorized")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text(DateFormatting.relativeDay(transaction.date))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    categoryMenu(transaction, viewModel: viewModel)
+                }
             }
             Spacer(minLength: 8)
             Text(CurrencyFormatter.string(from: transaction.amount))
@@ -159,6 +162,54 @@ struct DailyCheckInView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
+    }
+
+    /// A little dropdown to set (or clear) the transaction's category right in the review step.
+    private func categoryMenu(_ transaction: Transaction, viewModel: DailyCheckInViewModel) -> some View {
+        Menu {
+            Button {
+                viewModel.setCategory(nil, for: transaction)
+            } label: {
+                Label("Uncategorized", systemImage: "tag.slash")
+            }
+            if !viewModel.expenseCategories.isEmpty {
+                Section("Expenses") {
+                    ForEach(viewModel.expenseCategories) { category in
+                        categoryOption(category, transaction, viewModel)
+                    }
+                }
+            }
+            if !viewModel.incomeCategories.isEmpty {
+                Section("Income") {
+                    ForEach(viewModel.incomeCategories) { category in
+                        categoryOption(category, transaction, viewModel)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(transaction.category.map { Color(hex: $0.colorHex) } ?? Color(.systemGray3))
+                    .frame(width: 7, height: 7)
+                Text(transaction.category?.name ?? "Set category")
+                    .font(.caption.weight(.medium))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+            }
+            .foregroundStyle(transaction.category == nil ? Color.accentColor : Color.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Color(.systemGray6), in: Capsule())
+        }
+    }
+
+    private func categoryOption(_ category: Category, _ transaction: Transaction, _ viewModel: DailyCheckInViewModel) -> some View {
+        Button {
+            viewModel.setCategory(category, for: transaction)
+        } label: {
+            Label(category.name, systemImage: category.sfSymbolName)
+        }
     }
 
     private func budgetsStep(_ viewModel: DailyCheckInViewModel) -> some View {
