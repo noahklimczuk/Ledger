@@ -11,7 +11,9 @@ import SwiftData
 /// keywords (under 5 characters) must match a whole token. That's what keeps "esso" from firing
 /// inside "espresso", "gym" inside "gymboree", or "rent" inside "rental car", while still letting
 /// "mcdonald" match "mcdonalds" and "chiropract" match "chiropractor".
-@MainActor
+// Not main-actor isolated: pure SwiftData work, so a background ModelContext (see RefreshDBWorker)
+// can run categorization off the main thread. Callers on the main actor keep passing the main
+// context and are unaffected.
 final class CategorizationService {
     /// Keywords at least this long may match as a token *prefix* ("mcdonald" → "mcdonalds");
     /// shorter ones must match a whole token exactly.

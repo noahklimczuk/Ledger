@@ -7,7 +7,8 @@ import SwiftData
 /// Seeding is **versioned**: when `DefaultCategoryCatalog.version` grows, the next launch adds the
 /// newly introduced categories and any new keywords — without resurrecting categories the user
 /// deleted from an earlier catalog version, and without duplicating anything that already exists.
-@MainActor
+// Not main-actor isolated: pure SwiftData + UserDefaults work, so it can run on a background
+// ModelContext (see RefreshDBWorker) to keep first-launch/upgrade seeding off the main thread.
 enum DefaultDataSeeder {
     /// Pre-versioning flag (catalog v1). Still read so old installs upgrade as version 1, not 0.
     private static let legacyDidSeedKey = "DefaultDataSeeder.didSeedDefaults.v1"

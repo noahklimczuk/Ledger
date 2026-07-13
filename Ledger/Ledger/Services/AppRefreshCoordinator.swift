@@ -31,11 +31,17 @@ final class AppRefreshCoordinator {
         defer { isRefreshing = false }
 
         let context = container.mainContext
-        DefaultDataSeeder.seedIfNeeded(modelContext: context)
+        // Pure-DB stages run off the main thread on their own background context so their fetches and
+        // writes don't block the UI. They commit to the shared store; the UI reloads via
+        // `refreshCount` below and picks the changes up.
+        let dbWorker = RefreshDBWorker(modelContainer: container)
+
+        await dbWorker.seedDefaults()
 
         // Clean up duplicate linked accounts on every refresh — not just inside a successful sync.
         // A disconnected or re-auth-needed connection never reaches `importAll`, so its cleanup
-        // would otherwise never run and old duplicates would linger.
+        // would otherwise never run and old duplicates would linger. Stays on the main context: it
+        // shares `TransactionImportService` with the sync's `importAll`, which is main-actor bound.
         TransactionImportService(modelContext: context).mergeDuplicateLinkedAccounts()
 
         let coordinator = WealthsimpleSyncCoordinator()
@@ -43,9 +49,9 @@ final class AppRefreshCoordinator {
             await coordinator.sync(modelContext: context)
         }
 
-        // Fill in categories for anything new (or newly matchable), then refresh recurring series.
-        CategorizationService(modelContext: context).categorizeAllUncategorized()
-        RecurringDetectionService(modelContext: context).refresh()
+        // Fill in categories for anything new (or newly matchable), then refresh recurring series —
+        // off the main thread now that the sync's imports are committed to the store.
+        await dbWorker.categorizeAndDetect()
 
         // With the freshest numbers in hand, fire any budget guardrail alerts (80% / over /
         // ahead-of-pace) that newly imported spending just tripped.
