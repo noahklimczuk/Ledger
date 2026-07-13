@@ -14,6 +14,7 @@ struct AccountEditView: View {
     @State private var type: AccountType = .chequing
     @State private var institutionName = ""
     @State private var startingBalanceText = ""
+    @State private var isConfirmingDelete = false
 
     private var isEditing: Bool { account != nil }
 
@@ -44,6 +45,14 @@ struct AccountEditView: View {
                             .font(.footnote)
                     }
                 }
+                if isEditing {
+                    Section {
+                        Button("Delete Account", role: .destructive) {
+                            isConfirmingDelete = true
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                }
             }
             .navigationTitle(isEditing ? "Edit Account" : "New Account")
             .navigationBarTitleDisplayMode(.inline)
@@ -56,6 +65,14 @@ struct AccountEditView: View {
                         .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .confirmationDialog("Delete this account?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
+                Button("Delete Account", role: .destructive) { performDelete() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(account?.isLinked == true
+                    ? "This removes the account and its imported transactions. If Wealthsimple is still connected a later sync may re-add it — but only once, since duplicates are merged."
+                    : "This removes the account and its transactions. This can't be undone.")
+            }
             .onAppear(perform: populate)
         }
     }
@@ -66,6 +83,17 @@ struct AccountEditView: View {
         type = account.type
         institutionName = account.institutionName ?? ""
         startingBalanceText = NSDecimalNumber(decimal: account.startingBalance).stringValue
+    }
+
+    /// Hard-deletes the account (and its transactions). Unlike the list's swipe action — which
+    /// *archives* a linked account to keep it from re-syncing — this is a true delete, so it can
+    /// clear out duplicate linked accounts the user no longer wants.
+    private func performDelete() {
+        guard let account else { return }
+        let viewModel = viewModel ?? AccountsViewModel(modelContext: modelContext)
+        viewModel.delete(account)
+        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        dismiss()
     }
 
     private func save() {
