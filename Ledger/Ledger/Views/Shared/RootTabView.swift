@@ -2,9 +2,8 @@ import SwiftUI
 import SwiftData
 
 struct RootTabView: View {
-    @State private var selection = 0
-    /// The page currently snapped under the horizontal pager. Kept in sync with `selection` so a
-    /// swipe updates the floating bar and a bar tap scrolls the pager.
+    /// The single source of truth for the current tab: the page snapped under the horizontal pager.
+    /// A swipe updates it directly; the floating bar reads and writes it through `tabSelection`.
     @State private var scrolledIndex: Int? = 0
 
     var body: some View {
@@ -32,18 +31,23 @@ struct RootTabView: View {
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            FloatingTabBar(selection: $selection)
+            FloatingTabBar(selection: tabSelection)
         }
-        // A bar tap changes `selection`; scroll the pager to match.
-        .onChange(of: selection) { _, newValue in
-            guard scrolledIndex != newValue else { return }
-            withAnimation(.easeInOut(duration: 0.25)) { scrolledIndex = newValue }
-        }
-        // A swipe settles the pager on a new page; move the bar's highlight to match.
-        .onChange(of: scrolledIndex) { _, newValue in
-            guard let newValue, selection != newValue else { return }
-            selection = newValue
-        }
+    }
+
+    /// Bridges the floating bar's `Int` selection to the pager's optional `scrolledIndex`. Reading
+    /// reflects the page the pager settled on; writing (a bar tap) scrolls the pager there. Driving
+    /// both directions off one state avoids the two-way `onChange` sync that updated `selection` and
+    /// `scrolledIndex` back and forth within a frame ("action tried to update multiple times per
+    /// frame").
+    private var tabSelection: Binding<Int> {
+        Binding(
+            get: { scrolledIndex ?? 0 },
+            set: { newValue in
+                guard scrolledIndex != newValue else { return }
+                withAnimation(.easeInOut(duration: 0.25)) { scrolledIndex = newValue }
+            }
+        )
     }
 
     /// One full-screen page in the pager, tagged with its index so `scrollPosition` can track and
