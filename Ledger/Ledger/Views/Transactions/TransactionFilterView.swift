@@ -50,8 +50,16 @@ struct TransactionFilterView: View {
                         }
                     }
                 }
-                Section {
+                Section("Date") {
                     Toggle("Date Range", isOn: $useDateRange)
+                    // Quick preset: turn the range on and set it to Jan 1 → today.
+                    Button {
+                        useDateRange = true
+                        startDate = Self.startOfYear
+                        endDate = .now
+                    } label: {
+                        Label("Year to Date", systemImage: "calendar")
+                    }
                     if useDateRange {
                         DatePicker("From", selection: $startDate, displayedComponents: .date)
                         DatePicker("To", selection: $endDate, displayedComponents: .date)
@@ -80,6 +88,12 @@ struct TransactionFilterView: View {
             }
             .task { load() }
         }
+    }
+
+    /// Midnight on January 1 of the current year — the start of the year-to-date window.
+    private static var startOfYear: Date {
+        let calendar = Calendar.current
+        return calendar.date(from: calendar.dateComponents([.year], from: .now)) ?? .now
     }
 
     private func load() {
