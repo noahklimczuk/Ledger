@@ -24,8 +24,13 @@ struct AccountListView: View {
                     } else {
                         List {
                             ForEach(viewModel.accounts) { account in
+                                // Read the displayed values here, up front, into a plain snapshot.
+                                // If this account is deleted, SwiftUI may re-render the outgoing row
+                                // during its removal animation; a snapshot means that render never
+                                // touches the now-invalidated model (which would crash reading
+                                // `currentBalance`/`startingBalance`).
                                 Button { editingAccount = account } label: {
-                                    AccountRow(account: account)
+                                    AccountRow(account: AccountRow.Snapshot(account))
                                 }
                                 .buttonStyle(.plain)
                                 .swipeActions(edge: .trailing) {
@@ -69,11 +74,27 @@ struct AccountListView: View {
 }
 
 private struct AccountRow: View {
-    let account: Account
+    /// Plain, already-read values for one account row. Reading them once, up front, keeps the row
+    /// from touching the live SwiftData model — which crashes if the model has since been deleted.
+    struct Snapshot {
+        let symbol: String
+        let name: String
+        let institutionName: String?
+        let balanceText: String
+
+        init(_ account: Account) {
+            symbol = account.type.sfSymbolName
+            name = account.name
+            institutionName = account.institutionName
+            balanceText = CurrencyFormatter.string(from: account.currentBalance, currencyCode: account.currencyCode)
+        }
+    }
+
+    let account: Snapshot
 
     var body: some View {
         HStack {
-            Image(systemName: account.type.sfSymbolName)
+            Image(systemName: account.symbol)
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
                 .background(.tint, in: Circle())
@@ -86,7 +107,7 @@ private struct AccountRow: View {
                 }
             }
             Spacer()
-            Text(CurrencyFormatter.string(from: account.currentBalance, currencyCode: account.currencyCode))
+            Text(account.balanceText)
                 .fontWeight(.medium)
         }
         .padding(.vertical, 2)
