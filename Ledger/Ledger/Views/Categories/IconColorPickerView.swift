@@ -26,6 +26,9 @@ struct IconPickerView: View {
                         .frame(width: 40, height: 40)
                         .background(selection == symbol ? Color.accentColor.opacity(0.2) : Color.clear, in: Circle())
                 }
+                // Without an explicit style, buttons inside a Form row hand their tap to the row,
+                // so a grid of them can't be individually selected. `.plain` restores per-button hits.
+                .buttonStyle(.plain)
             }
         }
     }
@@ -59,6 +62,8 @@ struct ColorPickerGridView: View {
                             }
                         }
                 }
+                // See IconPickerView: a Form row otherwise steals the tap from these grid buttons.
+                .buttonStyle(.plain)
             }
         }
     }
