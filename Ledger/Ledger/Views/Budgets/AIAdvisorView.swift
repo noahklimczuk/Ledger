@@ -2,8 +2,9 @@ import SwiftUI
 import SwiftData
 
 /// The AI financial-advisor chat, opened from the floating bubble on the Budgets screen. It talks
-/// to Gemini (the same free key used for budget suggestions) grounded in an aggregated snapshot of
-/// the current plan — never raw transactions. See `AIAdvisorViewModel`.
+/// to Gemini (the same free key used for budget suggestions) grounded in the current plan and
+/// recent transactions, and can build the month's budget on request — including a savings
+/// set-aside proportional to income vs. spending. See `AIAdvisorViewModel`.
 struct AIAdvisorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -50,8 +51,13 @@ struct AIAdvisorView: View {
                             starterPrompts(viewModel)
                         }
                         ForEach(viewModel.messages) { message in
-                            MessageBubble(message: message)
-                                .id(message.id)
+                            if message.kind == .actionNote {
+                                ActionNote(text: message.text)
+                                    .id(message.id)
+                            } else {
+                                MessageBubble(message: message)
+                                    .id(message.id)
+                            }
                         }
                         if viewModel.isSending {
                             typingIndicator.id(Self.typingID)
@@ -83,7 +89,7 @@ struct AIAdvisorView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Your financial advisor")
                     .font(.subheadline.weight(.semibold))
-                Text("Ask about this month's plan, where to cut back, or whether you're on track. I only see your budget totals — never individual transactions.")
+                Text("Ask about this month's plan, where to cut back, or have me build your budget from your transactions — with savings sized to what's left of your income.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -189,7 +195,7 @@ struct AIAdvisorView: View {
                         .foregroundStyle(LinearGradient.brand)
                     Text("Meet your financial advisor")
                         .font(.headline)
-                    Text("Chat about your budget and spending, grounded in your real numbers. It runs on Google Gemini's free tier — add a key once to turn it on. Only aggregated category totals are ever sent, never your transactions.")
+                    Text("Chat about your budget and spending, grounded in your real numbers, and let it build your monthly budget for you. It runs on Google Gemini's free tier — add a key once to turn it on. Your budget totals and recent transactions (date, amount, category, merchant) are sent — never account names, balances, or notes.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -214,6 +220,23 @@ struct AIAdvisorView: View {
                 Text("Free with a Google account — no credit card. Get a key at aistudio.google.com/apikey. Stored in the iOS Keychain only.")
             }
         }
+    }
+}
+
+/// Centered capsule marking something the advisor *did* (applied a budget), distinct from what it
+/// said.
+private struct ActionNote: View {
+    let text: String
+
+    var body: some View {
+        Label(text, systemImage: "checkmark.circle.fill")
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.secondary)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .background(.thinMaterial, in: Capsule())
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
     }
 }
 

@@ -3,9 +3,10 @@ import SwiftData
 
 /// On-device statistical aggregation behind the AI budget proposal. Everything here runs locally:
 /// it reduces the last few months of categorized spending to per-category monthly totals,
-/// averages, and a simple trend, and derives a baseline suggested budget from those numbers.
-/// The Gemini call (`GeminiService`) only ever sees this summary — aggregated category
-/// totals and monthly income — never raw transactions, merchants, account names, or balances.
+/// averages, and a simple trend, and derives a baseline suggested budget (including a savings
+/// set-aside) from those numbers. The Gemini call (`GeminiService`) sees this summary — the
+/// aggregated totals plus recent transaction lines (date, amount, category, merchant) — but never
+/// account names, balances, notes, or receipts.
 @MainActor
 struct BudgetSuggestionService {
     /// Aggregated history for one expense category over the analysis window.
@@ -29,7 +30,17 @@ struct BudgetSuggestionService {
         let averageMonthlyIncome: Decimal
         /// Monthly-equivalent total of detected recurring charges (subscriptions/bills).
         let monthlyRecurringCommitments: Decimal
+        /// On-device baseline for the monthly savings set-aside: the surplus between average
+        /// income and the baseline category budgets, so it scales with the income-vs-spending gap.
+        let suggestedSavings: Decimal
+        /// Recent transactions in the window as compact prompt lines
+        /// ("date | amount | category | merchant"), most recent first.
+        let recentTransactions: [String]
     }
+
+    /// How many transaction lines are sent to the AI per request; keeps prompts bounded on
+    /// heavily imported ledgers.
+    static let promptTransactionLimit = 250
 
     private let modelContext: ModelContext
 
@@ -118,12 +129,43 @@ struct BudgetSuggestionService {
                 total + (-series.averageAmount) * Decimal(30.44) / Decimal(series.cadence.approximateDays)
             }
 
+        let baselineSpendTotal = stats.reduce(Decimal(0)) { $0 + $1.baselineSuggestion }
+        let roundedIncome = Self.roundedToDollar(income)
+
         return Summary(
             months: boundaries.count,
             stats: stats,
-            averageMonthlyIncome: Self.roundedToDollar(income),
-            monthlyRecurringCommitments: Self.roundedToDollar(max(recurring, 0))
+            averageMonthlyIncome: roundedIncome,
+            monthlyRecurringCommitments: Self.roundedToDollar(max(recurring, 0)),
+            suggestedSavings: max(roundedIncome - baselineSpendTotal, 0),
+            recentTransactions: Self.promptLines(for: transactions, limit: Self.promptTransactionLimit)
         )
+    }
+
+    /// Formats transactions as compact prompt lines for the AI — date, signed amount, category,
+    /// merchant — most recent first, capped at `limit` with a note when older ones are dropped.
+    /// Deliberately excludes account names, balances, notes, and receipts.
+    static func promptLines(for transactions: [Transaction], limit: Int) -> [String] {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        let sorted = transactions.sorted { $0.date > $1.date }
+        var lines = sorted.prefix(limit).map { transaction in
+            let category: String
+            if transaction.isSplit {
+                category = "Split (" + transaction.splits
+                    .map { "\($0.category?.name ?? "Uncategorized"): \($0.amount)" }
+                    .joined(separator: "; ") + ")"
+            } else {
+                category = transaction.category?.name ?? "Uncategorized"
+            }
+            return "\(formatter.string(from: transaction.date)) | \(transaction.amount) | \(category) | \(transaction.merchant)"
+        }
+        if sorted.count > limit {
+            lines.append("… plus \(sorted.count - limit) earlier transactions not shown.")
+        }
+        return lines
     }
 
     /// Baseline: the average, tilted toward recent months when spending is clearly moving —

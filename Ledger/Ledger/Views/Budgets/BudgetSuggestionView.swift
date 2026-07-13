@@ -3,8 +3,9 @@ import SwiftData
 
 /// Reviewable AI budget proposal for one month. Everything is a *proposal* until the user taps
 /// Apply: amounts are editable, categories can be excluded, and cancelling changes nothing.
-/// The statistics come from on-device aggregation; the optional Gemini refinement only ever
-/// receives category totals (see `GeminiService`).
+/// The statistics come from on-device aggregation; the optional Gemini refinement receives the
+/// category totals plus recent transaction lines (see `GeminiService`). The plan always includes
+/// a monthly savings set-aside proportional to the income-vs-spending gap.
 struct BudgetSuggestionView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -105,6 +106,14 @@ struct BudgetSuggestionView: View {
                 Text("Toggle a category off to leave its budget unchanged. Amounts are editable. Nothing is saved until you tap Apply.")
             }
 
+            Section {
+                savingsRow(viewModel)
+            } header: {
+                Text("Monthly Savings")
+            } footer: {
+                Text("Set aside for the month, sized to the gap between your income and spending. Applied as a budget on a “Savings” category.")
+            }
+
             if let aiStatus = viewModel.aiStatus {
                 Section {
                     Button {
@@ -203,6 +212,46 @@ struct BudgetSuggestionView: View {
         .padding(.vertical, 4)
     }
 
+    private func savingsRow(_ viewModel: BudgetSuggestionViewModel) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Image(systemName: "banknote.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(Color(hex: "#00C7BE"), in: Circle())
+                    .opacity(viewModel.savingsIncluded ? 1 : 0.4)
+                Text("Savings")
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+                    .foregroundStyle(viewModel.savingsIncluded ? Color.primary : Color.secondary)
+                Spacer(minLength: 8)
+                TextField("0", text: Binding(
+                    get: { viewModel.savingsAmountText },
+                    set: { viewModel.savingsAmountText = $0 }
+                ))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 90)
+                .disabled(!viewModel.savingsIncluded)
+                .accessibilityLabel("Monthly savings amount")
+                Toggle("", isOn: Binding(
+                    get: { viewModel.savingsIncluded },
+                    set: { viewModel.savingsIncluded = $0 }
+                ))
+                .labelsHidden()
+                .accessibilityLabel("Include savings in the plan")
+            }
+            if viewModel.savingsIncluded, !viewModel.savingsRationale.isEmpty {
+                Text(viewModel.savingsRationale)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
     private func apiKeySheet(_ viewModel: BudgetSuggestionViewModel) -> some View {
         NavigationStack {
             Form {
@@ -216,7 +265,7 @@ struct BudgetSuggestionView: View {
                 } header: {
                     Text("Google Gemini API Key")
                 } footer: {
-                    Text("Free with a Google account — no credit card. Stored in the iOS Keychain only, and used solely to tailor budget suggestions: only aggregated category totals are sent, never your transactions or account details. Get a key at aistudio.google.com/apikey.")
+                    Text("Free with a Google account — no credit card. Stored in the iOS Keychain only, and used solely to tailor budget suggestions: your category totals and recent transactions (date, amount, category, merchant) are sent — never account names, balances, or notes. Get a key at aistudio.google.com/apikey.")
                 }
                 if viewModel.hasAPIKey {
                     Section {
