@@ -303,6 +303,27 @@ final class BudgetsViewModel {
         load()
     }
 
+    /// The expense category the monthly savings set-aside is budgeted under. Reuses an existing
+    /// "Savings" category when the user has one; otherwise creates it (it's not part of the
+    /// default seed catalog).
+    func findOrCreateSavingsCategory() -> Category {
+        let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
+        if let existing = categories.first(where: {
+            $0.name.caseInsensitiveCompare("Savings") == .orderedSame && !$0.isIncome && !$0.isTransfer
+        }) {
+            return existing
+        }
+        let category = Category(
+            name: "Savings",
+            sfSymbolName: "banknote.fill",
+            colorHex: "#00C7BE",
+            sortOrder: (categories.map(\.sortOrder).max() ?? 0) + 1
+        )
+        modelContext.insert(category)
+        try? modelContext.save()
+        return category
+    }
+
     func delete(_ row: BudgetRow) {
         modelContext.delete(row.budget)
         try? modelContext.save()

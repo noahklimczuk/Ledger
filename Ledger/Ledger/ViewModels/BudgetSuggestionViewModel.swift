@@ -4,9 +4,10 @@ import SwiftData
 
 /// Drives the AI budget proposal sheet. The flow never touches stored budgets until the user
 /// explicitly applies: an on-device baseline proposal is built first (always works, offline),
-/// then — when a (free) Google Gemini API key is configured — the aggregated numbers are sent for
-/// AI-tailored amounts and rationales. An API failure quietly leaves the on-device proposal
-/// in place with a note, never an empty screen.
+/// then — when a (free) Google Gemini API key is configured — the summary plus recent transaction
+/// lines are sent for AI-tailored amounts and rationales. The proposal always carries a monthly
+/// savings set-aside sized to the gap between income and spending. An API failure quietly leaves
+/// the on-device proposal in place with a note, never an empty screen.
 @MainActor
 @Observable
 final class BudgetSuggestionViewModel {
@@ -35,6 +36,13 @@ final class BudgetSuggestionViewModel {
     private(set) var planSummary: String = ""
     private(set) var averageMonthlyIncome: Decimal = 0
     private(set) var monthsAnalyzed: Int = 0
+
+    /// The monthly savings set-aside, proposed in proportion to the gap between income and
+    /// spending. Editable and excludable like any category row; applied to a "Savings" category.
+    var savingsAmountText: String = ""
+    private(set) var savingsRationale: String = ""
+    var savingsIncluded: Bool = true
+    var savingsAmount: Decimal? { ImportValueParsing.decimal(from: savingsAmountText) }
     private(set) var isRefining = false
     private(set) var aiStatus: String?
     private(set) var appliedCount = 0
@@ -51,13 +59,16 @@ final class BudgetSuggestionViewModel {
     }
 
     var totalProposed: Decimal {
-        rows.filter(\.isIncluded).reduce(Decimal(0)) { $0 + ($1.amount ?? 0) }
+        let categories = rows.filter(\.isIncluded).reduce(Decimal(0)) { $0 + ($1.amount ?? 0) }
+        return categories + (savingsIncluded ? (savingsAmount ?? 0) : 0)
     }
 
     var includedCount: Int { rows.filter(\.isIncluded).count }
 
     var canApply: Bool {
-        stage == .review && rows.contains(where: { $0.isIncluded && $0.amount != nil })
+        guard stage == .review else { return false }
+        return rows.contains(where: { $0.isIncluded && $0.amount != nil })
+            || (savingsIncluded && (savingsAmount ?? 0) > 0)
     }
 
     // MARK: - Generation
@@ -82,14 +93,17 @@ final class BudgetSuggestionViewModel {
                 rationale: Self.baselineRationale(for: stat)
             )
         }
-        planSummary = "Based on your average spending over the last \(summary.months) month\(summary.months == 1 ? "" : "s"). Adjust any amount before applying."
+        savingsAmountText = Self.string(from: summary.suggestedSavings)
+        savingsRationale = Self.baselineSavingsRationale(for: summary)
+        savingsIncluded = true
+        planSummary = "Based on your average spending over the last \(summary.months) month\(summary.months == 1 ? "" : "s"), with savings sized to what's left of your income. Adjust any amount before applying."
         stage = .review
 
         await refineWithAI(summary: summary)
     }
 
-    /// Sends the aggregated summary (never raw transactions) for tailored amounts. Failures
-    /// leave the on-device proposal untouched.
+    /// Sends the summary (aggregated totals plus recent transaction lines) for tailored amounts.
+    /// Failures leave the on-device proposal untouched.
     private func refineWithAI(summary: BudgetSuggestionService.Summary) async {
         guard let apiKey = GeminiService.storedAPIKey else {
             aiStatus = "On-device estimate. Add a free Google Gemini API key for tailored suggestions."
@@ -108,6 +122,10 @@ final class BudgetSuggestionViewModel {
                 guard let match = byName[rows[index].category.name.lowercased()] , match.amount > 0 else { continue }
                 rows[index].amountText = Self.string(from: Self.roundedToDollar(Decimal(match.amount)))
                 rows[index].rationale = match.rationale
+            }
+            if let savings = suggestion.savings, savings.amount >= 0 {
+                savingsAmountText = Self.string(from: Self.roundedToDollar(Decimal(savings.amount)))
+                savingsRationale = savings.rationale
             }
             planSummary = suggestion.summary
             aiStatus = nil
@@ -148,6 +166,14 @@ final class BudgetSuggestionViewModel {
             budgetsViewModel.addOrUpdateBudget(category: row.category, allocatedAmount: amount, rolloverEnabled: existingRollover)
             count += 1
         }
+        if savingsIncluded, let amount = savingsAmount, amount > 0 {
+            let savingsCategory = budgetsViewModel.findOrCreateSavingsCategory()
+            let existingRollover = budgetsViewModel.rows
+                .first { $0.budget.category?.persistentModelID == savingsCategory.persistentModelID }?
+                .budget.rolloverEnabled ?? false
+            budgetsViewModel.addOrUpdateBudget(category: savingsCategory, allocatedAmount: amount, rolloverEnabled: existingRollover)
+            count += 1
+        }
         appliedCount = count
         stage = .applied
     }
@@ -162,6 +188,13 @@ final class BudgetSuggestionViewModel {
             return "Spending here has been falling — recent months average \(CurrencyFormatter.string(from: stat.recentAverage))."
         }
         return "Steady spending, averaging \(CurrencyFormatter.string(from: stat.average)) a month."
+    }
+
+    private static func baselineSavingsRationale(for summary: BudgetSuggestionService.Summary) -> String {
+        guard summary.suggestedSavings > 0 else {
+            return "Planned spending uses up your average income, so there's no surplus to set aside yet."
+        }
+        return "The surplus between your average income (\(CurrencyFormatter.string(from: summary.averageMonthlyIncome))/mo) and the proposed spending — savings scale with that gap."
     }
 
     private static func string(from decimal: Decimal) -> String {
