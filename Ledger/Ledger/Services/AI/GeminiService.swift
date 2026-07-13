@@ -57,12 +57,13 @@ struct GeminiService: Sendable {
         let summary: String
     }
 
-    /// Models tried in order, best-first. Gemini 3.5 Flash is the most capable free-tier Flash
-    /// model, but its shared free pool gets saturated and returns 503 "high demand" — and short
-    /// retries can't clear a sustained overload. When it stays unavailable we fall back to lighter,
-    /// less-contended models so the request still completes. All three are on the free tier and
+    /// Models tried in order, best-first. Gemini 3.5 Flash is the most capable Flash model, but its
+    /// shared free pool gets saturated and returns 503 "high demand" that short retries can't clear;
+    /// when it stays unavailable we fall back to the lighter, less-contended 3.1 Flash-Lite so the
+    /// request still completes. Both are current 3.x models — the 2.5 family is now 404 "no longer
+    /// available to new users" on freshly created projects, so it must NOT be in this chain. Both
     /// support the structured (schema-constrained) output and function calling this feature needs.
-    private static let modelFallbackChain = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
+    private static let modelFallbackChain = ["gemini-3.5-flash", "gemini-3.1-flash-lite"]
     static let apiKeyKeychainKey = "gemini.apiKey"
 
     private static func endpoint(for model: String) -> URL {
@@ -260,9 +261,10 @@ struct GeminiService: Sendable {
             do {
                 return try await generateWithRetry(payload: payload, apiKey: apiKey, model: model)
             } catch {
-                // Only an overload/transient error means another model might do better; anything
-                // else won't improve on a different model, so surface it now.
-                guard Self.isRetryable(error), !isLastModel else { throw error }
+                // Fall to the next model when this one is overloaded (transient) OR unavailable to
+                // this project (404 — e.g. a retired model). Anything else (bad request, bad key,
+                // safety block) won't improve on a different model, so surface it now.
+                guard Self.shouldTryNextModel(for: error), !isLastModel else { throw error }
                 lastError = error
             }
         }
@@ -332,6 +334,18 @@ struct GeminiService: Sendable {
             default:
                 return false
             }
+        }
+        return false
+    }
+
+    /// Whether to move on to the next model in the chain: the transient/overload cases *plus* a 404,
+    /// which means this specific model isn't available to the project (e.g. a model retired for new
+    /// users) — a different model in the chain may still work. This is broader than `isRetryable`,
+    /// which only governs retrying the *same* model (where a 404 would just repeat).
+    private static func shouldTryNextModel(for error: Error) -> Bool {
+        if isRetryable(error) { return true }
+        if let service = error as? ServiceError, case .server(let status, _) = service {
+            return status == 404
         }
         return false
     }
