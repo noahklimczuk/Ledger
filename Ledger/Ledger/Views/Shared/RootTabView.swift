@@ -3,24 +3,55 @@ import SwiftData
 
 struct RootTabView: View {
     @State private var selection = 0
+    /// The page currently snapped under the horizontal pager. Kept in sync with `selection` so a
+    /// swipe updates the floating bar and a bar tap scrolls the pager.
+    @State private var scrolledIndex: Int? = 0
 
     var body: some View {
-        // A paged TabView keeps the left/right swipe between the five root screens. We no longer
-        // put `scrollDisabled` on it: that modifier propagates through the environment and was
-        // disabling the *inner* Lists/ScrollViews (so pushed screens couldn't scroll at all).
-        // The floating Liquid Glass bar below is our own; the native page indicator stays hidden.
-        TabView(selection: $selection) {
-            DashboardView().tag(0)
-            AccountListView().tag(1)
-            TransactionListView().tag(2)
-            BudgetListView().tag(3)
-            MoreView().tag(4)
+        // A horizontal paging ScrollView keeps the left/right swipe between the five root screens
+        // *without* the paged TabView we used before. That TabView is a UIPageViewController, which
+        // keeps adjacent pages' NavigationStacks mounted at once; when two large-title nav bars
+        // overlap mid-swipe UIKit crashes with "nest wrapped navigation controllers". A plain
+        // ScrollView has no page/navigation controller to nest, so each tab's NavigationStack keeps
+        // its large title and back stack while the swipe still works. Inner Lists still scroll
+        // vertically since the pager only claims horizontal drags.
+        GeometryReader { proxy in
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 0) {
+                    page(DashboardView(), size: proxy.size, index: 0)
+                    page(AccountListView(), size: proxy.size, index: 1)
+                    page(TransactionListView(), size: proxy.size, index: 2)
+                    page(BudgetListView(), size: proxy.size, index: 3)
+                    page(MoreView(), size: proxy.size, index: 4)
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $scrolledIndex)
+            .scrollIndicators(.hidden)
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FloatingTabBar(selection: $selection)
         }
+        // A bar tap changes `selection`; scroll the pager to match.
+        .onChange(of: selection) { _, newValue in
+            guard scrolledIndex != newValue else { return }
+            withAnimation(.easeInOut(duration: 0.25)) { scrolledIndex = newValue }
+        }
+        // A swipe settles the pager on a new page; move the bar's highlight to match.
+        .onChange(of: scrolledIndex) { _, newValue in
+            guard let newValue, selection != newValue else { return }
+            selection = newValue
+        }
+    }
+
+    /// One full-screen page in the pager, tagged with its index so `scrollPosition` can track and
+    /// drive it.
+    private func page<Content: View>(_ content: Content, size: CGSize, index: Int) -> some View {
+        content
+            .frame(width: size.width, height: size.height)
+            .id(index)
     }
 }
 
