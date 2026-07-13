@@ -15,6 +15,10 @@ struct TransactionListView: View {
     @State private var didLoad = false
 
     @State private var searchText = ""
+    /// Whether the toolbar search field is expanded. Collapsed, search is just a magnifying-glass
+    /// button sitting beside the filter and plus; tapping it slides the field open in place.
+    @State private var isSearchExpanded = false
+    @FocusState private var isSearchFocused: Bool
     @State private var filter = TransactionFilter()
     @State private var isPresentingNewTransaction = false
     @State private var isPresentingFilters = false
@@ -80,9 +84,23 @@ struct TransactionListView: View {
 
         let needle = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if !needle.isEmpty {
-            result = result.filter {
-                $0.merchant.lowercased().contains(needle) || ($0.notes?.lowercased().contains(needle) ?? false)
-            }
+            // Live search doesn't just filter — it re-sorts by how well each row matches, so the
+            // closest hits float to the top as the user types: merchants that start with the term
+            // first, then merchants that merely contain it, then notes-only matches. Newest wins
+            // within a tier, and the explicit date tiebreak keeps the order deterministic (Swift's
+            // sort isn't guaranteed stable).
+            result = result
+                .compactMap { transaction -> (transaction: Transaction, rank: Int)? in
+                    let merchant = transaction.merchant.lowercased()
+                    if merchant.hasPrefix(needle) { return (transaction, 0) }
+                    if merchant.contains(needle) { return (transaction, 1) }
+                    if transaction.notes?.lowercased().contains(needle) == true { return (transaction, 2) }
+                    return nil
+                }
+                .sorted { lhs, rhs in
+                    lhs.rank != rhs.rank ? lhs.rank < rhs.rank : lhs.transaction.date > rhs.transaction.date
+                }
+                .map(\.transaction)
         }
         return result
     }
@@ -174,25 +192,40 @@ struct TransactionListView: View {
                 }
             }
             .navigationTitle("Transactions")
-            // Pull-to-refresh runs a real sync (not just a local re-read); the live @Query then
-            // shows whatever the sync inserted.
+            // Pull-to-refresh runs a real sync (not just a local re-read); the reload triggered off
+            // refreshCount then shows whatever the sync inserted.
             .refreshable { await refresh.refresh(container: modelContext.container) }
-            .searchable(text: $searchText, prompt: "Search merchants")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     // A visible filter button (not buried in the overflow menu) that fills in and
-                    // tints when any filter is active, so it's obvious filtering is on.
-                    Button { isPresentingFilters = true } label: {
-                        Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                    // tints when any filter is active, so it's obvious filtering is on. Hidden while
+                    // the search field is expanded so it has room to slide open.
+                    if !isSearchExpanded {
+                        Button { isPresentingFilters = true } label: {
+                            Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                        }
+                        .tint(filter.isActive ? .accentColor : nil)
+                        .accessibilityLabel(filter.isActive ? "Filters active" : "Filter")
                     }
-                    .tint(filter.isActive ? .accentColor : nil)
-                    .accessibilityLabel(filter.isActive ? "Filters active" : "Filter")
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button { isPresentingNewTransaction = true } label: {
-                        Image(systemName: "plus")
+                    // Search sits beside the plus in the same toolbar style: a magnifying-glass
+                    // button that slides open into an inline field when tapped.
+                    HStack(spacing: 8) {
+                        searchControl
+                        Button { isPresentingNewTransaction = true } label: {
+                            Image(systemName: "plus")
+                        }
                     }
                 }
+            }
+            .onChange(of: isSearchExpanded) { _, expanded in
+                // Focus (raise the keyboard) only once the field actually exists in the hierarchy.
+                if expanded { isSearchFocused = true }
+            }
+            .onChange(of: isSearchFocused) { _, focused in
+                // Tapping away from an empty field tidies it back into the button.
+                if !focused && searchText.isEmpty { collapseSearch() }
             }
             .sheet(isPresented: $isPresentingNewTransaction, onDismiss: load) {
                 TransactionEditView(transaction: nil)
@@ -223,6 +256,63 @@ struct TransactionListView: View {
                 TransactionFilterStore.save(newValue.snapshot)
             }
         }
+    }
+
+    // MARK: - Search
+
+    /// The toolbar search: a magnifying-glass button that slides open into an inline, capsule-shaped
+    /// field (matching the app's material pill style) and tucks back away when cleared.
+    @ViewBuilder
+    private var searchControl: some View {
+        if isSearchExpanded {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                TextField("Search merchants", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .focused($isSearchFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .frame(width: 150)
+                Button {
+                    // First tap clears the text (keeping the field open to keep typing); an empty
+                    // field's tap collapses it back to the button.
+                    if searchText.isEmpty {
+                        collapseSearch()
+                    } else {
+                        searchText = ""
+                        isSearchFocused = true
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel(searchText.isEmpty ? "Close search" : "Clear search")
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(.regularMaterial, in: Capsule())
+            .transition(.move(edge: .trailing).combined(with: .opacity))
+        } else {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                    isSearchExpanded = true
+                }
+            } label: {
+                Image(systemName: "magnifyingglass")
+            }
+            .accessibilityLabel("Search")
+        }
+    }
+
+    private func collapseSearch() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            isSearchExpanded = false
+        }
+        isSearchFocused = false
+        searchText = ""
     }
 
     /// Re-reads every transaction, newest first. The view's computed `transactions` then applies the
