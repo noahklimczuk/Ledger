@@ -16,6 +16,8 @@ final class DailyCheckInViewModel {
     }
 
     private(set) var unreviewed: [Transaction] = []
+    /// Categories offered by the per-transaction category dropdown in the review step.
+    private(set) var categories: [Category] = []
     private(set) var reviewedThisSession = 0
     private(set) var overBudget: [BudgetsViewModel.BudgetRow] = []
     private(set) var aheadOfPace: [BudgetsViewModel.BudgetRow] = []
@@ -33,6 +35,9 @@ final class DailyCheckInViewModel {
     var upcomingBillsTotal: Decimal {
         upcomingBills.reduce(Decimal(0)) { $0 + $1.amount }
     }
+
+    var expenseCategories: [Category] { categories.filter { !$0.isIncome } }
+    var incomeCategories: [Category] { categories.filter(\.isIncome) }
 
     /// Due whenever today's check-in hasn't happened yet.
     static func isDue(now: Date = .now) -> Bool {
@@ -52,6 +57,8 @@ final class DailyCheckInViewModel {
         )
         unreviewed = ((try? modelContext.fetch(descriptor)) ?? []).filter(\.countsTowardTotals)
 
+        categories = (try? modelContext.fetch(FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)]))) ?? []
+
         let budgets = BudgetsViewModel(modelContext: modelContext)
         budgets.selectedMonth = Budget.normalize(.now)
         overBudget = budgets.rows.filter(\.isOverBudget)
@@ -67,6 +74,17 @@ final class DailyCheckInViewModel {
         let horizon = calendar.date(byAdding: .day, value: 14, to: today) ?? today
         let bills = (try? modelContext.fetch(FetchDescriptor<BillReminder>(sortBy: [SortDescriptor(\.dueDate)]))) ?? []
         upcomingBills = bills.filter { $0.dueDate < horizon }
+    }
+
+    /// Sets (or clears) a transaction's category from the review-step dropdown. An explicit choice
+    /// also teaches a merchant→category rule, so similar transactions categorize themselves later —
+    /// matching how the transaction editor behaves.
+    func setCategory(_ category: Category?, for transaction: Transaction) {
+        transaction.category = category
+        if let category {
+            CategorizationService(modelContext: modelContext).learn(merchant: transaction.merchant, category: category)
+        }
+        try? modelContext.save()
     }
 
     func markReviewed(_ transaction: Transaction) {
