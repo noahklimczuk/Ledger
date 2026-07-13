@@ -128,8 +128,12 @@ final class AIAdvisorViewModel {
     /// lands on a (created-if-needed) "Savings" category. Returns a chat-facing note and the JSON
     /// result handed back to the model.
     private func applyBudgetPlan(_ plan: GeminiService.BudgetPlan) -> (note: String, responseJSON: String) {
+        // The plan may target a month other than the one open in the app — a past or future month
+        // the user asked about — so honour the tool's `month` argument, falling back to the
+        // conversation's month when it's absent or unparseable.
+        let targetMonth = resolveMonth(plan.month)
         let budgets = BudgetsViewModel(modelContext: modelContext)
-        budgets.selectedMonth = month
+        budgets.selectedMonth = targetMonth
 
         let expenseCategories = ((try? modelContext.fetch(FetchDescriptor<Category>())) ?? [])
             .filter { !$0.isIncome && !$0.isTransfer }
@@ -170,11 +174,11 @@ final class AIAdvisorViewModel {
             applied += 1
         }
 
-        var note = "Budget applied — \(applied) categor\(applied == 1 ? "y" : "ies") set for \(DateFormatting.monthYear(month))"
+        var note = "Budget applied — \(applied) categor\(applied == 1 ? "y" : "ies") set for \(DateFormatting.monthYear(targetMonth))"
         if savingsSet > 0 { note += ", including \(CurrencyFormatter.string(from: savingsSet)) to savings" }
         note += "."
 
-        var response: [String: Any] = ["status": "applied", "budgetsSet": applied]
+        var response: [String: Any] = ["status": "applied", "budgetsSet": applied, "month": Self.monthKey(targetMonth)]
         if savingsSet > 0 { response["savingsBudgeted"] = (savingsSet as NSDecimalNumber).doubleValue }
         if !skipped.isEmpty { response["skippedUnknownCategories"] = skipped }
         let responseJSON: String
@@ -202,7 +206,8 @@ final class AIAdvisorViewModel {
         lines.append("")
         lines.append("Guidelines: Give specific, actionable advice grounded in the numbers below. Be concise — short paragraphs and tight bullet lists, not essays. Reference the user's actual categories, amounts, and transactions. You are not a licensed financial professional: avoid firm tax, legal, or investment guarantees, and suggest a professional for major decisions. If a question needs data you don't have, say what you'd need.")
         lines.append("")
-        lines.append("Creating budgets: when — and only when — the user asks you to create, set, or update their budget, call the \(GeminiService.createBudgetToolName) tool; it applies to \(DateFormatting.monthYear(month)). Base the amounts on the transaction history below and use the exact category names listed. Always include savingsAmount, sized in proportion to the gap between the month's income and spending: when income comfortably exceeds spending, direct most of the surplus to savings; when the budget is tight, keep it small or zero. Category budgets plus savings must stay within monthly income. Savings is budgeted automatically under a \"Savings\" category — don't also list it in categories.")
+        lines.append("Today is \(DateFormatting.medium(.now)). The month currently open in the app is \(DateFormatting.monthYear(month)) (\(Self.monthKey(month))).")
+        lines.append("Creating budgets: when — and only when — the user asks you to create, set, or update their budget, call the \(GeminiService.createBudgetToolName) tool. It defaults to the open month (\(DateFormatting.monthYear(month))), but you can budget any month — past or future — by passing the `month` argument as \"YYYY-MM\". Resolve relative requests like \"last month\" or \"next month\" against today's date above. Base the amounts on the transaction history below and use the exact category names listed. Always include savingsAmount, sized in proportion to the gap between the month's income and spending: when income comfortably exceeds spending, direct most of the surplus to savings; when the budget is tight, keep it small or zero. Category budgets plus savings must stay within monthly income. Savings is budgeted automatically under a \"Savings\" category — don't also list it in categories.")
 
         let expenseCategoryNames = ((try? modelContext.fetch(FetchDescriptor<Category>())) ?? [])
             .filter { !$0.isIncome && !$0.isTransfer }
@@ -275,6 +280,33 @@ final class AIAdvisorViewModel {
 
     private func money(_ value: Decimal) -> String {
         CurrencyFormatter.string(from: value)
+    }
+
+    /// A stable "yyyy-MM" formatter (POSIX, gregorian) for reading the tool's `month` argument and
+    /// echoing the applied month back to the model — locale-independent so parsing never drifts.
+    private static let monthKeyFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM"
+        return formatter
+    }()
+
+    /// Resolves the tool's optional `month` argument to a normalized month. Accepts "yyyy-MM" (and
+    /// tolerates a trailing day, e.g. "yyyy-MM-dd"); anything absent or unparseable falls back to
+    /// the conversation's month, so a malformed value never lands a budget on the wrong month.
+    private func resolveMonth(_ raw: String?) -> Date {
+        guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return month
+        }
+        // "yyyy-MM" is what the tool asks for; take the first two components so "yyyy-MM-dd" also works.
+        let key = trimmed.split(separator: "-").prefix(2).joined(separator: "-")
+        guard let parsed = Self.monthKeyFormatter.date(from: key) else { return month }
+        return Budget.normalize(parsed)
+    }
+
+    private static func monthKey(_ date: Date) -> String {
+        monthKeyFormatter.string(from: date)
     }
 
     private static func roundedToDollar(_ value: Decimal) -> Decimal {
