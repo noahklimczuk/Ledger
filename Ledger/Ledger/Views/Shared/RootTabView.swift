@@ -5,6 +5,10 @@ struct RootTabView: View {
     /// The single source of truth for the current tab: the page snapped under the horizontal pager.
     /// A swipe updates it directly; the floating bar reads and writes it through `tabSelection`.
     @State private var scrolledIndex: Int? = 0
+    /// Measured height of the floating bar. Each page is shrunk by this so the bar never overlaps
+    /// content (previously it sat *on top* via `safeAreaInset`, which didn't reach the inner Lists
+    /// nested in the horizontal pager, so their last rows scrolled under the bar).
+    @State private var tabBarHeight: CGFloat = 0
 
     var body: some View {
         // A horizontal paging ScrollView keeps the left/right swipe between the five root screens
@@ -15,13 +19,16 @@ struct RootTabView: View {
         // its large title and back stack while the swipe still works. Inner Lists still scroll
         // vertically since the pager only claims horizontal drags.
         GeometryReader { proxy in
+            let pageHeight = max(proxy.size.height - tabBarHeight, 0)
             ScrollView(.horizontal) {
-                LazyHStack(spacing: 0) {
-                    page(DashboardView(), size: proxy.size, index: 0)
-                    page(AccountListView(), size: proxy.size, index: 1)
-                    page(TransactionListView(), size: proxy.size, index: 2)
-                    page(BudgetListView(), size: proxy.size, index: 3)
-                    page(MoreView(), size: proxy.size, index: 4)
+                // Pages are shrunk to leave a strip at the bottom for the floating bar (overlaid
+                // below), and pinned to the top so that strip lands where the bar sits.
+                LazyHStack(alignment: .top, spacing: 0) {
+                    page(DashboardView(), width: proxy.size.width, height: pageHeight, index: 0)
+                    page(AccountListView(), width: proxy.size.width, height: pageHeight, index: 1)
+                    page(TransactionListView(), width: proxy.size.width, height: pageHeight, index: 2)
+                    page(BudgetListView(), width: proxy.size.width, height: pageHeight, index: 3)
+                    page(MoreView(), width: proxy.size.width, height: pageHeight, index: 4)
                 }
                 .scrollTargetLayout()
             }
@@ -30,9 +37,17 @@ struct RootTabView: View {
             .scrollIndicators(.hidden)
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        // Float the bar over the reserved strip (not `safeAreaInset`, which the pager's inner Lists
+        // didn't pick up). Measuring its height feeds `tabBarHeight` so the pages shrink to match.
+        .overlay(alignment: .bottom) {
             FloatingTabBar(selection: tabSelection)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(key: TabBarHeightKey.self, value: geo.size.height)
+                    }
+                )
         }
+        .onPreferenceChange(TabBarHeightKey.self) { tabBarHeight = $0 }
     }
 
     /// Bridges the floating bar's `Int` selection to the pager's optional `scrolledIndex`. Reading
@@ -50,12 +65,21 @@ struct RootTabView: View {
         )
     }
 
-    /// One full-screen page in the pager, tagged with its index so `scrollPosition` can track and
-    /// drive it.
-    private func page<Content: View>(_ content: Content, size: CGSize, index: Int) -> some View {
+    /// One page in the pager, sized to leave room for the floating bar and tagged with its index so
+    /// `scrollPosition` can track and drive it.
+    private func page<Content: View>(_ content: Content, width: CGFloat, height: CGFloat, index: Int) -> some View {
         content
-            .frame(width: size.width, height: size.height)
+            .frame(width: width, height: height)
             .id(index)
+    }
+}
+
+/// Carries the floating bar's measured height up so `RootTabView` can shrink each page by exactly
+/// that much.
+private struct TabBarHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 
