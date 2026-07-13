@@ -286,12 +286,12 @@ struct DailyCheckInView: View {
                 .foregroundStyle(color)
             ForEach(rows) { row in
                 HStack(spacing: 10) {
-                    Image(systemName: row.budget.category?.sfSymbolName ?? "tag")
+                    Image(systemName: row.categorySymbolName)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 26, height: 26)
-                        .background(row.budget.category.map { Color(hex: $0.colorHex) } ?? .gray, in: Circle())
-                    Text(row.budget.category?.name ?? "Uncategorized")
+                        .background(row.categoryColorHex.map { Color(hex: $0) } ?? .gray, in: Circle())
+                    Text(row.categoryName)
                         .font(.subheadline)
                         .lineLimit(1)
                     Spacer(minLength: 8)
