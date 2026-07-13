@@ -57,12 +57,15 @@ struct GeminiService: Sendable {
         let summary: String
     }
 
-    /// Gemini 3.5 Flash is the latest stable Flash model, is on the free tier, and supports both
-    /// structured (schema-constrained) output and function calling.
-    private static let model = "gemini-3.5-flash"
+    /// Models tried in order, best-first. Gemini 3.5 Flash is the most capable free-tier Flash
+    /// model, but its shared free pool gets saturated and returns 503 "high demand" — and short
+    /// retries can't clear a sustained overload. When it stays unavailable we fall back to lighter,
+    /// less-contended models so the request still completes. All three are on the free tier and
+    /// support the structured (schema-constrained) output and function calling this feature needs.
+    private static let modelFallbackChain = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"]
     static let apiKeyKeychainKey = "gemini.apiKey"
 
-    private static var endpoint: URL {
+    private static func endpoint(for model: String) -> URL {
         URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent")!
     }
 
@@ -240,32 +243,54 @@ struct GeminiService: Sendable {
     /// successful reply instead of a dead end. 4xx like 400 (bad request) or 403 (bad key) are not
     /// here — retrying those just repeats the same failure.
     private static let retryableStatuses: Set<Int> = [408, 429, 500, 502, 503, 504]
-    /// Total tries including the first, so up to three backed-off retries.
-    private static let maxAttempts = 4
+    /// Tries per model including the first, so one quick backed-off retry. Kept low because when a
+    /// model stays overloaded we now fail over to the next model rather than hammer this one.
+    private static let maxAttemptsPerModel = 2
 
-    /// Shared `generateContent` call with retry: POSTs `body`, retries transient overloads/network
-    /// blips with exponential backoff, then surfaces server/safety failures and returns the first
-    /// candidate's parts (text and/or function calls).
+    /// Shared `generateContent` call: POSTs `body`, and returns the first candidate's parts (text
+    /// and/or function calls). Resilience has two layers — a short backoff retry for a momentary
+    /// blip on one model, and a fall-through to the next model in the chain when one stays
+    /// unavailable (the sustained-503 case). Non-retryable failures (bad request, bad key, safety
+    /// block) surface immediately without burning through the other models.
     private func generateParts(body: [String: Any], apiKey: String) async throws -> [Part] {
         let payload = try JSONSerialization.data(withJSONObject: body)
+        var lastError: Error?
+        for (index, model) in Self.modelFallbackChain.enumerated() {
+            let isLastModel = index == Self.modelFallbackChain.count - 1
+            do {
+                return try await generateWithRetry(payload: payload, apiKey: apiKey, model: model)
+            } catch {
+                // Only an overload/transient error means another model might do better; anything
+                // else won't improve on a different model, so surface it now.
+                guard Self.isRetryable(error), !isLastModel else { throw error }
+                lastError = error
+            }
+        }
+        throw lastError ?? ServiceError.emptyResponse
+    }
+
+    /// One model's attempts: retries a momentary overload/network blip with exponential backoff
+    /// before giving up on this model.
+    private func generateWithRetry(payload: Data, apiKey: String, model: String) async throws -> [Part] {
         var attempt = 1
         while true {
             do {
-                return try await performGenerate(payload: payload, apiKey: apiKey)
+                return try await performGenerate(payload: payload, apiKey: apiKey, model: model)
             } catch {
-                guard attempt < Self.maxAttempts, Self.isRetryable(error) else { throw error }
-                // 0.5s, 1s, 2s — a few seconds total, short enough for a chat, long enough to ride
-                // out a demand spike. Task.sleep honours cancellation, so a cancelled turn stops here.
-                let seconds = 0.5 * pow(2.0, Double(attempt - 1))
+                guard attempt < Self.maxAttemptsPerModel, Self.isRetryable(error) else { throw error }
+                // ~0.6s pause before the single retry — long enough for a brief blip, short enough
+                // not to stall the fail-over. Task.sleep honours cancellation, so a cancelled turn
+                // stops here.
+                let seconds = 0.6 * pow(2.0, Double(attempt - 1))
                 try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
                 attempt += 1
             }
         }
     }
 
-    /// One `generateContent` round trip with no retry.
-    private func performGenerate(payload: Data, apiKey: String) async throws -> [Part] {
-        var request = URLRequest(url: Self.endpoint)
+    /// One `generateContent` round trip against `model`, with no retry.
+    private func performGenerate(payload: Data, apiKey: String, model: String) async throws -> [Part] {
+        var request = URLRequest(url: Self.endpoint(for: model))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         // Header (not the ?key= query param) so the key never lands in a URL/log.
