@@ -18,6 +18,22 @@ struct TransactionFilterView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Type") {
+                    Picker("Type", selection: $filter.kind) {
+                        ForEach(TransactionFilter.Kind.allCases) { kind in
+                            Text(kind.label).tag(kind)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                Section("Status") {
+                    Picker("Status", selection: $filter.reviewState) {
+                        ForEach(TransactionFilter.ReviewState.allCases) { state in
+                            Text(state.label).tag(state)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
                 Section("Account") {
                     Picker("Account", selection: $filter.account) {
                         Text("Any").tag(Account?.none)

@@ -39,6 +39,16 @@ struct TransactionListView: View {
     private var transactions: [Transaction] {
         var result = allTransactions
 
+        switch filter.kind {
+        case .all: break
+        case .expenses: result = result.filter { $0.amount < 0 }
+        case .income: result = result.filter { $0.amount >= 0 }
+        }
+        switch filter.reviewState {
+        case .all: break
+        case .needsReview: result = result.filter { !$0.isReviewed }
+        case .reviewed: result = result.filter(\.isReviewed)
+        }
         if let account = filter.account {
             let id = account.persistentModelID
             result = result.filter { $0.account?.persistentModelID == id }
@@ -159,14 +169,18 @@ struct TransactionListView: View {
             .refreshable { await refresh.refresh(container: modelContext.container) }
             .searchable(text: $searchText, prompt: "Search merchants")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    // A visible filter button (not buried in the overflow menu) that fills in and
+                    // tints when any filter is active, so it's obvious filtering is on.
+                    Button { isPresentingFilters = true } label: {
+                        Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                    }
+                    .tint(filter.isActive ? .accentColor : nil)
+                    .accessibilityLabel(filter.isActive ? "Filters active" : "Filter")
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button { isPresentingNewTransaction = true } label: {
                         Image(systemName: "plus")
-                    }
-                }
-                ToolbarItem(placement: .secondaryAction) {
-                    Button { isPresentingFilters = true } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
                     }
                 }
             }
