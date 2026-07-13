@@ -12,6 +12,8 @@ struct TransactionListView: View {
     @State private var filter = TransactionFilter()
     @State private var isPresentingNewTransaction = false
     @State private var isPresentingFilters = false
+    /// Guards the one-time restore of the saved filter so it doesn't clobber later edits.
+    @State private var didRestoreFilter = false
     /// The list defaults to the last 12 months rather than the account's whole history. This opts
     /// out of that window to show everything.
     @State private var showAllHistory = false
@@ -189,6 +191,24 @@ struct TransactionListView: View {
             }
             .sheet(isPresented: $isPresentingFilters) {
                 TransactionFilterView(filter: $filter)
+            }
+            // Restore the saved filter once. Accounts/categories are fetched synchronously here so
+            // resolving the saved references doesn't depend on a live @Query having populated yet
+            // (which could otherwise drop a valid saved account to nil). Guarded to run once.
+            .task {
+                guard !didRestoreFilter else { return }
+                didRestoreFilter = true
+                guard let snapshot = TransactionFilterStore.load() else { return }
+                let accounts = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
+                let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
+                filter = TransactionFilter(snapshot: snapshot, accounts: accounts, categories: categories)
+            }
+            // Persist every change (apply, reset) so the filter survives leaving the tab and
+            // relaunching. Skipped until the initial restore has run, so it can't save over the
+            // saved value with the default before it's loaded.
+            .onChange(of: filter) { _, newValue in
+                guard didRestoreFilter else { return }
+                TransactionFilterStore.save(newValue.snapshot)
             }
         }
     }
