@@ -52,14 +52,27 @@ final class AccountsViewModel {
         if account.isLinked {
             account.isArchived = true
         } else {
+            unlinkSavingsGoals(from: account)
             modelContext.delete(account)
         }
         save()
     }
 
     func delete(_ account: Account) {
+        unlinkSavingsGoals(from: account)
         modelContext.delete(account)
         save()
+    }
+
+    /// Detaches any savings goals that track this account before it's deleted. `SavingsGoal.account`
+    /// has no inverse relationship, so a delete would otherwise leave the goal pointing at an
+    /// invalidated model — and the goals screen crashes the moment it reads that account's balance.
+    private func unlinkSavingsGoals(from account: Account) {
+        let accountId = account.persistentModelID
+        let goals = (try? modelContext.fetch(FetchDescriptor<SavingsGoal>())) ?? []
+        for goal in goals where goal.account?.persistentModelID == accountId {
+            goal.account = nil
+        }
     }
 
     private func save() {
