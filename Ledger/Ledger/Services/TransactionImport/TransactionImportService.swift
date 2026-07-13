@@ -22,13 +22,24 @@ final class TransactionImportService {
     @discardableResult
     func importAll(from source: TransactionSource, sourceKind: TransactionSourceKind, since: Date? = nil) async throws -> ImportSummary {
         var summary = ImportSummary()
+        // Collapse any duplicate linked accounts a previous (buggy) sync created, before matching
+        // this run's accounts against the store. Persist the merge so the lookup below is built
+        // from a store that no longer contains the removed duplicates.
+        if deduplicateLinkedAccounts() {
+            try? modelContext.save()
+        }
+
         let importedAccounts = try await source.fetchAccounts()
         // One dedup-set fetch for the whole run — a sync of hundreds of rows shouldn't do a
         // store-wide fetch per row.
         var knownExternalIds = existingExternalIds()
+        // Match incoming accounts against existing ones in memory, keyed by external id. A
+        // SwiftData `#Predicate` on the optional external-id columns proved unreliable and let a
+        // fresh linked account be created on every sync — the "duplicate accounts" bug.
+        var linkedAccounts = existingLinkedAccounts(sourceIdentifier: source.sourceIdentifier)
 
         for imported in importedAccounts {
-            let account = try upsertAccount(imported, sourceIdentifier: source.sourceIdentifier, summary: &summary)
+            let account = upsertAccount(imported, sourceIdentifier: source.sourceIdentifier, lookup: &linkedAccounts, summary: &summary)
             // The user removed this linked account (archived). Don't revive it or pull new
             // transactions into it — that's the "deleted accounts come back on restart" bug.
             if account.isArchived { continue }
@@ -71,14 +82,27 @@ final class TransactionImportService {
         return Set(all.compactMap(\.externalId))
     }
 
-    private func upsertAccount(_ imported: ImportedAccount, sourceIdentifier: String, summary: inout ImportSummary) throws -> Account {
-        let externalAccountId = imported.id
-        let descriptor = FetchDescriptor<Account>(
-            predicate: #Predicate { account in
-                account.externalAccountId == externalAccountId && account.externalSourceId == sourceIdentifier
-            }
-        )
-        if let existing = try modelContext.fetch(descriptor).first {
+    /// Existing linked accounts for this source, keyed by their external account id. Matched in
+    /// memory rather than via a `#Predicate` on the optional external-id columns, which SwiftData
+    /// evaluated unreliably (and so kept minting duplicate accounts).
+    private func existingLinkedAccounts(sourceIdentifier: String) -> [String: Account] {
+        let all = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
+        var map: [String: Account] = [:]
+        for account in all {
+            guard account.externalSourceId == sourceIdentifier, let externalId = account.externalAccountId else { continue }
+            // deduplicateLinkedAccounts ran first, so there's at most one per id; keep the first regardless.
+            if map[externalId] == nil { map[externalId] = account }
+        }
+        return map
+    }
+
+    private func upsertAccount(
+        _ imported: ImportedAccount,
+        sourceIdentifier: String,
+        lookup: inout [String: Account],
+        summary: inout ImportSummary
+    ) -> Account {
+        if let existing = lookup[imported.id] {
             // Conflict handling: a re-sync must not clobber a manual rename of a linked account,
             // so leave name/institution as the user last left them.
             return existing
@@ -94,8 +118,50 @@ final class TransactionImportService {
             externalAccountId: imported.id
         )
         modelContext.insert(account)
+        lookup[imported.id] = account
         summary.accountsCreated += 1
         return account
+    }
+
+    /// Merges duplicate linked accounts that share the same `(externalSourceId, externalAccountId)`
+    /// — the mess left by the old predicate bug. Keeps one canonical account (the one holding the
+    /// most transactions, then the earliest created), moves any stray transactions onto it, and
+    /// deletes the redundant copies so balances and net worth stop double-counting.
+    /// Returns `true` if it removed at least one duplicate.
+    @discardableResult
+    private func deduplicateLinkedAccounts() -> Bool {
+        let all = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
+
+        var groups: [String: [Account]] = [:]
+        for account in all {
+            guard let source = account.externalSourceId, let externalId = account.externalAccountId else { continue }
+            groups["\(source)\u{1}\(externalId)", default: []].append(account)
+        }
+
+        var removedAny = false
+        for accounts in groups.values where accounts.count > 1 {
+            let ordered = accounts.sorted {
+                $0.transactions.count != $1.transactions.count
+                    ? $0.transactions.count > $1.transactions.count
+                    : $0.createdAt < $1.createdAt
+            }
+            let canonical = ordered[0]
+            var canonicalExternalIds = Set(canonical.transactions.compactMap(\.externalId))
+
+            for duplicate in ordered.dropFirst() {
+                for transaction in Array(duplicate.transactions) {
+                    if let externalId = transaction.externalId, !canonicalExternalIds.insert(externalId).inserted {
+                        // Canonical already holds this transaction — drop the duplicate copy.
+                        modelContext.delete(transaction)
+                    } else {
+                        transaction.account = canonical
+                    }
+                }
+                modelContext.delete(duplicate)
+                removedAny = true
+            }
+        }
+        return removedAny
     }
 
     /// Makes a linked account's displayed balance match what the institution actually reports.
