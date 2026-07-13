@@ -141,6 +141,11 @@ struct GeminiService: Sendable {
         /// Target month as a raw "yyyy-MM" string from the model. `nil` means the conversation's
         /// month; a value lets the advisor budget a past or future month the user asked about.
         let month: String?
+        /// Inclusive first/last month of a range ("yyyy-MM"), for vague requests that span several
+        /// months ("the next three months", "January through March"). The same amounts apply to
+        /// every month in the range. `nil` when a single `month` (or the conversation's month) is meant.
+        let startMonth: String?
+        let endMonth: String?
     }
 
     /// What one advisor round produced: text to show, and/or a budget plan to apply.
@@ -193,7 +198,14 @@ struct GeminiService: Sendable {
             }
             let savings = Decimal(max(args.savingsAmount ?? 0, 0))
             if !categories.isEmpty || savings > 0 {
-                plan = BudgetPlan(categories: categories, savingsAmount: savings, summary: args.summary, month: args.month)
+                plan = BudgetPlan(
+                    categories: categories,
+                    savingsAmount: savings,
+                    summary: args.summary,
+                    month: args.month,
+                    startMonth: args.startMonth,
+                    endMonth: args.endMonth
+                )
                 argsJSON = Self.json(from: args)
             }
         }
@@ -210,11 +222,13 @@ struct GeminiService: Sendable {
     /// function-declaration schema is the same OpenAPI 3.0 subset as `outputSchema`.
     private static let createBudgetDeclaration: [String: Any] = [
         "name": createBudgetToolName,
-        "description": "Create or update the user's category budgets for a given month, which may "
-            + "be the current month, a past month, or a future month. Call this only when the user "
-            + "asks you to create, set, or update their budget. Amounts are monthly Canadian-dollar "
-            + "totals. Include every category to budget plus a monthly savings amount proportional "
-            + "to the gap between the month's income and spending.",
+        "description": "Create or update the user's category budgets. Target a single month (current, "
+            + "past, or future) with `month`, or a span of months with `startMonth`/`endMonth` for vague "
+            + "requests like \"the next three months\" or \"January through March\" — the same amounts "
+            + "apply to every month in the range. Call this only when the user asks you to create, set, "
+            + "or update their budget. Amounts are monthly Canadian-dollar totals. Include every category "
+            + "to budget plus a monthly savings amount proportional to the gap between the month's income "
+            + "and spending.",
         "parameters": [
             "type": "OBJECT",
             "properties": [
@@ -235,8 +249,19 @@ struct GeminiService: Sendable {
                 ],
                 "month": [
                     "type": "STRING",
-                    "description": "Which month to budget, as \"YYYY-MM\" (e.g. \"2026-03\"). May be a past or "
-                        + "future month. Omit to use the month currently open in the app."
+                    "description": "Which single month to budget, as \"YYYY-MM\" (e.g. \"2026-03\"). May be a "
+                        + "past or future month. Omit to use the month currently open in the app, or when "
+                        + "budgeting a range via startMonth/endMonth."
+                ],
+                "startMonth": [
+                    "type": "STRING",
+                    "description": "First month of a range to budget, as \"YYYY-MM\", inclusive. Use with "
+                        + "endMonth for requests spanning several months (e.g. \"the next three months\"). "
+                        + "The same amounts are applied to every month in the range."
+                ],
+                "endMonth": [
+                    "type": "STRING",
+                    "description": "Last month of a range to budget, as \"YYYY-MM\", inclusive. Use with startMonth."
                 ],
                 "summary": ["type": "STRING", "description": "One or two sentences describing the plan."]
             ] as [String: Any],
@@ -454,6 +479,8 @@ struct GeminiService: Sendable {
         }
         if let savings = args.savingsAmount { object["savingsAmount"] = savings }
         if let month = args.month { object["month"] = month }
+        if let startMonth = args.startMonth { object["startMonth"] = startMonth }
+        if let endMonth = args.endMonth { object["endMonth"] = endMonth }
         if let summary = args.summary { object["summary"] = summary }
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return "{}" }
         return String(decoding: data, as: UTF8.self)
@@ -491,6 +518,8 @@ struct GeminiService: Sendable {
             let categories: [PlanCategory]?
             let savingsAmount: Double?
             let month: String?
+            let startMonth: String?
+            let endMonth: String?
             let summary: String?
         }
         let name: String
