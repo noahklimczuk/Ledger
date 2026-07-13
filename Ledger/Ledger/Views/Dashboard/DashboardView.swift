@@ -7,6 +7,15 @@ private enum CategoryDrilldown: Hashable {
     case uncategorized
 }
 
+/// A tapped month-summary tile's drill-down target: the month's income or its expenses.
+private enum MonthFlow: String, Hashable, Identifiable {
+    case income
+    case expenses
+
+    var id: String { rawValue }
+    var title: String { self == .income ? "Income" : "Expenses" }
+}
+
 struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppRefreshCoordinator.self) private var refresh
@@ -14,6 +23,7 @@ struct DashboardView: View {
     @State private var isPresentingCheckIn = false
     @State private var isCheckInDue = false
     @State private var drilldown: CategoryDrilldown?
+    @State private var flowDrilldown: MonthFlow?
 
     var body: some View {
         NavigationStack {
@@ -32,6 +42,9 @@ struct DashboardView: View {
                 case .uncategorized:
                     CategoryTransactionsView(uncategorizedForMonth: .now)
                 }
+            }
+            .navigationDestination(item: $flowDrilldown) { flow in
+                MonthFlowTransactionsView(flow: flow, month: .now)
             }
             .task {
                 if viewModel == nil { viewModel = DashboardViewModel(modelContext: modelContext) }
@@ -201,16 +214,38 @@ struct DashboardView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             HStack(spacing: 12) {
-                summaryTile("Income", value: viewModel.monthIncome, color: .green)
-                summaryTile("Expenses", value: viewModel.monthSpending, color: .red)
+                // Income and Expenses drill into the month's matching transactions; Net is a
+                // derived figure with no single transaction set behind it, so it stays static.
+                summaryTile("Income", value: viewModel.monthIncome, color: .green) { flowDrilldown = .income }
+                summaryTile("Expenses", value: viewModel.monthSpending, color: .red) { flowDrilldown = .expenses }
                 summaryTile("Net", value: viewModel.monthNet, color: viewModel.monthNet < 0 ? .red : .primary)
             }
         }
     }
 
-    private func summaryTile(_ label: String, value: Decimal, color: Color) -> some View {
+    @ViewBuilder
+    private func summaryTile(_ label: String, value: Decimal, color: Color, action: (() -> Void)? = nil) -> some View {
+        if let action {
+            Button(action: action) {
+                summaryTileBody(label, value: value, color: color, tappable: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Shows this month's \(label.lowercased()) transactions")
+        } else {
+            summaryTileBody(label, value: value, color: color, tappable: false)
+        }
+    }
+
+    private func summaryTileBody(_ label: String, value: Decimal, color: Color, tappable: Bool) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 3) {
+                Text(label).font(.caption).foregroundStyle(.secondary)
+                if tappable {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
             Text(CurrencyFormatter.string(from: value))
                 .font(.headline)
                 .foregroundStyle(color)
@@ -345,6 +380,89 @@ struct DashboardView: View {
                 }
                 .padding(.vertical, 8)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+            }
+        }
+    }
+}
+
+/// The month's income or expense transactions, reached by tapping the dashboard's Income/Expenses
+/// tile. The filter mirrors `DashboardViewModel`'s tile math exactly — the calendar month, non-
+/// archived accounts, transfers excluded, split by amount sign — so the list totals to the tile.
+private struct MonthFlowTransactionsView: View {
+    @Environment(\.modelContext) private var modelContext
+
+    let flow: MonthFlow
+    let month: Date
+
+    @State private var transactions: [Transaction] = []
+
+    private var total: Decimal {
+        transactions.reduce(Decimal(0)) { $0 + abs($1.amount) }
+    }
+
+    private var accentColor: Color { flow == .income ? .green : .red }
+
+    var body: some View {
+        Group {
+            if transactions.isEmpty {
+                EmptyStateView(
+                    systemImage: flow == .income ? "arrow.down.circle" : "arrow.up.circle",
+                    title: "No Transactions",
+                    message: "No \(flow.title.lowercased()) for \(DateFormatting.monthYear(month))."
+                )
+            } else {
+                List {
+                    Section { summaryRow }
+                    Section("\(transactions.count) transaction\(transactions.count == 1 ? "" : "s")") {
+                        ForEach(transactions) { transaction in
+                            NavigationLink {
+                                TransactionDetailView(transaction: transaction)
+                            } label: {
+                                TransactionRowView(transaction: transaction)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(flow.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .task(id: flow) { load() }
+    }
+
+    private var summaryRow: some View {
+        HStack {
+            Image(systemName: flow == .income ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(accentColor, in: Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(DateFormatting.monthYear(month))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(CurrencyFormatter.string(from: total))
+                    .font(.title2.bold())
+                    .foregroundStyle(flow == .income ? Color.green : Color.primary)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func load() {
+        let calendar = Calendar.current
+        let start = Budget.normalize(month)
+        let end = calendar.date(byAdding: DateComponents(month: 1), to: start) ?? start
+        let descriptor = FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date, order: .reverse)])
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        transactions = all.filter { transaction in
+            guard transaction.date >= start, transaction.date < end,
+                  transaction.countsTowardTotals, !transaction.isTransfer else {
+                return false
+            }
+            switch flow {
+            case .income: return transaction.amount > 0
+            case .expenses: return transaction.amount < 0
             }
         }
     }
