@@ -12,6 +12,16 @@ struct TransactionDetailView: View {
 
     @State private var categories: [Category] = []
     @State private var isEditing = false
+    /// Set right after a category is chosen when other transactions from the same merchant exist,
+    /// which drives the "change all or only this one" prompt.
+    @State private var bulkCandidate: BulkCategoryCandidate?
+
+    /// A pending "apply to every transaction from this merchant?" decision.
+    private struct BulkCategoryCandidate: Identifiable {
+        let id = UUID()
+        let category: Category
+        let count: Int
+    }
 
     private var isSplit: Bool { !transaction.splits.isEmpty }
 
@@ -33,6 +43,17 @@ struct TransactionDetailView: View {
         }
         .sheet(isPresented: $isEditing, onDismiss: loadCategories) {
             TransactionEditView(transaction: transaction)
+        }
+        .confirmationDialog(
+            "Apply to Similar Transactions?",
+            isPresented: Binding(get: { bulkCandidate != nil }, set: { if !$0 { bulkCandidate = nil } }),
+            titleVisibility: .visible,
+            presenting: bulkCandidate
+        ) { candidate in
+            Button("Change All \(candidate.count)") { applyToAllMatching(candidate.category) }
+            Button("Only This One", role: .cancel) { }
+        } message: { candidate in
+            Text("There \(candidate.count == 1 ? "is" : "are") \(candidate.count) other transaction\(candidate.count == 1 ? "" : "s") from “\(transaction.merchant)”. Set \(candidate.count == 1 ? "it" : "them") to “\(candidate.category.name)” too?")
         }
         .task(id: transaction.persistentModelID) { loadCategories() }
     }
@@ -123,15 +144,28 @@ struct TransactionDetailView: View {
     private func applyCategory(_ category: Category?) {
         guard !isSplit else { return }
         transaction.category = category
-        // Teach the rule so future transactions from this merchant auto-categorize the same way,
-        // and replay it immediately so the merchant's other uncategorized transactions update now.
-        if let category {
-            let categorizer = CategorizationService(modelContext: modelContext)
-            categorizer.learn(merchant: transaction.merchant, category: category)
-            categorizer.categorizeAllUncategorized()
-        }
-        try? modelContext.save()
         UISelectionFeedbackGenerator().selectionChanged()
+        // Teach the rule so future transactions from this merchant auto-categorize the same way.
+        guard let category else {
+            try? modelContext.save()
+            return
+        }
+        let categorizer = CategorizationService(modelContext: modelContext)
+        categorizer.learn(merchant: transaction.merchant, category: category)
+        try? modelContext.save()
+        // If the merchant already has other transactions, ask whether to change just this one or
+        // all of them, instead of silently sweeping them.
+        let others = categorizer.otherTransactions(matching: transaction.merchant, excluding: transaction)
+        if !others.isEmpty {
+            bulkCandidate = BulkCategoryCandidate(category: category, count: others.count)
+        }
+    }
+
+    private func applyToAllMatching(_ category: Category) {
+        CategorizationService(modelContext: modelContext)
+            .assignCategory(category, toAllMatching: transaction.merchant)
+        try? modelContext.save()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     private func loadCategories() {

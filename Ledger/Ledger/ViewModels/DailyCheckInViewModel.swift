@@ -87,6 +87,21 @@ final class DailyCheckInViewModel {
         try? modelContext.save()
     }
 
+    /// How many *other* transactions share this one's merchant — i.e. how many a "change all"
+    /// would additionally touch. Zero means there's nothing to bulk-apply, so no prompt.
+    func otherTransactionCount(matching transaction: Transaction) -> Int {
+        CategorizationService(modelContext: modelContext)
+            .otherTransactions(matching: transaction.merchant, excluding: transaction)
+            .count
+    }
+
+    /// Files every transaction from this merchant under `category` (the "change all" choice).
+    func applyCategoryToAll(_ category: Category, matching transaction: Transaction) {
+        CategorizationService(modelContext: modelContext)
+            .assignCategory(category, toAllMatching: transaction.merchant)
+        try? modelContext.save()
+    }
+
     func markReviewed(_ transaction: Transaction) {
         transaction.isReviewed = true
         try? modelContext.save()
