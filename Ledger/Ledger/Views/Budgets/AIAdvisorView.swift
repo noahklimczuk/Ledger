@@ -71,11 +71,17 @@ struct AIAdvisorView: View {
                     }
                     .padding()
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .onChange(of: viewModel.messages.count) { _, _ in scrollToEnd(viewModel, proxy) }
                 .onChange(of: viewModel.isSending) { _, _ in scrollToEnd(viewModel, proxy) }
             }
 
-            inputBar(viewModel)
+            // The input bar owns its own text as local @State, so typing re-renders only the bar —
+            // not this whole view (which would otherwise re-parse every message's Markdown on each
+            // keystroke and make input crawl).
+            AdvisorInputBar(isSending: viewModel.isSending) { text in
+                Task { await viewModel.send(text) }
+            }
         }
     }
 
@@ -135,43 +141,6 @@ struct AIAdvisorView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func inputBar(_ viewModel: AIAdvisorViewModel) -> some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            TextField("Ask your advisor…", text: Binding(
-                get: { viewModel.input },
-                set: { viewModel.input = $0 }
-            ), axis: .vertical)
-            .lineLimit(1...4)
-            .textFieldStyle(.plain)
-            .padding(.vertical, 8)
-            .padding(.horizontal, 14)
-            .background(.thinMaterial, in: Capsule())
-            .onSubmit { send(viewModel) }
-
-            Button {
-                send(viewModel)
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 30))
-                    .foregroundStyle(canSend(viewModel) ? AnyShapeStyle(LinearGradient.brand) : AnyShapeStyle(Color.secondary))
-            }
-            .disabled(!canSend(viewModel))
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(.bar)
-        .overlay(alignment: .top) { Divider() }
-    }
-
-    private func canSend(_ viewModel: AIAdvisorViewModel) -> Bool {
-        !viewModel.isSending && !viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private func send(_ viewModel: AIAdvisorViewModel) {
-        guard canSend(viewModel) else { return }
-        Task { await viewModel.send(viewModel.input) }
-    }
-
     private static let typingID = "advisor.typing"
 
     private func scrollToEnd(_ viewModel: AIAdvisorViewModel, _ proxy: ScrollViewProxy) {
@@ -220,6 +189,52 @@ struct AIAdvisorView: View {
                 Text("Free with a Google account — no credit card. Get a key at aistudio.google.com/apikey. Stored in the iOS Keychain only.")
             }
         }
+    }
+}
+
+/// The message composer. Deliberately its own view with a **local** `@State` for the text: keeping
+/// the in-progress text out of the observable view model means each keystroke re-renders only this
+/// bar, not the whole chat transcript (which was re-parsing every bubble's Markdown per keystroke
+/// and making typing lag).
+private struct AdvisorInputBar: View {
+    let isSending: Bool
+    let onSend: (String) -> Void
+
+    @State private var text = ""
+
+    private var canSend: Bool {
+        !isSending && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            TextField("Ask your advisor…", text: $text, axis: .vertical)
+                .lineLimit(1...4)
+                .textFieldStyle(.plain)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .background(.thinMaterial, in: Capsule())
+
+            Button {
+                submit()
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 30))
+                    .foregroundStyle(canSend ? AnyShapeStyle(LinearGradient.brand) : AnyShapeStyle(Color.secondary))
+            }
+            .disabled(!canSend)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(.bar)
+        .overlay(alignment: .top) { Divider() }
+    }
+
+    private func submit() {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !isSending, !trimmed.isEmpty else { return }
+        onSend(trimmed)
+        text = ""
     }
 }
 
