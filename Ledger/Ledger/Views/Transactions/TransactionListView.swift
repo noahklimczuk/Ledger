@@ -12,8 +12,29 @@ struct TransactionListView: View {
     @State private var filter = TransactionFilter()
     @State private var isPresentingNewTransaction = false
     @State private var isPresentingFilters = false
+    /// The list defaults to the last 12 months rather than the account's whole history. This opts
+    /// out of that window to show everything.
+    @State private var showAllHistory = false
 
     private var isFiltering: Bool { !searchText.isEmpty || filter.isActive }
+
+    /// Floor for the default 12-month window (nil only if date math somehow fails).
+    private static var twelveMonthsAgo: Date? {
+        Calendar.current.date(byAdding: .month, value: -12, to: .now)
+    }
+
+    /// The start date actually applied: an explicit Filters start date wins; otherwise the 12-month
+    /// window, unless the user chose to show all history.
+    private var effectiveStartDate: Date? {
+        if let start = filter.startDate { return start }
+        return showAllHistory ? nil : Self.twelveMonthsAgo
+    }
+
+    /// True when the default 12-month window is hiding older transactions the user could still reach.
+    private var hasHiddenOlderHistory: Bool {
+        guard !showAllHistory, filter.startDate == nil, let floor = Self.twelveMonthsAgo else { return false }
+        return allTransactions.contains { $0.date < floor }
+    }
 
     private var transactions: [Transaction] {
         var result = allTransactions
@@ -26,7 +47,7 @@ struct TransactionListView: View {
             let id = category.persistentModelID
             result = result.filter { $0.category?.persistentModelID == id }
         }
-        if let startDate = filter.startDate {
+        if let startDate = effectiveStartDate {
             result = result.filter { $0.date >= startDate }
         }
         if let endDate = filter.endDate {
@@ -52,15 +73,26 @@ struct TransactionListView: View {
         NavigationStack {
             Group {
                 if transactions.isEmpty {
-                    EmptyStateView(
-                        systemImage: "list.bullet",
-                        title: isFiltering ? "No Matches" : "No Transactions",
-                        message: isFiltering
-                            ? "Try a different search or filter."
-                            : "Add a transaction to start tracking your spending.",
-                        actionTitle: isFiltering ? nil : "Add Transaction"
-                    ) {
-                        isPresentingNewTransaction = true
+                    if hasHiddenOlderHistory && !isFiltering {
+                        EmptyStateView(
+                            systemImage: "clock.arrow.circlepath",
+                            title: "Nothing Recent",
+                            message: "No transactions in the last 12 months.",
+                            actionTitle: "Show All History"
+                        ) {
+                            withAnimation { showAllHistory = true }
+                        }
+                    } else {
+                        EmptyStateView(
+                            systemImage: "list.bullet",
+                            title: isFiltering ? "No Matches" : "No Transactions",
+                            message: isFiltering
+                                ? "Try a different search or filter."
+                                : "Add a transaction to start tracking your spending.",
+                            actionTitle: isFiltering ? nil : "Add Transaction"
+                        ) {
+                            isPresentingNewTransaction = true
+                        }
                     }
                 } else {
                     List {
@@ -105,6 +137,18 @@ struct TransactionListView: View {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }
+                        }
+
+                        if hasHiddenOlderHistory {
+                            Button {
+                                withAnimation { showAllHistory = true }
+                            } label: {
+                                Label("Show All History", systemImage: "clock.arrow.circlepath")
+                                    .frame(maxWidth: .infinity)
+                                    .font(.subheadline)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.secondary)
                         }
                     }
                 }
