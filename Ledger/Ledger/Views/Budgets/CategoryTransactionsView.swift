@@ -1,13 +1,14 @@
 import SwiftUI
 import SwiftData
 
-/// All transactions in one category over a date range — reached by tapping a budget row, a
-/// dashboard/report doughnut slice, or its legend row. Shows the range's total for the category up
-/// top, then each transaction (tap through to its detail).
+/// All transactions in one category (or the uncategorized bucket) over a date range — reached by
+/// tapping a budget row, a dashboard/report doughnut slice, or its legend row. Shows the range's
+/// total up top, then each transaction (tap through to its detail).
 struct CategoryTransactionsView: View {
     @Environment(\.modelContext) private var modelContext
 
-    let category: Category
+    /// The category to show, or nil for the "Uncategorized" bucket (transactions with no category).
+    let category: Category?
     private let interval: DateInterval
     private let subtitle: String
 
@@ -15,21 +16,31 @@ struct CategoryTransactionsView: View {
 
     /// Month-scoped (Budgets, Dashboard): the whole calendar month containing `month`.
     init(category: Category, month: Date) {
-        let monthStart = Budget.normalize(month)
-        let monthEnd = Calendar.current.date(byAdding: DateComponents(month: 1), to: monthStart) ?? monthStart
-        self.init(
-            category: category,
-            interval: DateInterval(start: monthStart, end: monthEnd),
-            subtitle: DateFormatting.monthYear(month)
-        )
+        self.init(category: category, interval: Self.monthInterval(month), subtitle: DateFormatting.monthYear(month))
     }
 
-    /// Range-scoped (Reports): an arbitrary interval with a caller-supplied label.
-    init(category: Category, interval: DateInterval, subtitle: String) {
+    /// The uncategorized transactions for the calendar month containing `month`.
+    init(uncategorizedForMonth month: Date) {
+        self.init(category: nil, interval: Self.monthInterval(month), subtitle: DateFormatting.monthYear(month))
+    }
+
+    /// Range-scoped (Reports) / designated: an arbitrary interval with a caller-supplied label.
+    /// A nil `category` lists everything uncategorized in the interval.
+    init(category: Category?, interval: DateInterval, subtitle: String) {
         self.category = category
         self.interval = interval
         self.subtitle = subtitle
     }
+
+    private static func monthInterval(_ month: Date) -> DateInterval {
+        let start = Budget.normalize(month)
+        let end = Calendar.current.date(byAdding: DateComponents(month: 1), to: start) ?? start
+        return DateInterval(start: start, end: end)
+    }
+
+    private var title: String { category?.name ?? "Uncategorized" }
+    private var symbol: String { category?.sfSymbolName ?? "questionmark.circle.fill" }
+    private var color: Color { category.map { Color(hex: $0.colorHex) } ?? Color(.systemGray) }
 
     private var spent: Decimal {
         transactions.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
@@ -43,9 +54,9 @@ struct CategoryTransactionsView: View {
         Group {
             if transactions.isEmpty {
                 EmptyStateView(
-                    systemImage: category.sfSymbolName,
+                    systemImage: symbol,
                     title: "No Transactions",
-                    message: "Nothing in \(category.name) for \(subtitle)."
+                    message: "Nothing in \(title) for \(subtitle)."
                 )
             } else {
                 List {
@@ -64,17 +75,17 @@ struct CategoryTransactionsView: View {
                 }
             }
         }
-        .navigationTitle(category.name)
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: category.persistentModelID) { load() }
+        .task(id: category?.persistentModelID) { load() }
     }
 
     private var summaryRow: some View {
         HStack {
-            Image(systemName: category.sfSymbolName)
+            Image(systemName: symbol)
                 .foregroundStyle(.white)
                 .frame(width: 34, height: 34)
-                .background(Color(hex: category.colorHex), in: Circle())
+                .background(color, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(subtitle)
                     .font(.caption)
@@ -96,14 +107,18 @@ struct CategoryTransactionsView: View {
     }
 
     private func load() {
-        let categoryId = category.persistentModelID
+        let categoryId = category?.persistentModelID
         let descriptor = FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date, order: .reverse)])
         let all = (try? modelContext.fetch(descriptor)) ?? []
         transactions = all.filter { transaction in
-            transaction.date >= interval.start
-                && transaction.date < interval.end
-                && transaction.category?.persistentModelID == categoryId
-                && transaction.countsTowardTotals
+            guard transaction.date >= interval.start, transaction.date < interval.end, transaction.countsTowardTotals else {
+                return false
+            }
+            if let categoryId {
+                return transaction.category?.persistentModelID == categoryId
+            } else {
+                return transaction.category == nil
+            }
         }
     }
 }
