@@ -4,9 +4,15 @@ import SwiftData
 struct TransactionListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppRefreshCoordinator.self) private var refresh
-    // @Query keeps this list live: any change to the store — a sync, a manual add/edit, a delete —
-    // updates it automatically, so transactions always reflect the latest data without a manual reload.
-    @Query(sort: [SortDescriptor(\Transaction.date, order: .reverse)]) private var allTransactions: [Transaction]
+    // Every other data screen re-fetches on `refresh.refreshCount` so a background/foreground sync
+    // shows up without re-opening the tab; this list used to rely on a bare live @Query instead,
+    // which didn't pick up those sync writes — so it was the one screen stuck on stale data. It now
+    // follows the same manual-load pattern: `load()` runs on appear, on every completed refresh, and
+    // after any local change (add via the sheet, delete, review toggle).
+    @State private var allTransactions: [Transaction] = []
+    /// Gates the list behind a loading state until the first fetch lands, so the empty-state card
+    /// doesn't flash before the transactions load in.
+    @State private var didLoad = false
 
     @State private var searchText = ""
     @State private var filter = TransactionFilter()
@@ -84,7 +90,9 @@ struct TransactionListView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if transactions.isEmpty {
+                if !didLoad {
+                    LoadingView()
+                } else if transactions.isEmpty {
                     if hasHiddenOlderHistory && !isFiltering {
                         EmptyStateView(
                             systemImage: "clock.arrow.circlepath",
@@ -186,16 +194,17 @@ struct TransactionListView: View {
                     }
                 }
             }
-            .sheet(isPresented: $isPresentingNewTransaction) {
+            .sheet(isPresented: $isPresentingNewTransaction, onDismiss: load) {
                 TransactionEditView(transaction: nil)
             }
             .sheet(isPresented: $isPresentingFilters) {
                 TransactionFilterView(filter: $filter)
             }
-            // Restore the saved filter once. Accounts/categories are fetched synchronously here so
-            // resolving the saved references doesn't depend on a live @Query having populated yet
-            // (which could otherwise drop a valid saved account to nil). Guarded to run once.
+            // Load the transactions, then restore the saved filter once. Accounts/categories are
+            // fetched synchronously here so resolving the saved references can't drop a valid saved
+            // account to nil. The filter restore is guarded to run only on first appearance.
             .task {
+                load()
                 guard !didRestoreFilter else { return }
                 didRestoreFilter = true
                 guard let snapshot = TransactionFilterStore.load() else { return }
@@ -203,6 +212,9 @@ struct TransactionListView: View {
                 let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
                 filter = TransactionFilter(snapshot: snapshot, accounts: accounts, categories: categories)
             }
+            // Re-fetch once a background refresh (sync + categorize) finishes, so freshly imported
+            // transactions appear without needing to re-open the tab — matching every other screen.
+            .onChange(of: refresh.refreshCount) { _, _ in load() }
             // Persist every change (apply, reset) so the filter survives leaving the tab and
             // relaunching. Skipped until the initial restore has run, so it can't save over the
             // saved value with the default before it's loaded.
@@ -213,15 +225,25 @@ struct TransactionListView: View {
         }
     }
 
+    /// Re-reads every transaction, newest first. The view's computed `transactions` then applies the
+    /// active search, filters, and 12-month window on top.
+    private func load() {
+        let descriptor = FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date, order: .reverse)])
+        allTransactions = (try? modelContext.fetch(descriptor)) ?? []
+        didLoad = true
+    }
+
     private func delete(_ transaction: Transaction) {
         modelContext.delete(transaction)
         try? modelContext.save()
+        load()
     }
 
     private func toggleReviewed(_ transaction: Transaction) {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         transaction.isReviewed.toggle()
         try? modelContext.save()
+        load()
     }
 }
 
