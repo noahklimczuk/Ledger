@@ -14,6 +14,7 @@ struct DebtEditView: View {
     @State private var interestText = ""
     @State private var paymentText = ""
     @State private var notes = ""
+    @State private var isConfirmingPaidOff = false
 
     private var isEditing: Bool { debt != nil }
 
@@ -53,6 +54,7 @@ struct DebtEditView: View {
                 Section("Notes") {
                     TextField("Optional", text: $notes, axis: .vertical)
                 }
+                paidOffSection
             }
             .navigationTitle(isEditing ? "Edit Debt" : "New Debt")
             .navigationBarTitleDisplayMode(.inline)
@@ -65,7 +67,30 @@ struct DebtEditView: View {
                         .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .confirmationDialog("Mark this debt as paid off?", isPresented: $isConfirmingPaidOff, titleVisibility: .visible) {
+                Button("Mark as Paid Off") { markPaidOff() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This zeroes the balance and removes it from your debt tracker. 🎉")
+            }
             .onAppear(perform: populate)
+        }
+    }
+
+    /// A one-tap "I've cleared this" action for an existing debt: archives it out of the tracker
+    /// rather than making the user manually zero the balance. New debts have nothing to pay off yet.
+    @ViewBuilder
+    private var paidOffSection: some View {
+        if isEditing {
+            Section {
+                Button {
+                    isConfirmingPaidOff = true
+                } label: {
+                    Label("Mark as Paid Off", systemImage: "checkmark.seal.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .tint(.green)
+            }
         }
     }
 
@@ -93,6 +118,14 @@ struct DebtEditView: View {
         interestText = debt.annualInterestRate == 0 ? "" : String(debt.annualInterestRate)
         paymentText = debt.minimumPayment == 0 ? "" : NSDecimalNumber(decimal: debt.minimumPayment).stringValue
         notes = debt.notes ?? ""
+    }
+
+    private func markPaidOff() {
+        guard let debt else { return }
+        let viewModel = viewModel ?? DebtsViewModel(modelContext: modelContext)
+        viewModel.markPaidOff(debt)
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        dismiss()
     }
 
     private func save() {

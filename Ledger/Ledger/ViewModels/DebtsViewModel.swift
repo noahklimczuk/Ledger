@@ -53,6 +53,14 @@ final class DebtsViewModel {
         save()
     }
 
+    /// Marks a debt as fully paid off: zeroes the balance and archives it, so it leaves the active
+    /// tracker (and stops counting toward the totals) while its record is kept rather than deleted.
+    func markPaidOff(_ debt: Debt) {
+        debt.currentBalance = 0
+        debt.isArchived = true
+        save()
+    }
+
     func delete(_ debt: Debt) {
         modelContext.delete(debt)
         save()
