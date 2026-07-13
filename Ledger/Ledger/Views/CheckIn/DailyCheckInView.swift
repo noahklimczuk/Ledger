@@ -13,6 +13,17 @@ struct DailyCheckInView: View {
     @State private var dailyReminderOn = false
     /// The transaction whose detail popup is open, if any. Tapping a review row sets this.
     @State private var selectedTransaction: Transaction?
+    /// Set after picking a category when the merchant has other transactions, which drives the
+    /// "change all or only this one" prompt.
+    @State private var bulkCandidate: BulkCategoryCandidate?
+
+    /// A pending "apply to every transaction from this merchant?" decision.
+    private struct BulkCategoryCandidate: Identifiable {
+        let id = UUID()
+        let transaction: Transaction
+        let category: Category
+        let count: Int
+    }
 
     private let stepCount = 5
 
@@ -68,6 +79,21 @@ struct DailyCheckInView: View {
                             }
                         }
                 }
+            }
+            .confirmationDialog(
+                "Apply to Similar Transactions?",
+                isPresented: Binding(get: { bulkCandidate != nil }, set: { if !$0 { bulkCandidate = nil } }),
+                titleVisibility: .visible,
+                presenting: bulkCandidate
+            ) { candidate in
+                Button("Change All \(candidate.count)") {
+                    if let viewModel {
+                        viewModel.applyCategoryToAll(candidate.category, matching: candidate.transaction)
+                    }
+                }
+                Button("Only This One", role: .cancel) { }
+            } message: { candidate in
+                Text("There \(candidate.count == 1 ? "is" : "are") \(candidate.count) other transaction\(candidate.count == 1 ? "" : "s") from “\(candidate.transaction.merchant)”. Set \(candidate.count == 1 ? "it" : "them") to “\(candidate.category.name)” too?")
             }
         }
         .interactiveDismissDisabled(step > 0 && step < stepCount - 1)
@@ -133,7 +159,10 @@ struct DailyCheckInView: View {
             if viewModel.unreviewed.isEmpty {
                 allClear("All caught up", detail: "No transactions waiting for review.")
             } else {
-                VStack(spacing: 0) {
+                // LazyVStack (not VStack) so only the on-screen rows — and their category menus —
+                // are built. A plain VStack renders every unreviewed row eagerly, which is what
+                // made a long review feed stutter.
+                LazyVStack(spacing: 0) {
                     ForEach(viewModel.unreviewed) { transaction in
                         reviewRow(transaction, viewModel: viewModel)
                         if transaction.persistentModelID != viewModel.unreviewed.last?.persistentModelID {
@@ -198,7 +227,7 @@ struct DailyCheckInView: View {
     private func categoryMenu(_ transaction: Transaction, viewModel: DailyCheckInViewModel) -> some View {
         Menu {
             Button {
-                viewModel.setCategory(nil, for: transaction)
+                selectCategory(nil, for: transaction, viewModel: viewModel)
             } label: {
                 Label("Uncategorized", systemImage: "tag.slash")
             }
@@ -236,9 +265,20 @@ struct DailyCheckInView: View {
 
     private func categoryOption(_ category: Category, _ transaction: Transaction, _ viewModel: DailyCheckInViewModel) -> some View {
         Button {
-            viewModel.setCategory(category, for: transaction)
+            selectCategory(category, for: transaction, viewModel: viewModel)
         } label: {
             Label(category.name, systemImage: category.sfSymbolName)
+        }
+    }
+
+    /// Sets the category on this transaction, then — if the merchant has other transactions —
+    /// offers to apply the same category to all of them.
+    private func selectCategory(_ category: Category?, for transaction: Transaction, viewModel: DailyCheckInViewModel) {
+        viewModel.setCategory(category, for: transaction)
+        guard let category else { return }
+        let others = viewModel.otherTransactionCount(matching: transaction)
+        if others > 0 {
+            bulkCandidate = BulkCategoryCandidate(transaction: transaction, category: category, count: others)
         }
     }
 
