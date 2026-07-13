@@ -25,7 +25,7 @@ final class TransactionImportService {
         // Collapse any duplicate linked accounts a previous (buggy) sync created, before matching
         // this run's accounts against the store. Persist the merge so the lookup below is built
         // from a store that no longer contains the removed duplicates.
-        if deduplicateLinkedAccounts() {
+        if deduplicateLinkedAccounts() > 0 {
             try? modelContext.save()
         }
 
@@ -82,6 +82,19 @@ final class TransactionImportService {
         return Set(all.compactMap(\.externalId))
     }
 
+    /// Merges duplicate linked accounts and persists the result, independently of a sync.
+    /// Called on every app refresh so the cleanup runs even when the linked connection is
+    /// disconnected or failing to sync (in which case `importAll` never runs). Returns the number
+    /// of duplicate accounts removed.
+    @discardableResult
+    func mergeDuplicateLinkedAccounts() -> Int {
+        let removed = deduplicateLinkedAccounts()
+        if removed > 0 {
+            try? modelContext.save()
+        }
+        return removed
+    }
+
     /// Existing linked accounts for this source, keyed by their external account id. Matched in
     /// memory rather than via a `#Predicate` on the optional external-id columns, which SwiftData
     /// evaluated unreliably (and so kept minting duplicate accounts).
@@ -127,9 +140,9 @@ final class TransactionImportService {
     /// — the mess left by the old predicate bug. Keeps one canonical account (the one holding the
     /// most transactions, then the earliest created), moves any stray transactions onto it, and
     /// deletes the redundant copies so balances and net worth stop double-counting.
-    /// Returns `true` if it removed at least one duplicate.
+    /// Returns the number of duplicate accounts removed.
     @discardableResult
-    private func deduplicateLinkedAccounts() -> Bool {
+    private func deduplicateLinkedAccounts() -> Int {
         let all = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
 
         var groups: [String: [Account]] = [:]
@@ -138,7 +151,7 @@ final class TransactionImportService {
             groups["\(source)\u{1}\(externalId)", default: []].append(account)
         }
 
-        var removedAny = false
+        var removed = 0
         for accounts in groups.values where accounts.count > 1 {
             let ordered = accounts.sorted {
                 $0.transactions.count != $1.transactions.count
@@ -158,10 +171,10 @@ final class TransactionImportService {
                     }
                 }
                 modelContext.delete(duplicate)
-                removedAny = true
+                removed += 1
             }
         }
-        return removedAny
+        return removed
     }
 
     /// Makes a linked account's displayed balance match what the institution actually reports.

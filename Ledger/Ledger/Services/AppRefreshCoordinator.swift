@@ -33,6 +33,11 @@ final class AppRefreshCoordinator {
         let context = container.mainContext
         DefaultDataSeeder.seedIfNeeded(modelContext: context)
 
+        // Clean up duplicate linked accounts on every refresh — not just inside a successful sync.
+        // A disconnected or re-auth-needed connection never reaches `importAll`, so its cleanup
+        // would otherwise never run and old duplicates would linger.
+        TransactionImportService(modelContext: context).mergeDuplicateLinkedAccounts()
+
         let coordinator = WealthsimpleSyncCoordinator()
         if coordinator.isConnected {
             await coordinator.sync(modelContext: context)
