@@ -234,16 +234,44 @@ struct GeminiService: Sendable {
 
     // MARK: - Shared transport
 
-    /// Shared `generateContent` call: POSTs `body`, surfaces server/safety failures, and returns
-    /// the first candidate's parts (text and/or function calls).
+    /// HTTP statuses worth retrying: the model was momentarily overloaded (503), the server hiccuped
+    /// (500/502/504), or we were briefly rate-limited (429/408). Gemini itself describes 503 demand
+    /// spikes as "usually temporary," so a couple of backed-off retries turn most of them into a
+    /// successful reply instead of a dead end. 4xx like 400 (bad request) or 403 (bad key) are not
+    /// here — retrying those just repeats the same failure.
+    private static let retryableStatuses: Set<Int> = [408, 429, 500, 502, 503, 504]
+    /// Total tries including the first, so up to three backed-off retries.
+    private static let maxAttempts = 4
+
+    /// Shared `generateContent` call with retry: POSTs `body`, retries transient overloads/network
+    /// blips with exponential backoff, then surfaces server/safety failures and returns the first
+    /// candidate's parts (text and/or function calls).
     private func generateParts(body: [String: Any], apiKey: String) async throws -> [Part] {
+        let payload = try JSONSerialization.data(withJSONObject: body)
+        var attempt = 1
+        while true {
+            do {
+                return try await performGenerate(payload: payload, apiKey: apiKey)
+            } catch {
+                guard attempt < Self.maxAttempts, Self.isRetryable(error) else { throw error }
+                // 0.5s, 1s, 2s — a few seconds total, short enough for a chat, long enough to ride
+                // out a demand spike. Task.sleep honours cancellation, so a cancelled turn stops here.
+                let seconds = 0.5 * pow(2.0, Double(attempt - 1))
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                attempt += 1
+            }
+        }
+    }
+
+    /// One `generateContent` round trip with no retry.
+    private func performGenerate(payload: Data, apiKey: String) async throws -> [Part] {
         var request = URLRequest(url: Self.endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         // Header (not the ?key= query param) so the key never lands in a URL/log.
         request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         request.timeoutInterval = 60
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        request.httpBody = payload
 
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else { throw ServiceError.invalidResponse }
@@ -263,6 +291,24 @@ struct GeminiService: Sendable {
         }
         guard let parts = candidate.content?.parts, !parts.isEmpty else { throw ServiceError.emptyResponse }
         return parts
+    }
+
+    /// Whether an error from `performGenerate` is a transient one worth retrying: a retryable HTTP
+    /// status, or a momentary network drop/timeout. A genuine "no internet" isn't retried — the
+    /// feature already falls back to the on-device numbers in that case, so retrying only delays it.
+    private static func isRetryable(_ error: Error) -> Bool {
+        if let service = error as? ServiceError, case .server(let status, _) = service {
+            return retryableStatuses.contains(status)
+        }
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .timedOut, .networkConnectionLost, .cannotConnectToHost, .dnsLookupFailed:
+                return true
+            default:
+                return false
+            }
+        }
+        return false
     }
 
     /// Text-only convenience over `generateParts` for the structured-output path.
