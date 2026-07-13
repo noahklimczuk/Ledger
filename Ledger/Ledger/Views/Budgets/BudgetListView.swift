@@ -293,6 +293,10 @@ struct BudgetListView: View {
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
+        // The plan card is a List row with several buttons (both chevrons + the income tile).
+        // Without an explicit style the row treats them as one tap target, so a chevron tap fires
+        // ambiguously and the month never changes. `.plain` makes each its own tap target.
+        .buttonStyle(.plain)
     }
 
     private func shiftMonth(_ viewModel: BudgetsViewModel, by value: Int) {
