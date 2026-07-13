@@ -360,9 +360,12 @@ struct BudgetListView: View {
 
     @ViewBuilder
     private func budgetRow(_ row: BudgetsViewModel.BudgetRow, viewModel: BudgetsViewModel) -> some View {
-        if let category = row.budget.category {
+        if row.hasCategory {
             NavigationLink {
-                CategoryTransactionsView(category: category, month: viewModel.selectedMonth)
+                // The live category is faulted here, on tap, rather than during every list render.
+                if let category = row.budget.category {
+                    CategoryTransactionsView(category: category, month: viewModel.selectedMonth)
+                }
             } label: {
                 BudgetRowView(row: row, paceMarker: paceMarker(viewModel))
             }
@@ -376,14 +379,15 @@ struct BudgetListView: View {
     private func unbudgetedSection(_ viewModel: BudgetsViewModel) -> some View {
         Section {
             ForEach(viewModel.unbudgeted) { item in
-                if let category = item.category {
+                if item.hasCategory {
                     Button {
-                        quickBudgetCategory = category
+                        // Faulted on tap, not during render.
+                        quickBudgetCategory = item.category
                     } label: {
                         UnbudgetedRowView(
-                            symbol: category.sfSymbolName,
-                            color: Color(hex: category.colorHex),
-                            name: category.name,
+                            symbol: item.categorySymbolName,
+                            color: item.categoryColorHex.map { Color(hex: $0) } ?? .gray,
+                            name: item.categoryName,
                             detail: "Tap to set a budget",
                             spent: item.spent
                         )
@@ -450,17 +454,17 @@ private struct BudgetRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: row.budget.category?.sfSymbolName ?? "tag")
+            Image(systemName: row.categorySymbolName)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
-                .background(row.budget.category.map { Color(hex: $0.colorHex) } ?? .gray, in: Circle())
+                .background(row.categoryColorHex.map { Color(hex: $0) } ?? .gray, in: Circle())
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     // A long category name truncates instead of wrapping and pushing the
                     // remaining pill onto a second line.
-                    Text(row.budget.category?.name ?? "Uncategorized")
+                    Text(row.categoryName)
                         .font(.subheadline.weight(.medium))
                         .lineLimit(1)
                     Spacer(minLength: 8)

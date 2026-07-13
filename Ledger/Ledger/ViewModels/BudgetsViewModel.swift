@@ -18,6 +18,26 @@ final class BudgetsViewModel {
         let spent: Decimal
         let rolloverFromPreviousMonth: Decimal
 
+        // Category display values captured once here, at load time, so rows render from plain
+        // strings. Reading `budget.category?.name`/`.sfSymbolName`/`.colorHex` in the view body
+        // instead faults the live SwiftData Category from the store on the main thread every render
+        // pass — which Xcode's Thread Performance Checker flags as main-thread database I/O.
+        let hasCategory: Bool
+        let categoryName: String
+        let categorySymbolName: String
+        let categoryColorHex: String?
+
+        init(budget: Budget, spent: Decimal, rolloverFromPreviousMonth: Decimal) {
+            self.budget = budget
+            self.spent = spent
+            self.rolloverFromPreviousMonth = rolloverFromPreviousMonth
+            let category = budget.category
+            self.hasCategory = category != nil
+            self.categoryName = category?.name ?? "Uncategorized"
+            self.categorySymbolName = category?.sfSymbolName ?? "tag"
+            self.categoryColorHex = category?.colorHex
+        }
+
         var allocatedIncludingRollover: Decimal { budget.allocatedAmount + rolloverFromPreviousMonth }
         var remaining: Decimal { allocatedIncludingRollover - spent }
         var isOverBudget: Bool { spent > allocatedIncludingRollover }
@@ -43,8 +63,23 @@ final class BudgetsViewModel {
     struct UnbudgetedRow: Identifiable {
         let category: Category?
         let spent: Decimal
+        // Same reasoning as BudgetRow: captured display values so the row renders without faulting
+        // the live Category on the main thread each pass. `category` is kept only for the tap action.
+        let hasCategory: Bool
+        let categoryName: String
+        let categorySymbolName: String
+        let categoryColorHex: String?
 
         var id: PersistentIdentifier? { category?.persistentModelID }
+
+        init(category: Category?, spent: Decimal) {
+            self.category = category
+            self.spent = spent
+            self.hasCategory = category != nil
+            self.categoryName = category?.name ?? "Uncategorized"
+            self.categorySymbolName = category?.sfSymbolName ?? "questionmark"
+            self.categoryColorHex = category?.colorHex
+        }
     }
 
     private(set) var rows: [BudgetRow] = []
