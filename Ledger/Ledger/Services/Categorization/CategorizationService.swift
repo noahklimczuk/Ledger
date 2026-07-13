@@ -73,6 +73,45 @@ final class CategorizationService {
         return count
     }
 
+    // MARK: - Bulk apply ("change all from this merchant")
+
+    /// The other non-split transactions whose merchant normalizes to the same keyword as
+    /// `merchant` — i.e. the ones a "change all from this merchant" action would touch. Excludes
+    /// `transaction` itself. Store numbers, punctuation and casing are ignored (same normalization
+    /// the rules use), so "SQ *BLUE BOTTLE #123" and "SQ *BLUE BOTTLE #987" count as the same
+    /// merchant.
+    func otherTransactions(matching merchant: String, excluding transaction: Transaction) -> [Transaction] {
+        let keyword = Self.keyword(for: merchant)
+        guard !keyword.isEmpty else { return [] }
+        let excludedID = transaction.persistentModelID
+        let all = (try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? []
+        return all.filter {
+            $0.persistentModelID != excludedID
+                && $0.splits.isEmpty
+                && Self.keyword(for: $0.merchant) == keyword
+        }
+    }
+
+    /// Sets `category` on every non-split transaction sharing `merchant`'s keyword — including ones
+    /// already filed under a different category — and teaches the rule. Returns how many rows
+    /// actually changed. The caller saves.
+    @discardableResult
+    func assignCategory(_ category: Category, toAllMatching merchant: String) -> Int {
+        let keyword = Self.keyword(for: merchant)
+        guard !keyword.isEmpty else { return 0 }
+        learn(merchant: merchant, category: category)
+        let categoryID = category.persistentModelID
+        let all = (try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? []
+        var count = 0
+        for transaction in all where transaction.splits.isEmpty && Self.keyword(for: transaction.merchant) == keyword {
+            if transaction.category?.persistentModelID != categoryID {
+                transaction.category = category
+                count += 1
+            }
+        }
+        return count
+    }
+
     // MARK: - Matching
 
     /// The most specific rule matching the (normalized) merchant. Longest keyword wins; ties break
