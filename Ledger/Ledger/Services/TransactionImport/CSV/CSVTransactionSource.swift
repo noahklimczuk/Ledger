@@ -14,7 +14,7 @@ struct ImportMappedRow: Identifiable, Sendable {
 /// ignores its arguments -- rows already carry everything. The real entry point is `map()`,
 /// which the import view-model uses for the dedup preview.
 struct CSVTransactionSource: TransactionSource {
-    let sourceIdentifier = "csv"
+    nonisolated let sourceIdentifier = "csv"
 
     /// Data rows only (header already removed by the caller).
     let dataRows: [[String]]

@@ -6,7 +6,7 @@ import Testing
 /// A stand-in `TransactionSource` (like the Wealthsimple sync) that returns a fixed account and
 /// its transactions, so the import service's account de-duplication can be tested end-to-end.
 private struct MockSource: TransactionSource {
-    let sourceIdentifier: String
+    nonisolated let sourceIdentifier: String
     let accounts: [ImportedAccount]
     let transactionsByAccount: [String: [ImportedTransaction]]
 
@@ -41,12 +41,24 @@ struct LinkedAccountDedupTests {
         return MockSource(sourceIdentifier: "wealthsimple", accounts: [account], transactionsByAccount: ["cash-1": transactions])
     }
 
+    /// Fetches from the source, then upserts on the (main) test context — the same split the app's
+    /// `TransactionSyncActor` uses, keeping the model context on the main actor here.
+    @discardableResult
+    private func runImport(_ source: MockSource, into context: ModelContext) async throws -> TransactionImportService.ImportSummary {
+        let fetched = try await TransactionImportService.fetchAll(from: source, since: nil)
+        return try TransactionImportService(modelContext: context).importPrefetched(
+            accounts: fetched.accounts,
+            transactionsByAccount: fetched.transactionsByAccount,
+            sourceIdentifier: source.sourceIdentifier,
+            sourceKind: .wealthsimple
+        )
+    }
+
     @Test func resyncDoesNotCreateDuplicateAccounts() async throws {
         let context = try makeContext()
-        let service = TransactionImportService(modelContext: context)
 
-        _ = try await service.importAll(from: source(), sourceKind: .wealthsimple)
-        _ = try await service.importAll(from: source(), sourceKind: .wealthsimple)
+        _ = try await runImport(source(), into: context)
+        _ = try await runImport(source(), into: context)
 
         let accounts = try context.fetch(FetchDescriptor<Account>())
         #expect(accounts.count == 1)
@@ -65,7 +77,7 @@ struct LinkedAccountDedupTests {
         context.insert(duplicate)
         try context.save()
 
-        _ = try await TransactionImportService(modelContext: context).importAll(from: source(), sourceKind: .wealthsimple)
+        _ = try await runImport(source(), into: context)
 
         let accounts = try context.fetch(FetchDescriptor<Account>())
         #expect(accounts.count == 1)
@@ -79,7 +91,7 @@ struct LinkedAccountDedupTests {
         context.insert(manual)
         try context.save()
 
-        _ = try await TransactionImportService(modelContext: context).importAll(from: source(), sourceKind: .wealthsimple)
+        _ = try await runImport(source(), into: context)
 
         let accounts = try context.fetch(FetchDescriptor<Account>())
         // The manual account plus the one linked account — the manual one is never merged away.

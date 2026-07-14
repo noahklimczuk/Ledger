@@ -1,7 +1,9 @@
 import Foundation
 import SwiftData
 
-enum AccountType: String, Codable, CaseIterable, Identifiable {
+// nonisolated so the off-main sync pipeline (TransactionImportService.reconcileBalance) can read
+// `isLiability` — the project defaults types to @MainActor via SWIFT_DEFAULT_ACTOR_ISOLATION.
+nonisolated enum AccountType: String, Codable, CaseIterable, Identifiable {
     case chequing
     case savings
     case credit

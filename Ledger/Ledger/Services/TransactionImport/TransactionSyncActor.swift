@@ -21,15 +21,22 @@ actor TransactionSyncActor {
         TransactionImportService(modelContext: modelContext).mergeDuplicateLinkedAccounts()
     }
 
-    /// Imports everything from `source` (network fetch + upsert) on the background context.
+    /// Imports everything from `source`. The network fetch runs off-actor (it captures no context);
+    /// the SwiftData upsert then runs synchronously here on the actor's background context, so its
+    /// SQLite I/O stays off the main thread.
     @discardableResult
     func importAll(
         from source: TransactionSource,
         sourceKind: TransactionSourceKind,
         since: Date? = nil
     ) async throws -> TransactionImportService.ImportSummary {
-        try await TransactionImportService(modelContext: modelContext)
-            .importAll(from: source, sourceKind: sourceKind, since: since)
+        let fetched = try await TransactionImportService.fetchAll(from: source, since: since)
+        return try TransactionImportService(modelContext: modelContext).importPrefetched(
+            accounts: fetched.accounts,
+            transactionsByAccount: fetched.transactionsByAccount,
+            sourceIdentifier: source.sourceIdentifier,
+            sourceKind: sourceKind
+        )
     }
 
     /// Fills in categories for anything new (or newly matchable) and re-detects recurring series,
