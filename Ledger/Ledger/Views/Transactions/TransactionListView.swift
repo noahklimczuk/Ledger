@@ -110,84 +110,17 @@ struct TransactionListView: View {
             Group {
                 if !didLoad {
                     LoadingView()
-                } else if transactions.isEmpty {
-                    if hasHiddenOlderHistory && !isFiltering {
-                        EmptyStateView(
-                            systemImage: "clock.arrow.circlepath",
-                            title: "Nothing Recent",
-                            message: "No transactions in the last 12 months.",
-                            actionTitle: "Show All History"
-                        ) {
-                            withAnimation { showAllHistory = true }
-                        }
-                    } else {
-                        EmptyStateView(
-                            systemImage: "list.bullet",
-                            title: isFiltering ? "No Matches" : "No Transactions",
-                            message: isFiltering
-                                ? "Try a different search or filter."
-                                : "Add a transaction to start tracking your spending.",
-                            actionTitle: isFiltering ? nil : "Add Transaction"
-                        ) {
-                            isPresentingNewTransaction = true
-                        }
-                    }
                 } else {
-                    List {
-                        ForEach(transactions) { transaction in
-                            NavigationLink {
-                                TransactionDetailView(transaction: transaction)
-                            } label: {
-                                TransactionRowView(transaction: transaction)
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    delete(transaction)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                            .swipeActions(edge: .leading) {
-                                Button {
-                                    toggleReviewed(transaction)
-                                } label: {
-                                    Label(
-                                        transaction.isReviewed ? "Unreview" : "Reviewed",
-                                        systemImage: transaction.isReviewed ? "circle" : "checkmark.circle.fill"
-                                    )
-                                }
-                                .tint(.green)
-                            }
-                            // Long-press menu so delete/review stay reachable where the paged tab
-                            // swipe competes with row swipes.
-                            .contextMenu {
-                                Button {
-                                    toggleReviewed(transaction)
-                                } label: {
-                                    Label(
-                                        transaction.isReviewed ? "Mark Unreviewed" : "Mark Reviewed",
-                                        systemImage: transaction.isReviewed ? "circle" : "checkmark.circle.fill"
-                                    )
-                                }
-                                Button(role: .destructive) {
-                                    delete(transaction)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
+                    VStack(spacing: 0) {
+                        // The search field lives here, as a row that slides in below the nav bar —
+                        // not inside the toolbar. A TextField embedded in the navigation bar grabs
+                        // an unpredictable width when focused (it sprawled across the title area),
+                        // so the toolbar only holds the button that toggles this row.
+                        if isSearchExpanded {
+                            searchBar
+                                .transition(.move(edge: .top).combined(with: .opacity))
                         }
-
-                        if hasHiddenOlderHistory {
-                            Button {
-                                withAnimation { showAllHistory = true }
-                            } label: {
-                                Label("Show All History", systemImage: "clock.arrow.circlepath")
-                                    .frame(maxWidth: .infinity)
-                                    .font(.subheadline)
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.secondary)
-                        }
+                        transactionList
                     }
                 }
             }
@@ -198,21 +131,28 @@ struct TransactionListView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     // A visible filter button (not buried in the overflow menu) that fills in and
-                    // tints when any filter is active, so it's obvious filtering is on. Hidden while
-                    // the search field is expanded so it has room to slide open.
-                    if !isSearchExpanded {
-                        Button { isPresentingFilters = true } label: {
-                            Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                        }
-                        .tint(filter.isActive ? .accentColor : nil)
-                        .accessibilityLabel(filter.isActive ? "Filters active" : "Filter")
+                    // tints when any filter is active, so it's obvious filtering is on.
+                    Button { isPresentingFilters = true } label: {
+                        Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
+                    .tint(filter.isActive ? .accentColor : nil)
+                    .accessibilityLabel(filter.isActive ? "Filters active" : "Filter")
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    // Search sits beside the plus in the same toolbar style: a magnifying-glass
-                    // button that slides open into an inline field when tapped.
-                    HStack(spacing: 8) {
-                        searchControl
+                    // Search and add sit together in the same toolbar-button style. Tapping search
+                    // toggles the field that slides in below the bar (see `searchBar`).
+                    HStack(spacing: 16) {
+                        Button {
+                            if isSearchExpanded {
+                                collapseSearch()
+                            } else {
+                                withAnimation(.snappy) { isSearchExpanded = true }
+                            }
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        .tint(isSearchExpanded ? .accentColor : nil)
+                        .accessibilityLabel("Search")
                         Button { isPresentingNewTransaction = true } label: {
                             Image(systemName: "plus")
                         }
@@ -222,10 +162,6 @@ struct TransactionListView: View {
             .onChange(of: isSearchExpanded) { _, expanded in
                 // Focus (raise the keyboard) only once the field actually exists in the hierarchy.
                 if expanded { isSearchFocused = true }
-            }
-            .onChange(of: isSearchFocused) { _, focused in
-                // Tapping away from an empty field tidies it back into the button.
-                if !focused && searchText.isEmpty { collapseSearch() }
             }
             .sheet(isPresented: $isPresentingNewTransaction, onDismiss: load) {
                 TransactionEditView(transaction: nil)
@@ -258,16 +194,102 @@ struct TransactionListView: View {
         }
     }
 
+    // MARK: - List
+
+    /// The empty states and the transaction list itself, below the (optional) search bar.
+    @ViewBuilder
+    private var transactionList: some View {
+        if transactions.isEmpty {
+            if hasHiddenOlderHistory && !isFiltering {
+                EmptyStateView(
+                    systemImage: "clock.arrow.circlepath",
+                    title: "Nothing Recent",
+                    message: "No transactions in the last 12 months.",
+                    actionTitle: "Show All History"
+                ) {
+                    withAnimation { showAllHistory = true }
+                }
+            } else {
+                EmptyStateView(
+                    systemImage: "list.bullet",
+                    title: isFiltering ? "No Matches" : "No Transactions",
+                    message: isFiltering
+                        ? "Try a different search or filter."
+                        : "Add a transaction to start tracking your spending.",
+                    actionTitle: isFiltering ? nil : "Add Transaction"
+                ) {
+                    isPresentingNewTransaction = true
+                }
+            }
+        } else {
+            List {
+                ForEach(transactions) { transaction in
+                    NavigationLink {
+                        TransactionDetailView(transaction: transaction)
+                    } label: {
+                        TransactionRowView(transaction: transaction)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            delete(transaction)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .swipeActions(edge: .leading) {
+                        Button {
+                            toggleReviewed(transaction)
+                        } label: {
+                            Label(
+                                transaction.isReviewed ? "Unreview" : "Reviewed",
+                                systemImage: transaction.isReviewed ? "circle" : "checkmark.circle.fill"
+                            )
+                        }
+                        .tint(.green)
+                    }
+                    // Long-press menu so delete/review stay reachable where the paged tab
+                    // swipe competes with row swipes.
+                    .contextMenu {
+                        Button {
+                            toggleReviewed(transaction)
+                        } label: {
+                            Label(
+                                transaction.isReviewed ? "Mark Unreviewed" : "Mark Reviewed",
+                                systemImage: transaction.isReviewed ? "circle" : "checkmark.circle.fill"
+                            )
+                        }
+                        Button(role: .destructive) {
+                            delete(transaction)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+
+                if hasHiddenOlderHistory {
+                    Button {
+                        withAnimation { showAllHistory = true }
+                    } label: {
+                        Label("Show All History", systemImage: "clock.arrow.circlepath")
+                            .frame(maxWidth: .infinity)
+                            .font(.subheadline)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
     // MARK: - Search
 
-    /// The toolbar search: a magnifying-glass button that slides open into an inline, capsule-shaped
-    /// field (matching the app's material pill style) and tucks back away when cleared.
-    @ViewBuilder
-    private var searchControl: some View {
-        if isSearchExpanded {
+    /// A search row that slides in below the nav bar — a rounded field (magnifying glass, text,
+    /// inline clear) plus a Cancel button, the standard iOS search-bar shape. Kept out of the
+    /// toolbar because a focused `TextField` in the navigation bar takes an unpredictable width.
+    private var searchBar: some View {
+        HStack(spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
-                    .font(.footnote)
                     .foregroundStyle(.secondary)
                 TextField("Search merchants", text: $searchText)
                     .textFieldStyle(.plain)
@@ -275,40 +297,30 @@ struct TransactionListView: View {
                     .submitLabel(.search)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
-                    .frame(width: 150)
-                Button {
-                    // First tap clears the text (keeping the field open to keep typing); an empty
-                    // field's tap collapses it back to the button.
-                    if searchText.isEmpty {
-                        collapseSearch()
-                    } else {
+                if !searchText.isEmpty {
+                    Button {
                         searchText = ""
                         isSearchFocused = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
                     }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                    .accessibilityLabel("Clear search")
                 }
-                .accessibilityLabel(searchText.isEmpty ? "Close search" : "Clear search")
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(.regularMaterial, in: Capsule())
-            .transition(.move(edge: .trailing).combined(with: .opacity))
-        } else {
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                    isSearchExpanded = true
-                }
-            } label: {
-                Image(systemName: "magnifyingglass")
-            }
-            .accessibilityLabel("Search")
+
+            Button("Cancel") { collapseSearch() }
         }
+        .padding(.horizontal)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
     }
 
     private func collapseSearch() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+        withAnimation(.snappy) {
             isSearchExpanded = false
         }
         isSearchFocused = false
