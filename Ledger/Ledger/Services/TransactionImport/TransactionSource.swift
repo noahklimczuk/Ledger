@@ -27,7 +27,10 @@ struct ImportedTransaction: Sendable, Identifiable {
 /// import and Wealthsimple (bank/cash accounts) today, with room for another source to slot in later
 /// behind the same interface without touching any call sites.
 protocol TransactionSource: Sendable {
-    var sourceIdentifier: String { get }
+    // nonisolated so the off-main import (TransactionImportService, on a background context) can read
+    // it synchronously — the project defaults types to @MainActor. The async fetch methods stay
+    // main-actor: awaiting them from the background context hops for the network call, which is fine.
+    nonisolated var sourceIdentifier: String { get }
     func fetchAccounts() async throws -> [ImportedAccount]
     func fetchTransactions(accountExternalId: String, since: Date?) async throws -> [ImportedTransaction]
 }

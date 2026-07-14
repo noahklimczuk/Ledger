@@ -6,7 +6,7 @@ import Foundation
 /// Requires an authenticated `WealthsimpleSession` (see `WealthsimpleAPIClient.logIn`) and the
 /// resolved `identityId`. Sync itself is driven by `WealthsimpleSyncCoordinator`.
 struct WealthsimpleTransactionSource: TransactionSource {
-    let sourceIdentifier = "wealthsimple"
+    nonisolated let sourceIdentifier = "wealthsimple"
 
     private let client: WealthsimpleAPIClient
     private let session: WealthsimpleSession
