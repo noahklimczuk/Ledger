@@ -1,7 +1,9 @@
 import Foundation
 
 /// Shared cadence used by both auto-detected recurring series and user-created bill reminders.
-enum RecurrenceCadence: String, Codable, CaseIterable, Identifiable, Sendable {
+/// nonisolated so the off-main sync pipeline (RecurringDetectionService) can call `classify`,
+/// `approximateDays`, and `nextDate` — the project defaults types to @MainActor.
+nonisolated enum RecurrenceCadence: String, Codable, CaseIterable, Identifiable, Sendable {
     case weekly
     case biweekly
     case monthly

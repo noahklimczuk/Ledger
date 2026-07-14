@@ -5,7 +5,7 @@ import Foundation
 /// `fetchAccounts()` is empty. Dedup uses the bank-provided FITID (namespaced by account token)
 /// so it's stable and unique even across re-downloads.
 struct OFXTransactionSource: TransactionSource {
-    let sourceIdentifier = "ofx"
+    nonisolated let sourceIdentifier = "ofx"
 
     let records: [OFXRecord]
     let accountToken: String

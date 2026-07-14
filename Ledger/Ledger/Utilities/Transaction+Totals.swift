@@ -1,6 +1,8 @@
 import Foundation
 
-extension Transaction {
+// nonisolated so the off-main sync pipeline (RecurringDetectionService) can read these derived
+// flags — the project defaults types (and their extensions) to @MainActor.
+nonisolated extension Transaction {
     /// False when the transaction belongs to an archived (removed) account. An archived account is
     /// one the user chose to stop tracking, and its balance is already excluded everywhere — so its
     /// transactions must not count toward dashboard totals, budgets, reports, net worth, or

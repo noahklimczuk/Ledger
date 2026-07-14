@@ -24,8 +24,34 @@ nonisolated final class TransactionImportService {
         self.modelContext = modelContext
     }
 
+    /// Network only, no SwiftData — pulls the source's accounts and each account's transactions into
+    /// `Sendable` value types, so the caller can hand them to `importPrefetched` on whatever context
+    /// it likes. Splitting the network fetch from the DB upsert lets the auto-sync run this `await`
+    /// off-actor and the upsert synchronously on `TransactionSyncActor`'s background context — a
+    /// model context must only be touched on its owning executor. `static` so it captures no
+    /// `ModelContext`, letting it run off-actor safely.
+    nonisolated static func fetchAll(
+        from source: TransactionSource,
+        since: Date?
+    ) async throws -> (accounts: [ImportedAccount], transactionsByAccount: [String: [ImportedTransaction]]) {
+        let accounts = try await source.fetchAccounts()
+        var transactionsByAccount: [String: [ImportedTransaction]] = [:]
+        for account in accounts {
+            transactionsByAccount[account.id] = try await source.fetchTransactions(accountExternalId: account.id, since: since)
+        }
+        return (accounts, transactionsByAccount)
+    }
+
+    /// Upserts already-fetched source data into SwiftData. Synchronous, so it runs inline on the
+    /// caller's executor and its context — the auto-sync calls it on `TransactionSyncActor`'s
+    /// background context, keeping the SQLite work off the main thread.
     @discardableResult
-    func importAll(from source: TransactionSource, sourceKind: TransactionSourceKind, since: Date? = nil) async throws -> ImportSummary {
+    func importPrefetched(
+        accounts: [ImportedAccount],
+        transactionsByAccount: [String: [ImportedTransaction]],
+        sourceIdentifier: String,
+        sourceKind: TransactionSourceKind
+    ) throws -> ImportSummary {
         var summary = ImportSummary()
         // Collapse any duplicate linked accounts a previous (buggy) sync created, before matching
         // this run's accounts against the store. Persist the merge so the lookup below is built
@@ -34,22 +60,21 @@ nonisolated final class TransactionImportService {
             try? modelContext.save()
         }
 
-        let importedAccounts = try await source.fetchAccounts()
         // One dedup-set fetch for the whole run — a sync of hundreds of rows shouldn't do a
         // store-wide fetch per row.
         var knownExternalIds = existingExternalIds()
         // Match incoming accounts against existing ones in memory, keyed by external id. A
         // SwiftData `#Predicate` on the optional external-id columns proved unreliable and let a
         // fresh linked account be created on every sync — the "duplicate accounts" bug.
-        var linkedAccounts = existingLinkedAccounts(sourceIdentifier: source.sourceIdentifier)
+        var linkedAccounts = existingLinkedAccounts(sourceIdentifier: sourceIdentifier)
 
-        for imported in importedAccounts {
-            let account = upsertAccount(imported, sourceIdentifier: source.sourceIdentifier, lookup: &linkedAccounts, summary: &summary)
+        for imported in accounts {
+            let account = upsertAccount(imported, sourceIdentifier: sourceIdentifier, lookup: &linkedAccounts, summary: &summary)
             // The user removed this linked account (archived). Don't revive it or pull new
-            // transactions into it — that's the "deleted accounts come back on restart" bug.
+            // transactions into it — that's the "deleted accounts come back on restart" bug. Its
+            // prefetched transactions are simply dropped.
             if account.isArchived { continue }
-            let importedTransactions = try await source.fetchTransactions(accountExternalId: imported.id, since: since)
-            for transaction in importedTransactions {
+            for transaction in transactionsByAccount[imported.id] ?? [] {
                 if insertTransactionIfNeeded(transaction, into: account, sourceKind: sourceKind, knownExternalIds: &knownExternalIds) {
                     summary.transactionsCreated += 1
                 } else {
