@@ -4,11 +4,13 @@ import SwiftData
 /// Pulls accounts + transactions from a `TransactionSource` and upserts them into SwiftData,
 /// deduping accounts by (externalSourceId, externalAccountId) and transactions by externalId
 /// so re-running a sync never creates duplicates.
-/// Not actor-isolated: it only touches the `ModelContext` it's handed and pure value logic, so it
-/// runs wherever its context lives — on the `mainContext` for user-initiated CSV import, or on
+/// Explicitly `nonisolated`: it only touches the `ModelContext` it's handed and pure value logic, so
+/// it runs wherever its context lives — on the `mainContext` for user-initiated CSV import, or on
 /// `TransactionSyncActor`'s background context for the auto-sync (keeping SQLite I/O off the main
-/// thread). `@MainActor` callers can still create and use it inline.
-final class TransactionImportService {
+/// thread). The project defaults types to `@MainActor` (`SWIFT_DEFAULT_ACTOR_ISOLATION`), so this
+/// opt-out is what actually moves the import off the main thread; `@MainActor` callers (CSV import)
+/// can still create and use it inline.
+nonisolated final class TransactionImportService {
     struct ImportSummary: Sendable {
         var accountsCreated = 0
         var transactionsCreated = 0

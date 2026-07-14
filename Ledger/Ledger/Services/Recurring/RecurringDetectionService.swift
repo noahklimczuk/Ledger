@@ -5,10 +5,12 @@ import SwiftData
 /// `RecurringSeries` set. Signal is regularity of spacing: a merchant whose transactions land at a
 /// consistent cadence (weekly/biweekly/monthly/quarterly/yearly) with ≥3 occurrences is recurring;
 /// irregular high-frequency merchants (groceries, restaurants) fail the regularity check.
-/// Not actor-isolated — it only touches its `ModelContext` and pure date/amount logic, so it runs on
-/// whatever executor its context belongs to (the main context from views, or a background context
-/// during the off-main auto-sync). `@MainActor` callers can still use it inline.
-final class RecurringDetectionService {
+/// Explicitly `nonisolated` — it only touches its `ModelContext` and pure date/amount logic, so it
+/// runs on whatever executor its context belongs to (the main context from views, or a background
+/// context during the off-main auto-sync). The project defaults types to `@MainActor`
+/// (`SWIFT_DEFAULT_ACTOR_ISOLATION`), so this opt-out is what actually lets `TransactionSyncActor`
+/// use it off the main thread; `@MainActor` callers can still use it inline.
+nonisolated final class RecurringDetectionService {
     private let modelContext: ModelContext
     private let minimumOccurrences = 3
 
