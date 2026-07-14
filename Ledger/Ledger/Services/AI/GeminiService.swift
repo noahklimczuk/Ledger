@@ -118,7 +118,10 @@ struct GeminiService: Sendable {
     /// user/model alternation intact.
     enum ChatTurn: Sendable {
         case user(String)
-        case model(text: String?, functionCall: FunctionCallEcho?)
+        /// `thoughtSignature` is Gemini's opaque base64 reasoning token for this turn. Gemini 3.x
+        /// requires it to be echoed back on the same part in later requests, or the next tool
+        /// round-trip fails with a 400 ("Function call is missing a thought_signature").
+        case model(text: String?, functionCall: FunctionCallEcho?, thoughtSignature: String?)
         case functionResponse(name: String, responseJSON: String)
     }
 
@@ -154,6 +157,9 @@ struct GeminiService: Sendable {
         let budgetPlan: BudgetPlan?
         /// The call's raw arguments, echoed back into history alongside our function response.
         let budgetPlanArgsJSON: String?
+        /// Gemini's reasoning token for this reply (from the function-call part when present, else the
+        /// text part). Must be echoed back on the same part in the next request; see `ChatTurn.model`.
+        let thoughtSignature: String?
     }
 
     /// Freeform advisor reply for the multi-turn financial-advisor chat. `system` carries the
@@ -167,12 +173,20 @@ struct GeminiService: Sendable {
             switch turn {
             case .user(let text):
                 contents.append(["role": "user", "parts": [["text": text]]])
-            case .model(let text, let functionCall):
+            case .model(let text, let functionCall, let thoughtSignature):
                 var parts: [[String: Any]] = []
-                if let text { parts.append(["text": text]) }
+                if let text {
+                    var part: [String: Any] = ["text": text]
+                    // With no function call, the signature (if any) rides on the text part.
+                    if functionCall == nil, let thoughtSignature { part["thoughtSignature"] = thoughtSignature }
+                    parts.append(part)
+                }
                 if let functionCall {
                     let call: [String: Any] = ["name": functionCall.name, "args": Self.jsonObject(from: functionCall.argsJSON)]
-                    parts.append(["functionCall": call])
+                    var part: [String: Any] = ["functionCall": call]
+                    // Gemini requires its reasoning token echoed back on the function-call part.
+                    if let thoughtSignature { part["thoughtSignature"] = thoughtSignature }
+                    parts.append(part)
                 }
                 contents.append(["role": "model", "parts": parts])
             case .functionResponse(let name, let responseJSON):
@@ -190,8 +204,12 @@ struct GeminiService: Sendable {
         let text = parts.compactMap(\.text).joined()
         var plan: BudgetPlan?
         var argsJSON: String?
-        if let call = parts.compactMap(\.functionCall).first(where: { $0.name == Self.createBudgetToolName }),
-           let args = call.args {
+        // Gemini 3.x attaches a reasoning token per part; capture it so it can be echoed back on the
+        // next request. Prefer the function-call part's token (the one the API enforces), else the
+        // last part that carries one.
+        let callPart = parts.first { $0.functionCall?.name == Self.createBudgetToolName }
+        let thoughtSignature = callPart?.thoughtSignature ?? parts.compactMap(\.thoughtSignature).last
+        if let call = callPart?.functionCall, let args = call.args {
             let categories = (args.categories ?? []).compactMap { item -> BudgetPlan.PlanCategory? in
                 guard let name = item.name, let amount = item.amount, amount > 0 else { return nil }
                 return BudgetPlan.PlanCategory(name: name, amount: Decimal(amount))
@@ -213,7 +231,7 @@ struct GeminiService: Sendable {
         guard plan != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ServiceError.emptyResponse
         }
-        return AdvisorReply(text: text, budgetPlan: plan, budgetPlanArgsJSON: argsJSON)
+        return AdvisorReply(text: text, budgetPlan: plan, budgetPlanArgsJSON: argsJSON, thoughtSignature: thoughtSignature)
     }
 
     static let createBudgetToolName = "create_budget"
@@ -505,6 +523,8 @@ struct GeminiService: Sendable {
     private struct Part: Decodable {
         let text: String?
         let functionCall: FunctionCallPayload?
+        /// Opaque base64 reasoning token Gemini 3.x attaches to a part; must be round-tripped.
+        let thoughtSignature: String?
     }
 
     /// Only one tool exists, so the arguments decode straight into its shape. Every field is
