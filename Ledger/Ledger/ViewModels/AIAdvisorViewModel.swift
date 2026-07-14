@@ -93,7 +93,7 @@ final class AIAdvisorViewModel {
 
                 guard let plan = reply.budgetPlan, toolRounds < Self.maxToolRoundsPerSend else {
                     if !replyText.isEmpty {
-                        apiHistory.append(.model(text: replyText, functionCall: nil))
+                        apiHistory.append(.model(text: replyText, functionCall: nil, thoughtSignature: reply.thoughtSignature))
                     }
                     break
                 }
@@ -104,7 +104,10 @@ final class AIAdvisorViewModel {
                     functionCall: GeminiService.FunctionCallEcho(
                         name: GeminiService.createBudgetToolName,
                         argsJSON: reply.budgetPlanArgsJSON ?? "{}"
-                    )
+                    ),
+                    // Echo Gemini's reasoning token back on the function-call part next request, or
+                    // the follow-up round-trip 400s with "missing a thought_signature".
+                    thoughtSignature: reply.thoughtSignature
                 ))
                 let result = applyBudgetPlan(plan)
                 messages.append(Message(role: .assistant, kind: .actionNote, text: result.note))
