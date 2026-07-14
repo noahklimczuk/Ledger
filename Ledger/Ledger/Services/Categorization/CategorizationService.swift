@@ -11,10 +11,12 @@ import SwiftData
 /// keywords (under 5 characters) must match a whole token. That's what keeps "esso" from firing
 /// inside "espresso", "gym" inside "gymboree", or "rent" inside "rental car", while still letting
 /// "mcdonald" match "mcdonalds" and "chiropract" match "chiropractor".
-/// Not actor-isolated — it only touches its `ModelContext` and pure string logic, so it runs on
-/// whatever executor its context belongs to (the main context from views, or a background context
-/// during the off-main auto-sync). `@MainActor` callers can still use it inline.
-final class CategorizationService {
+/// Explicitly `nonisolated` — it only touches its `ModelContext` and pure string logic, so it runs
+/// on whatever executor its context belongs to (the main context from views, or a background context
+/// during the off-main auto-sync). The project defaults types to `@MainActor`
+/// (`SWIFT_DEFAULT_ACTOR_ISOLATION`), so this opt-out is what actually lets `TransactionSyncActor`
+/// use it off the main thread; `@MainActor` callers can still use it inline.
+nonisolated final class CategorizationService {
     /// Keywords at least this long may match as a token *prefix* ("mcdonald" → "mcdonalds");
     /// shorter ones must match a whole token exactly.
     private static let prefixMatchMinimumLength = 5
