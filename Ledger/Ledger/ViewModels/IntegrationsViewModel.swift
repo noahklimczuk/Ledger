@@ -85,7 +85,9 @@ final class IntegrationsViewModel {
         lastError = nil
         defer { isBusy = false }
 
-        switch await coordinator.sync(modelContext: modelContext) {
+        // Import on a background context so the sync's SQLite I/O stays off the main thread.
+        let importer = TransactionSyncActor(modelContainer: modelContext.container)
+        switch await coordinator.sync(using: importer) {
         case .notConnected:
             lastError = "Connect Wealthsimple first."
         case .success(let summary):
