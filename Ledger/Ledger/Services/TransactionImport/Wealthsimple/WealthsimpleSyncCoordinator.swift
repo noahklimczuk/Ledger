@@ -21,7 +21,7 @@ struct WealthsimpleSyncCoordinator {
     var lastSyncedAt: Date? { statusStore.lastSyncedAt }
 
     @discardableResult
-    func sync(modelContext: ModelContext) async -> Outcome {
+    func sync(using importer: TransactionSyncActor) async -> Outcome {
         guard let session = credentialStore.session else { return .notConnected }
 
         do {
@@ -29,9 +29,10 @@ struct WealthsimpleSyncCoordinator {
             // Persist any refreshed tokens / freshly resolved identity so the next sync is cheaper.
             credentialStore.session = authedSession
 
+            // Auth is a main-actor/network step; the DB-heavy import runs on the actor's background
+            // context so SwiftData's SQLite work stays off the main thread.
             let source = WealthsimpleTransactionSource(client: client, session: authedSession, identityId: identityId)
-            let importService = TransactionImportService(modelContext: modelContext)
-            let summary = try await importService.importAll(from: source, sourceKind: .wealthsimple)
+            let summary = try await importer.importAll(from: source, sourceKind: .wealthsimple)
             statusStore.recordSuccess()
             return .success(summary)
         } catch WealthsimpleAPIClient.ClientError.reauthRequired {

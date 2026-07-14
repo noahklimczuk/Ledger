@@ -33,22 +33,27 @@ final class AppRefreshCoordinator {
         let context = container.mainContext
         DefaultDataSeeder.seedIfNeeded(modelContext: context)
 
+        // The SwiftData-heavy work (dedup, import, categorize, recurring) runs on a background
+        // context via this actor so its SQLite I/O stays off the main thread — one actor per refresh
+        // means all three steps share one context, so categorization sees what the import wrote.
+        let syncActor = TransactionSyncActor(modelContainer: container)
+
         // Clean up duplicate linked accounts on every refresh — not just inside a successful sync.
         // A disconnected or re-auth-needed connection never reaches `importAll`, so its cleanup
         // would otherwise never run and old duplicates would linger.
-        TransactionImportService(modelContext: context).mergeDuplicateLinkedAccounts()
+        await syncActor.mergeDuplicateLinkedAccounts()
 
         let coordinator = WealthsimpleSyncCoordinator()
         if coordinator.isConnected {
-            await coordinator.sync(modelContext: context)
+            await coordinator.sync(using: syncActor)
         }
 
         // Fill in categories for anything new (or newly matchable), then refresh recurring series.
-        CategorizationService(modelContext: context).categorizeAllUncategorized()
-        RecurringDetectionService(modelContext: context).refresh()
+        await syncActor.categorizeAndDetectRecurring()
 
         // With the freshest numbers in hand, fire any budget guardrail alerts (80% / over /
-        // ahead-of-pace) that newly imported spending just tripped.
+        // ahead-of-pace) that newly imported spending just tripped. This reads through
+        // BudgetsViewModel (main-actor), so it stays on the main context.
         await BudgetGuardrailService(modelContext: context).checkAndNotify()
 
         lastRefreshedAt = .now
