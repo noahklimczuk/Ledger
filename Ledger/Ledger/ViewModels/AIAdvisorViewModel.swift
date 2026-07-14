@@ -273,6 +273,14 @@ final class AIAdvisorViewModel {
             }
         }
 
+        let incomeLines = monthlyIncomeLines()
+        if !incomeLines.isEmpty {
+            lines.append("")
+            lines.append("Actual income received per month (money in, excluding transfers between accounts):")
+            lines.append(contentsOf: incomeLines)
+            lines.append("Use a specific month's actual income when budgeting that month; fall back to the recent average only for months with no figure here (e.g. future months).")
+        }
+
         if let history {
             lines.append("")
             lines.append("Recent history (last \(history.months) months):")
@@ -292,6 +300,35 @@ final class AIAdvisorViewModel {
         }
 
         return lines.joined(separator: "\n")
+    }
+
+    /// Actual income for each recent month (up to 12, oldest first), so the advisor can budget a
+    /// given month against what really came in that month rather than only a running average.
+    /// Income mirrors the Budgets tab: positive, non-archived transactions that are uncategorized or
+    /// in an income category — which excludes transfers between the user's own accounts. Months with
+    /// no activity at all are skipped so a new user doesn't see a run of $0.00 leading months.
+    private func monthlyIncomeLines() -> [String] {
+        let calendar = Calendar.current
+        let transactions = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
+            .filter(\.countsTowardTotals)
+        guard !transactions.isEmpty else { return [] }
+
+        // Anchor on the later of today and the open month, so a future-month conversation still shows
+        // the real income history up to now.
+        let anchor = max(Budget.normalize(.now), month)
+        let monthsToShow = 12
+        var lines: [String] = []
+        for offset in stride(from: monthsToShow - 1, through: 0, by: -1) {
+            guard let start = calendar.date(byAdding: .month, value: -offset, to: anchor),
+                  let end = calendar.date(byAdding: .month, value: 1, to: start) else { continue }
+            let inMonth = transactions.filter { $0.date >= start && $0.date < end }
+            guard !inMonth.isEmpty else { continue }
+            let income = inMonth
+                .filter { $0.amount > 0 && ($0.category == nil || $0.category?.isIncome == true) }
+                .reduce(Decimal(0)) { $0 + $1.amount }
+            lines.append("- \(DateFormatting.monthYear(start)) (\(Self.monthKey(start))): \(money(income))")
+        }
+        return lines
     }
 
     /// Transactions for the selected month plus the three before it, as compact prompt lines.
