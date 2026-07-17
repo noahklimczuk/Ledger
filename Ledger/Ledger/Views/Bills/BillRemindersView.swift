@@ -62,6 +62,7 @@ struct BillRemindersView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { isPresentingNew = true } label: { Image(systemName: "plus") }
+                    .accessibilityLabel("Add Bill")
             }
         }
         .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {
@@ -99,6 +100,7 @@ private struct BillRow: View {
                 .fontWeight(.medium)
             Toggle("", isOn: Binding(get: { reminder.isEnabled }, set: { onToggle($0) }))
                 .labelsHidden()
+                .accessibilityLabel("Reminders for \(reminder.name)")
         }
         .padding(.vertical, 2)
     }

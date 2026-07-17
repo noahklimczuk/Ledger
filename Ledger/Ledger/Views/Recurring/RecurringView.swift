@@ -40,6 +40,7 @@ struct RecurringView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
+                .accessibilityLabel("Refresh")
             }
         }
         .task {

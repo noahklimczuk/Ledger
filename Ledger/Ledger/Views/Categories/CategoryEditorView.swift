@@ -47,6 +47,7 @@ struct CategoryEditorView: View {
                 Button { isPresentingNew = true } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel("Add Category")
             }
         }
         .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {

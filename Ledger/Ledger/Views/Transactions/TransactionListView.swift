@@ -178,6 +178,7 @@ struct TransactionListView: View {
                         Button { isPresentingNewTransaction = true } label: {
                             Image(systemName: "plus")
                         }
+                        .accessibilityLabel("Add Transaction")
                     }
                 }
             }

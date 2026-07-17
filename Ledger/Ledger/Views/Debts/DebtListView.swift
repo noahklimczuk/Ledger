@@ -49,6 +49,7 @@ struct DebtListView: View {
                 Button { isPresentingNew = true } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel("Add Debt")
             }
         }
         .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {

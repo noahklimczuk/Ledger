@@ -51,6 +51,7 @@ struct AccountListView: View {
                     Button { isPresentingNewAccount = true } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Add Account")
                 }
             }
             .sheet(isPresented: $isPresentingNewAccount, onDismiss: { viewModel?.load() }) {
