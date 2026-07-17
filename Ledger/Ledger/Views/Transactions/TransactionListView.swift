@@ -73,7 +73,12 @@ struct TransactionListView: View {
             result = result.filter { $0.date >= startDate }
         }
         if let endDate = filter.endDate {
-            result = result.filter { $0.date <= endDate }
+            // Inclusive of the entire end day. A `.date` picker hands back midnight, but imported
+            // transactions carry a real time of day, so a plain `<= endDate` would drop everything
+            // that happened after 00:00 on the chosen day. Compare against the start of the next day
+            // instead so the whole selected day counts.
+            let endExclusive = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: endDate)) ?? endDate
+            result = result.filter { $0.date < endExclusive }
         }
         if let minAmount = filter.minAmount {
             result = result.filter { abs($0.amount) >= minAmount }
