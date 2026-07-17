@@ -116,6 +116,9 @@ private struct TabBarHeightKey: PreferenceKey {
 /// on earlier releases). Sits inset from the screen edges so content scrolls behind/under it.
 private struct FloatingTabBar: View {
     @Binding var selection: Int
+    /// Ties the selected-tab glass highlight to one identity so the `GlassEffectContainer` morphs it
+    /// between tabs (the liquid "flow") rather than cross-fading two separate shapes.
+    @Namespace private var glassNamespace
 
     private let items: [(title: String, icon: String)] = [
         ("Dashboard", "house.fill"),
@@ -131,72 +134,96 @@ private struct FloatingTabBar: View {
             .padding(.top, 6)
     }
 
-    /// The equal-width tab buttons. The selection slider is drawn behind this row, so the icons and
-    /// labels always render on top of it.
-    private var tabRow: some View {
-        HStack(alignment: .center, spacing: 0) {
-            ForEach(items.indices, id: \.self) { index in
-                let item = items[index]
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { selection = index }
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: item.icon)
-                            .font(.system(size: 18))
-                        Text(item.title)
-                            .font(.system(size: 10))
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .foregroundStyle(selection == index ? Color.accentColor : Color.secondary)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(item.title)
-                .accessibilityAddTraits(selection == index ? [.isSelected] : [])
+    /// One equal-width tab: icon over label, tinted to the accent when selected. Tapping animates the
+    /// selection, which on iOS 26 drives the glass highlight morphing between tabs.
+    private func tabButton(_ index: Int) -> some View {
+        let item = items[index]
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) { selection = index }
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: item.icon)
+                    .font(.system(size: 18))
+                Text(item.title)
+                    .font(.system(size: 10))
+                    .lineLimit(1)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .foregroundStyle(selection == index ? Color.accentColor : Color.secondary)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(item.title)
+        .accessibilityAddTraits(selection == index ? [.isSelected] : [])
     }
 
-    /// The tab row with the sliding selection capsule behind it. The slider is sized to one tab and
-    /// offset to the selected index; a spring keyed on `selection` makes it glide between tabs.
-    private var content: some View {
-        tabRow
-            .background(alignment: .leading) {
-                GeometryReader { proxy in
-                    let tabWidth = proxy.size.width / CGFloat(items.count)
-                    slider
-                        .frame(width: tabWidth - 6, height: proxy.size.height)
-                        .offset(x: CGFloat(selection) * tabWidth + 3)
-                        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: selection)
-                }
-            }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 10)
-    }
-
-    /// The moving selection highlight: a soft accent-tinted capsule that slides behind the labels.
-    /// Kept as a plain fill (not its own `glassEffect`) so it never contributes to the bar's layout
-    /// size — a nested glass capsule inside a `GlassEffectContainer` inflated the measured bar height
-    /// on iOS 26, which collapsed every page to zero height and left the app stuck on launch.
-    private var slider: some View {
-        Capsule()
-            .fill(Color.accentColor.opacity(0.15))
-    }
-
-    /// The pill background: real Liquid Glass where available, a material capsule otherwise. Applied
-    /// directly to `content` (no `GlassEffectContainer`) so the bar sizes to its content instead of
-    /// expanding to fill the overlay — the container did the latter, breaking launch layout.
+    /// The pill background and its moving selection highlight.
+    ///
+    /// On iOS 26 the bar's glass and the selected tab's glass are *siblings* inside one
+    /// `GlassEffectContainer`, so the highlight reads as a real glass lens floating within the bar's
+    /// glass (the App Store tab-bar look) rather than a flat tint. A shared `glassEffectID` makes the
+    /// container morph that lens — the liquid "flow" — from the old tab to the new one as `selection`
+    /// changes. Previously the highlight was nested *inside* the bar's own `glassEffect`, which
+    /// flattened it into the solid accent blob it looked like before.
+    ///
+    /// Pre-iOS 26 keeps the material capsule with a soft accent capsule sliding behind the labels.
     @ViewBuilder
     private var bar: some View {
         if #available(iOS 26.0, *) {
-            content.glassEffect(.regular, in: Capsule())
+            GlassEffectContainer(spacing: 18) {
+                ZStack {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                    HStack(spacing: 0) {
+                        ForEach(items.indices, id: \.self) { index in
+                            tabButton(index)
+                                .background {
+                                    if selection == index {
+                                        Color.clear
+                                            .glassEffect(
+                                                .regular.tint(Color.accentColor.opacity(0.45)).interactive(),
+                                                in: Capsule(style: .continuous)
+                                            )
+                                            .glassEffectID("selection", in: glassNamespace)
+                                            .padding(5)
+                                    }
+                                }
+                        }
+                    }
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 8)
+                }
+            }
+            .animation(.spring(response: 0.4, dampingFraction: 0.82), value: selection)
         } else {
-            content
+            fallbackContent
                 .background(.regularMaterial, in: Capsule())
                 .overlay(Capsule().strokeBorder(Color.primary.opacity(0.06)))
                 .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
         }
+    }
+
+    /// Pre-iOS 26 tab row: the labels with a soft accent capsule sliding behind the selected one.
+    private var fallbackContent: some View {
+        HStack(alignment: .center, spacing: 0) {
+            ForEach(items.indices, id: \.self) { index in
+                tabButton(index)
+            }
+        }
+        .background(alignment: .leading) {
+            GeometryReader { proxy in
+                let tabWidth = proxy.size.width / CGFloat(items.count)
+                Capsule()
+                    .fill(Color.accentColor.opacity(0.15))
+                    .frame(width: tabWidth - 6, height: proxy.size.height)
+                    .offset(x: CGFloat(selection) * tabWidth + 3)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.82), value: selection)
+            }
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
     }
 }
 
