@@ -76,27 +76,25 @@ struct BudgetSuggestionService {
         var categoriesById: [PersistentIdentifier: Category] = [:]
         var incomeByMonth = [Decimal](repeating: 0, count: boundaries.count)
 
-        func add(category: Category?, amount: Decimal, monthIdx: Int) {
-            // Transfers between accounts are neither spending nor income — skip them entirely.
-            if category?.isTransfer == true { return }
-            if let category, !category.isIncome {
-                categoriesById[category.persistentModelID] = category
-                var series = totals[category.persistentModelID] ?? [Decimal](repeating: 0, count: boundaries.count)
-                series[monthIdx] += -amount
-                totals[category.persistentModelID] = series
-            } else if amount > 0, category == nil || category?.isIncome == true {
-                incomeByMonth[monthIdx] += amount
-            }
-        }
-
+        // Accumulate inline rather than through a nested function: passing the non-Sendable
+        // `Category` into a local function that captures `totals`/`categoriesById` trips Swift 6's
+        // region-based data-race check, even though this all runs on the main actor.
         for transaction in transactions {
             guard let idx = monthIndex(of: transaction.date) else { continue }
-            if transaction.isSplit {
-                for split in transaction.splits {
-                    add(category: split.category, amount: split.amount, monthIdx: idx)
+            let entries: [(category: Category?, amount: Decimal)] = transaction.isSplit
+                ? transaction.splits.map { (category: $0.category, amount: $0.amount) }
+                : [(category: transaction.category, amount: transaction.amount)]
+            for (category, amount) in entries {
+                // Transfers between accounts are neither spending nor income — skip them entirely.
+                if category?.isTransfer == true { continue }
+                if let category, !category.isIncome {
+                    categoriesById[category.persistentModelID] = category
+                    var series = totals[category.persistentModelID] ?? [Decimal](repeating: 0, count: boundaries.count)
+                    series[idx] += -amount
+                    totals[category.persistentModelID] = series
+                } else if amount > 0, category == nil || category?.isIncome == true {
+                    incomeByMonth[idx] += amount
                 }
-            } else {
-                add(category: transaction.category, amount: transaction.amount, monthIdx: idx)
             }
         }
 
