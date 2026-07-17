@@ -44,5 +44,6 @@ struct TransactionRowView: View {
             .foregroundStyle(.white)
             .frame(width: 32, height: 32)
             .background(color, in: Circle())
+            .accessibilityHidden(true)
     }
 }

@@ -459,6 +459,7 @@ private struct BudgetRowView: View {
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
                 .background(row.categoryColorHex.map { Color(hex: $0) } ?? .gray, in: Circle())
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -521,6 +522,7 @@ private struct UnbudgetedRowView: View {
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
                 .background(color, in: Circle())
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.subheadline.weight(.medium))

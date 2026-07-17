@@ -77,6 +77,7 @@ private struct AccountRow: View {
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
                 .background(.tint, in: Circle())
+                .accessibilityHidden(true)
             VStack(alignment: .leading) {
                 Text(account.name)
                 if let institutionName = account.institutionName {

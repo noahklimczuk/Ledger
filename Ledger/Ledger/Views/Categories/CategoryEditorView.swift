@@ -74,6 +74,7 @@ private struct CategoryRow: View {
                     .foregroundStyle(.white)
                     .frame(width: 28, height: 28)
                     .background(Color(hex: category.colorHex), in: Circle())
+                    .accessibilityHidden(true)
                 Text(category.name)
                     .foregroundStyle(.primary)
                 Spacer()

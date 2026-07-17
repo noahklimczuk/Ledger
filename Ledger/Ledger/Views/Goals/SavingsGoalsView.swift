@@ -102,6 +102,7 @@ private struct GoalCard: View {
                     .foregroundStyle(.white)
                     .frame(width: 32, height: 32)
                     .background(Color(hex: goal.colorHex), in: Circle())
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(goal.name)
                         .fontWeight(.semibold)

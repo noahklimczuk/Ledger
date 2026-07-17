@@ -55,6 +55,7 @@ private struct InsightCard: View {
                 .font(.title3)
                 .foregroundStyle(Color(hex: insight.severity.tintHex))
                 .frame(width: 28)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(insight.title)
                     .font(.subheadline)
