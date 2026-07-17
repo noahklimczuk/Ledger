@@ -57,13 +57,14 @@ struct GeminiService: Sendable {
         let summary: String
     }
 
-    /// Models tried in order, best-first. Gemini 3.5 Flash is the most capable Flash model, but its
-    /// shared free pool gets saturated and returns 503 "high demand" that short retries can't clear;
-    /// when it stays unavailable we fall back to the lighter, less-contended 3.1 Flash-Lite so the
-    /// request still completes. Both are current 3.x models — the 2.5 family is now 404 "no longer
-    /// available to new users" on freshly created projects, so it must NOT be in this chain. Both
-    /// support the structured (schema-constrained) output and function calling this feature needs.
-    private static let modelFallbackChain = ["gemini-3.5-flash", "gemini-3.1-flash-lite"]
+    /// Models tried in order, best-first. Gemini 3.5 Pro leads for the smartest answers; if the key
+    /// can't reach it (not on the tier → 403, or absent → 404) or it's saturated (503/429), the chain
+    /// falls through to 3.5 Flash — the most capable Flash model — and then the lighter, less-
+    /// contended 3.1 Flash-Lite, so the request still completes on a free-tier key. All are current
+    /// 3.x models — the 2.5 family is now 404 "no longer available to new users" on freshly created
+    /// projects, so it must NOT be in this chain. All support the structured (schema-constrained)
+    /// output and function calling this feature needs.
+    private static let modelFallbackChain = ["gemini-3.5-pro", "gemini-3.5-flash", "gemini-3.1-flash-lite"]
     static let apiKeyKeychainKey = "gemini.apiKey"
 
     private static func endpoint(for model: String) -> URL {
@@ -389,14 +390,16 @@ struct GeminiService: Sendable {
         return false
     }
 
-    /// Whether to move on to the next model in the chain: the transient/overload cases *plus* a 404,
-    /// which means this specific model isn't available to the project (e.g. a model retired for new
-    /// users) — a different model in the chain may still work. This is broader than `isRetryable`,
-    /// which only governs retrying the *same* model (where a 404 would just repeat).
+    /// Whether to move on to the next model in the chain: the transient/overload cases *plus* a 404
+    /// (model absent for this project, e.g. retired) or a 403 (model exists but the key's tier can't
+    /// use it — e.g. Pro gated to paid). In both cases a lighter model in the chain may still work.
+    /// This is broader than `isRetryable`, which only governs retrying the *same* model. On the last
+    /// model these still surface, because the caller only advances when it isn't the last one — so a
+    /// genuine bad-key 403 on the final model is reported rather than swallowed.
     private static func shouldTryNextModel(for error: Error) -> Bool {
         if isRetryable(error) { return true }
         if let service = error as? ServiceError, case .server(let status, _) = service {
-            return status == 404
+            return status == 404 || status == 403
         }
         return false
     }
