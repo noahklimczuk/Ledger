@@ -14,6 +14,8 @@ enum LedgerSchema {
         SavingsGoal.self,
         BillReminder.self,
         InsightState.self,
-        Debt.self
+        Debt.self,
+        AdvisorChat.self,
+        AdvisorChatMessage.self
     ]
 }
