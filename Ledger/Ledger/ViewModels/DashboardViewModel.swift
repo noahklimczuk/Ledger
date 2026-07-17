@@ -82,22 +82,20 @@ final class DashboardViewModel {
     private func computeTopCategories(_ transactions: [Transaction]) -> [CategorySlice] {
         var totals: [String: (colorHex: String, amount: Decimal, category: Category?)] = [:]
 
-        func add(category: Category?, amount: Decimal) {
-            guard amount < 0, category?.isTransfer != true else { return }
-            let name = category?.name ?? "Uncategorized"
-            let colorHex = category?.colorHex ?? "#8E8E93"
-            let existing = totals[name] ?? (colorHex, 0, category)
-            // Keep the first real category seen for this name so the slice can drill in.
-            totals[name] = (existing.colorHex, existing.amount + (-amount), existing.category ?? category)
-        }
-
+        // Accumulate inline rather than through a nested function: passing the non-Sendable
+        // `Category` into a local function that captures `totals` trips Swift 6's region-based
+        // data-race check, even though this all runs on the main actor.
         for transaction in transactions {
-            if transaction.isSplit {
-                for split in transaction.splits {
-                    add(category: split.category, amount: split.amount)
-                }
-            } else {
-                add(category: transaction.category, amount: transaction.amount)
+            let entries: [(category: Category?, amount: Decimal)] = transaction.isSplit
+                ? transaction.splits.map { (category: $0.category, amount: $0.amount) }
+                : [(category: transaction.category, amount: transaction.amount)]
+            for (category, amount) in entries {
+                guard amount < 0, category?.isTransfer != true else { continue }
+                let name = category?.name ?? "Uncategorized"
+                let colorHex = category?.colorHex ?? "#8E8E93"
+                let existing = totals[name] ?? (colorHex, 0, category)
+                // Keep the first real category seen for this name so the slice can drill in.
+                totals[name] = (existing.colorHex, existing.amount + (-amount), existing.category ?? category)
             }
         }
 
