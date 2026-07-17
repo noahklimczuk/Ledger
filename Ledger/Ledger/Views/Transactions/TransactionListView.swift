@@ -133,17 +133,19 @@ struct TransactionListView: View {
                 if !didLoad {
                     LoadingView()
                 } else {
-                    VStack(spacing: 0) {
-                        // The search field lives here, as a row that slides in below the nav bar —
-                        // not inside the toolbar. A TextField embedded in the navigation bar grabs
-                        // an unpredictable width when focused (it sprawled across the title area),
-                        // so the toolbar only holds the button that toggles this row.
-                        if isSearchExpanded {
-                            searchBar
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                        }
-                        transactionList
-                    }
+                    // The search field slides in below the nav bar as a row — not inside the
+                    // toolbar. A TextField embedded in the navigation bar grabs an unpredictable
+                    // width when focused (it sprawled across the title area), so the toolbar only
+                    // holds the button that toggles this row. `searchBarRow` renders the app's
+                    // standard pill search bar and drives the clean slide-in/out animation.
+                    transactionList
+                        .searchBarRow(
+                            isPresented: isSearchExpanded,
+                            text: $searchText,
+                            placeholder: "Search merchants",
+                            isFocused: $isSearchFocused,
+                            onCancel: collapseSearch
+                        )
                 }
             }
             .navigationTitle("Transactions")
@@ -162,13 +164,13 @@ struct TransactionListView: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     // Search and add sit together in the same toolbar-button style. Tapping search
-                    // toggles the field that slides in below the bar (see `searchBar`).
+                    // toggles the field that slides in below the bar (see `searchBarRow`).
                     HStack(spacing: 16) {
                         Button {
                             if isSearchExpanded {
                                 collapseSearch()
                             } else {
-                                withAnimation(.snappy) { isSearchExpanded = true }
+                                isSearchExpanded = true
                             }
                         } label: {
                             Image(systemName: "magnifyingglass")
@@ -311,46 +313,8 @@ struct TransactionListView: View {
 
     // MARK: - Search
 
-    /// A search row that slides in below the nav bar — a rounded field (magnifying glass, text,
-    /// inline clear) plus a Cancel button, the standard iOS search-bar shape. Kept out of the
-    /// toolbar because a focused `TextField` in the navigation bar takes an unpredictable width.
-    private var searchBar: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search merchants", text: $searchText)
-                    .textFieldStyle(.plain)
-                    .focused($isSearchFocused)
-                    .submitLabel(.search)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                if !searchText.isEmpty {
-                    Button {
-                        searchText = ""
-                        isSearchFocused = true
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .accessibilityLabel("Clear search")
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.regularMaterial, in: Capsule())
-
-            Button("Cancel") { collapseSearch() }
-        }
-        .padding(.horizontal)
-        .padding(.top, 4)
-        .padding(.bottom, 8)
-    }
-
     private func collapseSearch() {
-        withAnimation(.snappy) {
-            isSearchExpanded = false
-        }
+        isSearchExpanded = false
         isSearchFocused = false
         searchText = ""
     }
