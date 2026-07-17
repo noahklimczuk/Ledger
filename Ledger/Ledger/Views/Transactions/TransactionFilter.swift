@@ -1,8 +1,10 @@
 import Foundation
 import SwiftData
 
-/// Filter criteria for the Transactions tab. The list itself is a live SwiftData `@Query`;
-/// this struct only carries what the filter sheet collects.
+/// Filter criteria for the Transactions tab. The list re-fetches manually (on appear and after each
+/// sync); this struct only carries what the filter sheet collects and what gets persisted between
+/// launches. `startDate`/`endDate` are independent optional bounds — a nil end means "no ceiling",
+/// so a saved filter never freezes the list at a past date.
 struct TransactionFilter: Equatable {
     /// Money direction. Expenses are negative amounts, income is positive.
     enum Kind: String, CaseIterable, Identifiable {

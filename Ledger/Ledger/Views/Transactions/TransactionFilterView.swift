@@ -8,7 +8,13 @@ struct TransactionFilterView: View {
 
     @State private var accounts: [Account] = []
     @State private var categories: [Category] = []
-    @State private var useDateRange = false
+    // Start and end are independent optional bounds, not one coupled range. Coupling them behind a
+    // single "Date Range" toggle meant every applied date filter also stamped an end date — and that
+    // end date, frozen at whatever "today" was when it was set and persisted across launches, quietly
+    // became a ceiling that hid every newer transaction. So the list looked like it had "stopped
+    // updating" while balances and every other screen (which ignore the filter) kept moving.
+    @State private var useStartDate = false
+    @State private var useEndDate = false
     @State private var useAmountRange = false
     @State private var startDate = Date()
     @State private var endDate = Date()
@@ -51,18 +57,22 @@ struct TransactionFilterView: View {
                     }
                 }
                 Section("Date") {
-                    Toggle("Date Range", isOn: $useDateRange)
-                    // Quick preset: turn the range on and set it to Jan 1 → today.
+                    Toggle("From Date", isOn: $useStartDate)
+                    if useStartDate {
+                        DatePicker("From", selection: $startDate, displayedComponents: .date)
+                    }
+                    Toggle("To Date", isOn: $useEndDate)
+                    if useEndDate {
+                        DatePicker("To", selection: $endDate, displayedComponents: .date)
+                    }
+                    // Quick preset: everything since Jan 1, with no end cap — so the list keeps
+                    // surfacing new transactions as they sync in rather than freezing at "today".
                     Button {
-                        useDateRange = true
+                        useStartDate = true
                         startDate = Self.startOfYear
-                        endDate = .now
+                        useEndDate = false
                     } label: {
                         Label("Year to Date", systemImage: "calendar")
-                    }
-                    if useDateRange {
-                        DatePicker("From", selection: $startDate, displayedComponents: .date)
-                        DatePicker("To", selection: $endDate, displayedComponents: .date)
                     }
                 }
                 Section {
@@ -99,7 +109,8 @@ struct TransactionFilterView: View {
     private func load() {
         accounts = (try? modelContext.fetch(FetchDescriptor<Account>(sortBy: [SortDescriptor(\.name)]))) ?? []
         categories = (try? modelContext.fetch(FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)]))) ?? []
-        useDateRange = filter.startDate != nil || filter.endDate != nil
+        useStartDate = filter.startDate != nil
+        useEndDate = filter.endDate != nil
         useAmountRange = filter.minAmount != nil || filter.maxAmount != nil
         startDate = filter.startDate ?? .now
         endDate = filter.endDate ?? .now
@@ -108,8 +119,8 @@ struct TransactionFilterView: View {
     }
 
     private func apply() {
-        filter.startDate = useDateRange ? startDate : nil
-        filter.endDate = useDateRange ? endDate : nil
+        filter.startDate = useStartDate ? Calendar.current.startOfDay(for: startDate) : nil
+        filter.endDate = useEndDate ? endDate : nil
         filter.minAmount = useAmountRange ? ImportValueParsing.decimal(from: minAmountText) : nil
         filter.maxAmount = useAmountRange ? ImportValueParsing.decimal(from: maxAmountText) : nil
     }
