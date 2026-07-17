@@ -315,6 +315,7 @@ struct BudgetListView: View {
                 budgetRow(row, viewModel: viewModel)
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {
+                            UINotificationFeedbackGenerator().notificationOccurred(.warning)
                             viewModel.delete(row)
                         } label: {
                             Label("Delete", systemImage: "trash")
@@ -337,6 +338,7 @@ struct BudgetListView: View {
                             Label("Edit Budget", systemImage: "pencil")
                         }
                         Button(role: .destructive) {
+                            UINotificationFeedbackGenerator().notificationOccurred(.warning)
                             viewModel.delete(row)
                         } label: {
                             Label("Delete Budget", systemImage: "trash")

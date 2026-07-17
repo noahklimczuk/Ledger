@@ -29,6 +29,7 @@ struct SavingsGoalsView: View {
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
+                                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
                                     viewModel.delete(goal)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
@@ -56,6 +57,7 @@ struct SavingsGoalsView: View {
                                     Label("Edit Goal", systemImage: "pencil")
                                 }
                                 Button(role: .destructive) {
+                                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
                                     viewModel.delete(goal)
                                 } label: {
                                     Label("Delete Goal", systemImage: "trash")

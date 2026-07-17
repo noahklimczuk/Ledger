@@ -365,6 +365,7 @@ struct TransactionListView: View {
     }
 
     private func delete(_ transaction: Transaction) {
+        UINotificationFeedbackGenerator().notificationOccurred(.warning)
         modelContext.delete(transaction)
         try? modelContext.save()
         load()

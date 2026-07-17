@@ -30,6 +30,7 @@ struct DebtListView: View {
                                 .buttonStyle(.plain)
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
+                                        UINotificationFeedbackGenerator().notificationOccurred(.warning)
                                         viewModel.delete(debt)
                                     } label: {
                                         Label("Delete", systemImage: "trash")

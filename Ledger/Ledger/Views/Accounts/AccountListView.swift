@@ -30,6 +30,7 @@ struct AccountListView: View {
                                 .buttonStyle(.plain)
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
+                                        UINotificationFeedbackGenerator().notificationOccurred(.warning)
                                         viewModel.remove(account)
                                     } label: {
                                         Label("Delete", systemImage: "trash")

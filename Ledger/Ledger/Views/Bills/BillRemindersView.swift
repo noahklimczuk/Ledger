@@ -36,6 +36,7 @@ struct BillRemindersView: View {
                             .onTapGesture { editingReminder = reminder }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
+                                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
                                     viewModel.delete(reminder)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
