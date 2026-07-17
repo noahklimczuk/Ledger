@@ -48,13 +48,110 @@ final class AIAdvisorViewModel {
     /// chat bubbles. Kept separate from `messages` (the UI transcript) for exactly that reason.
     private var apiHistory: [GeminiService.ChatTurn] = []
 
+    /// The chat being viewed and appended to. Created lazily on the first message so empty chats
+    /// never pile up; `nil` means a fresh, not-yet-saved conversation.
+    private var currentChat: AdvisorChat?
+    /// Saved conversations for the history menu, most-recently-updated first.
+    private(set) var recentChats: [AdvisorChat] = []
+
     /// How many `create_budget` rounds one message may trigger — guards against a call loop.
     private static let maxToolRoundsPerSend = 2
+    /// Cap on how many past chats the history menu lists.
+    private static let recentChatLimit = 25
 
     init(modelContext: ModelContext, month: Date) {
         self.modelContext = modelContext
         self.month = Budget.normalize(month)
         self.hasAPIKey = GeminiService.storedAPIKey != nil
+        loadMostRecentChat()
+    }
+
+    // MARK: - Saved chats
+
+    /// Opens the most recent saved conversation on launch so the advisor resumes where it left off.
+    private func loadMostRecentChat() {
+        refreshRecentChats()
+        if let chat = recentChats.first { restore(chat) }
+    }
+
+    /// Starts a fresh conversation, leaving the current one saved. The next message creates its
+    /// record, so tapping New Chat repeatedly never leaves empty chats behind.
+    func newChat() {
+        currentChat = nil
+        messages = []
+        apiHistory = []
+        systemInstruction = nil
+        errorText = nil
+        refreshRecentChats()
+    }
+
+    /// Reopens a saved conversation from the history menu.
+    func openChat(_ chat: AdvisorChat) {
+        errorText = nil
+        restore(chat)
+    }
+
+    private func refreshRecentChats() {
+        var descriptor = FetchDescriptor<AdvisorChat>(sortBy: [SortDescriptor(\.updatedAt, order: .reverse)])
+        descriptor.fetchLimit = Self.recentChatLimit
+        recentChats = (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    /// Loads a saved chat into the live transcript and rebuilds the API history from it. Only the
+    /// visible text turns are replayed to the model — action notes are UI-only records of a past
+    /// budget change, and the freshly built system snapshot already reflects those budgets.
+    private func restore(_ chat: AdvisorChat) {
+        currentChat = chat
+        let ordered = chat.orderedMessages
+        messages = ordered.map { record in
+            Message(
+                role: record.role == "user" ? .user : .assistant,
+                kind: record.kind == "actionNote" ? .actionNote : .text,
+                text: record.text
+            )
+        }
+        apiHistory = ordered.compactMap { record -> GeminiService.ChatTurn? in
+            switch (record.role, record.kind) {
+            case ("user", _): return .user(record.text)
+            case ("assistant", "text"): return .model(text: record.text, functionCall: nil, thoughtSignature: nil)
+            default: return nil
+            }
+        }
+        // Rebuild the snapshot for the currently open month on the next message.
+        systemInstruction = nil
+    }
+
+    /// Appends a message to the live transcript and persists it, creating the chat on the first
+    /// message so an unsent conversation never gets saved.
+    private func appendMessage(_ message: Message) {
+        messages.append(message)
+
+        let chat: AdvisorChat
+        if let existing = currentChat {
+            chat = existing
+        } else {
+            let created = AdvisorChat(month: month)
+            modelContext.insert(created)
+            currentChat = created
+            chat = created
+        }
+
+        let record = AdvisorChatMessage(
+            role: message.role == .user ? "user" : "assistant",
+            kind: message.kind == .actionNote ? "actionNote" : "text",
+            text: message.text,
+            sortIndex: chat.messages.count
+        )
+        modelContext.insert(record)
+        record.chat = chat
+        chat.updatedAt = .now
+        // Title the chat from its first user message so the history list is scannable.
+        if message.role == .user, chat.title == "New Chat" {
+            let trimmed = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { chat.title = String(trimmed.prefix(60)) }
+        }
+        try? modelContext.save()
+        refreshRecentChats()
     }
 
     func saveAPIKey() {
@@ -72,7 +169,7 @@ final class AIAdvisorViewModel {
         }
 
         errorText = nil
-        messages.append(Message(role: .user, text: text))
+        appendMessage(Message(role: .user, text: text))
         apiHistory.append(.user(text))
 
         // Build the snapshot lazily on the first message so it reflects the latest edits.
@@ -88,7 +185,7 @@ final class AIAdvisorViewModel {
                 let reply = try await GeminiService().advise(system: system, history: apiHistory, apiKey: apiKey)
                 let replyText = reply.text.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !replyText.isEmpty {
-                    messages.append(Message(role: .assistant, text: replyText))
+                    appendMessage(Message(role: .assistant, text: replyText))
                 }
 
                 guard let plan = reply.budgetPlan, toolRounds < Self.maxToolRoundsPerSend else {
@@ -110,7 +207,7 @@ final class AIAdvisorViewModel {
                     thoughtSignature: reply.thoughtSignature
                 ))
                 let result = applyBudgetPlan(plan)
-                messages.append(Message(role: .assistant, kind: .actionNote, text: result.note))
+                appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
                 apiHistory.append(.functionResponse(
                     name: GeminiService.createBudgetToolName,
                     responseJSON: result.responseJSON

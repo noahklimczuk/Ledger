@@ -30,6 +30,20 @@ struct AIAdvisorView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    // Only meaningful once the key is set and the chat UI is showing.
+                    if let viewModel, viewModel.hasAPIKey {
+                        HStack(spacing: 16) {
+                            historyMenu(viewModel)
+                            Button {
+                                viewModel.newChat()
+                            } label: {
+                                Image(systemName: "square.and.pencil")
+                            }
+                            .accessibilityLabel("New Chat")
+                        }
+                    }
+                }
             }
             .task {
                 if viewModel == nil {
@@ -37,6 +51,30 @@ struct AIAdvisorView: View {
                 }
             }
         }
+    }
+
+    // MARK: - History
+
+    /// Lists saved conversations, most recent first; tapping one reopens it.
+    private func historyMenu(_ viewModel: AIAdvisorViewModel) -> some View {
+        Menu {
+            if viewModel.recentChats.isEmpty {
+                Text("No saved chats yet")
+            } else {
+                Section("Recent Chats") {
+                    ForEach(viewModel.recentChats) { chat in
+                        Button {
+                            viewModel.openChat(chat)
+                        } label: {
+                            Text(chat.title)
+                        }
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "clock.arrow.circlepath")
+        }
+        .accessibilityLabel("Chat history")
     }
 
     // MARK: - Chat
@@ -74,6 +112,10 @@ struct AIAdvisorView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: viewModel.messages.count) { _, _ in scrollToEnd(viewModel, proxy) }
                 .onChange(of: viewModel.isSending) { _, _ in scrollToEnd(viewModel, proxy) }
+                // Jump to the newest message when a saved chat is opened/restored.
+                .onAppear {
+                    if let last = viewModel.messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                }
             }
 
             // The input bar owns its own text as local @State, so typing re-renders only the bar —
