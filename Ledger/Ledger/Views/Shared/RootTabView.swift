@@ -167,29 +167,22 @@ private struct FloatingTabBar: View {
             .padding(.horizontal, 10)
     }
 
-    /// The moving selection highlight: its own tinted Liquid Glass capsule on iOS 26 (so it reads as
-    /// glass sliding within glass), a soft accent capsule on the material fallback.
-    @ViewBuilder
+    /// The moving selection highlight: a soft accent-tinted capsule that slides behind the labels.
+    /// Kept as a plain fill (not its own `glassEffect`) so it never contributes to the bar's layout
+    /// size — a nested glass capsule inside a `GlassEffectContainer` inflated the measured bar height
+    /// on iOS 26, which collapsed every page to zero height and left the app stuck on launch.
     private var slider: some View {
-        if #available(iOS 26.0, *) {
-            Capsule()
-                .fill(.clear)
-                .glassEffect(.regular.tint(Color.accentColor.opacity(0.28)).interactive(), in: Capsule())
-        } else {
-            Capsule()
-                .fill(Color.accentColor.opacity(0.15))
-        }
+        Capsule()
+            .fill(Color.accentColor.opacity(0.15))
     }
 
-    /// The pill background: real, interactive Liquid Glass where available, a material capsule
-    /// otherwise. On iOS 26 the bar and the slider share a `GlassEffectContainer` so their glass
-    /// blends into one continuous surface instead of two flat layers.
+    /// The pill background: real Liquid Glass where available, a material capsule otherwise. Applied
+    /// directly to `content` (no `GlassEffectContainer`) so the bar sizes to its content instead of
+    /// expanding to fill the overlay — the container did the latter, breaking launch layout.
     @ViewBuilder
     private var bar: some View {
         if #available(iOS 26.0, *) {
-            GlassEffectContainer(spacing: 12) {
-                content.glassEffect(.regular.interactive(), in: Capsule())
-            }
+            content.glassEffect(.regular, in: Capsule())
         } else {
             content
                 .background(.regularMaterial, in: Capsule())
