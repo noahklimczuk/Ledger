@@ -23,6 +23,9 @@ struct InteractiveDonutChart: View {
     /// spent-vs-remaining gauge to show a percentage.
     var centerValueText: String?
     var showLegend: Bool = true
+    /// When false the ring is a passive display: it ignores taps entirely, so a pure gauge (which
+    /// shows a fixed value in the centre) can't have that value replaced by a stuck slice highlight.
+    var isInteractive: Bool = true
     var onSelect: ((DonutSegment) -> Void)?
 
     @State private var selectedValue: Double?
@@ -32,12 +35,14 @@ struct InteractiveDonutChart: View {
         centerCaption: String? = nil,
         centerValueText: String? = nil,
         showLegend: Bool = true,
+        isInteractive: Bool = true,
         onSelect: ((DonutSegment) -> Void)? = nil
     ) {
         self.segments = segments
         self.centerCaption = centerCaption
         self.centerValueText = centerValueText
         self.showLegend = showLegend
+        self.isInteractive = isInteractive
         self.onSelect = onSelect
     }
 
@@ -73,7 +78,8 @@ struct InteractiveDonutChart: View {
             .foregroundStyle(segment.color)
             .opacity(selectedSegment == nil || selectedSegment?.id == segment.id ? 1 : 0.35)
         }
-        .chartAngleSelection(value: $selectedValue)
+        // A passive gauge binds selection to a no-op so a tap can't leave a persistent highlight.
+        .chartAngleSelection(value: isInteractive ? $selectedValue : .constant(nil))
         .chartLegend(.hidden)
         .frame(height: 200)
         .overlay { centerLabel }
