@@ -15,24 +15,47 @@ import SwiftData
 /// tab at a time, so it never hits that nav-controller-nesting crash. The selected tab tints with the
 /// app's accent via the `.tint(.accentColor)` set on the scene in `LedgerApp`.
 struct RootTabView: View {
+    /// The selected tab index, bound so a horizontal swipe (below) can step between screens in
+    /// addition to tapping the bar.
+    @State private var selection = 0
+    private static let tabCount = 5
+
     var body: some View {
-        TabView {
-            Tab("Dashboard", systemImage: "house.fill") {
+        TabView(selection: $selection) {
+            Tab("Dashboard", systemImage: "house.fill", value: 0) {
                 DashboardView()
             }
-            Tab("Accounts", systemImage: "banknote.fill") {
+            Tab("Accounts", systemImage: "banknote.fill", value: 1) {
                 AccountListView()
             }
-            Tab("Transactions", systemImage: "list.bullet") {
+            Tab("Transactions", systemImage: "list.bullet", value: 2) {
                 TransactionListView()
             }
-            Tab("Budgets", systemImage: "chart.pie.fill") {
+            Tab("Budgets", systemImage: "chart.pie.fill", value: 3) {
                 BudgetListView()
             }
-            Tab("More", systemImage: "ellipsis.circle.fill") {
+            Tab("More", systemImage: "ellipsis.circle.fill", value: 4) {
                 MoreView()
             }
         }
+        .simultaneousGesture(swipeBetweenTabs)
+    }
+
+    /// A horizontal flick that steps to the adjacent tab, so the five screens can be swiped through as
+    /// well as tapped — the native tab bar has no built-in page-swipe. Deliberately high thresholds (a
+    /// long, clearly-horizontal drag) so it doesn't fire on a List row's shorter swipe-to-delete/
+    /// -review or on a vertical scroll. Runs `.simultaneousGesture` so it coexists with those rather
+    /// than stealing their touches.
+    private var swipeBetweenTabs: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+                guard abs(dx) > 90, abs(dx) > abs(dy) * 2 else { return }
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    selection = max(0, min(Self.tabCount - 1, selection + (dx < 0 ? 1 : -1)))
+                }
+            }
     }
 }
 
