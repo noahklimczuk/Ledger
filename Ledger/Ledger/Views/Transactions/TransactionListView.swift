@@ -42,13 +42,30 @@ struct TransactionListView: View {
         return showAllHistory ? nil : Self.twelveMonthsAgo
     }
 
+    /// The filtered, searched, and ranked rows the list renders — precomputed into state by
+    /// `recompute()` rather than derived in `body`. The old computed property re-ran the whole
+    /// filter chain, search ranking, and sort on every body evaluation (often twice per pass — once
+    /// for the empty check, once for the `ForEach`) and on unrelated state changes, doing O(n log n)
+    /// main-thread work over the entire transaction history on each search keystroke.
+    @State private var visibleTransactions: [Transaction] = []
+
     /// True when the default 12-month window is hiding older transactions the user could still reach.
-    private var hasHiddenOlderHistory: Bool {
+    /// Precomputed alongside `visibleTransactions` so the full-history scan doesn't run every render.
+    @State private var hasHiddenOlderHistory = false
+
+    /// Rebuilds the derived list state from the current data, filter, search, and window. Runs after
+    /// a load and whenever a filter/search/window input changes, so `body` only reads stored arrays.
+    private func recompute() {
+        visibleTransactions = computeVisibleTransactions()
+        hasHiddenOlderHistory = computeHasHiddenOlderHistory()
+    }
+
+    private func computeHasHiddenOlderHistory() -> Bool {
         guard !showAllHistory, filter.startDate == nil, let floor = Self.twelveMonthsAgo else { return false }
         return allTransactions.contains { $0.date < floor }
     }
 
-    private var transactions: [Transaction] {
+    private func computeVisibleTransactions() -> [Transaction] {
         var result = allTransactions
 
         switch filter.kind {
@@ -189,10 +206,15 @@ struct TransactionListView: View {
             // Re-fetch once a background refresh (sync + categorize) finishes, so freshly imported
             // transactions appear without needing to re-open the tab — matching every other screen.
             .onChange(of: refresh.refreshCount) { _, _ in load() }
+            // Rebuild the visible rows when the search text or the show-all-history toggle changes,
+            // so the filter/sort work happens on the change — not on every body pass.
+            .onChange(of: searchText) { _, _ in recompute() }
+            .onChange(of: showAllHistory) { _, _ in recompute() }
             // Persist every change (apply, reset) so the filter survives leaving the tab and
             // relaunching. Skipped until the initial restore has run, so it can't save over the
             // saved value with the default before it's loaded.
             .onChange(of: filter) { _, newValue in
+                recompute()
                 guard didRestoreFilter else { return }
                 TransactionFilterStore.save(newValue.snapshot)
             }
@@ -204,7 +226,7 @@ struct TransactionListView: View {
     /// The empty states and the transaction list itself, below the (optional) search bar.
     @ViewBuilder
     private var transactionList: some View {
-        if transactions.isEmpty {
+        if visibleTransactions.isEmpty {
             if hasHiddenOlderHistory && !isFiltering {
                 EmptyStateView(
                     systemImage: "clock.arrow.circlepath",
@@ -228,7 +250,7 @@ struct TransactionListView: View {
             }
         } else {
             List {
-                ForEach(transactions) { transaction in
+                ForEach(visibleTransactions) { transaction in
                     NavigationLink {
                         TransactionDetailView(transaction: transaction)
                     } label: {
@@ -332,12 +354,13 @@ struct TransactionListView: View {
         searchText = ""
     }
 
-    /// Re-reads every transaction, newest first. The view's computed `transactions` then applies the
-    /// active search, filters, and 12-month window on top.
+    /// Re-reads every transaction, newest first, then rebuilds the visible rows. `recompute()`
+    /// applies the active search, filters, and 12-month window on top.
     private func load() {
         let descriptor = FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date, order: .reverse)])
         allTransactions = (try? modelContext.fetch(descriptor)) ?? []
         didLoad = true
+        recompute()
     }
 
     private func delete(_ transaction: Transaction) {
