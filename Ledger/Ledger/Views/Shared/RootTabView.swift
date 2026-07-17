@@ -27,7 +27,16 @@ struct RootTabView: View {
             ScrollView(.horizontal) {
                 // Pages are shrunk to leave a strip at the bottom for the floating bar (overlaid
                 // below), and pinned to the top so that strip lands where the bar sits.
-                LazyHStack(alignment: .top, spacing: 0) {
+                //
+                // An eager HStack (not LazyHStack) keeps all five pages mounted for the app's life,
+                // so each root screen's `@State` — its view model and loaded data — survives while
+                // you're on another tab. A LazyHStack discards pages that scroll far enough off-screen
+                // and rebuilds them on return, which reset each screen to `viewModel == nil` (a
+                // LoadingView flash) and re-ran its fetch on every visit. Mounting all five is safe
+                // here: the crash this pager was built to avoid came from the *paged TabView's*
+                // UIPageViewController nesting navigation controllers, not from plain NavigationStacks
+                // sitting side by side in a ScrollView (adjacent pages already coexist during a swipe).
+                HStack(alignment: .top, spacing: 0) {
                     page(DashboardView(), width: proxy.size.width, height: pageHeight, index: 0)
                     page(AccountListView(), width: proxy.size.width, height: pageHeight, index: 1)
                     page(TransactionListView(), width: proxy.size.width, height: pageHeight, index: 2)
