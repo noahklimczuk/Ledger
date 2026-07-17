@@ -20,8 +20,13 @@ struct RootTabView: View {
         // keeps adjacent pages' NavigationStacks mounted at once; when two large-title nav bars
         // overlap mid-swipe UIKit crashes with "nest wrapped navigation controllers". A plain
         // ScrollView has no page/navigation controller to nest, so each tab's NavigationStack keeps
-        // its large title and back stack while the swipe still works. Inner Lists still scroll
-        // vertically since the pager only claims horizontal drags.
+        // its large title and back stack. Inner Lists still scroll vertically.
+        //
+        // The left/right swipe between tabs is intentionally turned off (`.scrollDisabled(true)`
+        // below) so a List row's horizontal swipe-actions can't be stolen by a page turn — the two
+        // are the same gesture in the same direction, with no reliable way to arbitrate them. Tabs
+        // change via the floating bar, which `scrollPosition` still drives programmatically. Delete
+        // that one modifier to bring swipe-between-tabs back; the rest of the pager is unchanged.
         GeometryReader { proxy in
             let pageHeight = max(proxy.size.height - tabBarHeight, 0)
             ScrollView(.horizontal) {
@@ -48,6 +53,9 @@ struct RootTabView: View {
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: $scrolledIndex)
             .scrollIndicators(.hidden)
+            // Turns off swipe-between-tabs so it can't hijack a row's swipe-actions. Bar taps still
+            // navigate (they drive `scrollPosition` above). Remove this one line to restore swiping.
+            .scrollDisabled(true)
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         // Float the bar over the reserved strip (not `safeAreaInset`, which the pager's inner Lists
