@@ -25,6 +25,8 @@ struct TransactionRowView: View {
                 Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.account?.currencyCode ?? "CAD"))
                     .fontWeight(.semibold)
                     .foregroundStyle(transaction.amount < 0 ? Color.primary : Color.green)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 if !transaction.isReviewed {
                     Circle()
                         .fill(.orange)
@@ -32,6 +34,9 @@ struct TransactionRowView: View {
                         .accessibilityLabel("Needs review")
                 }
             }
+            // Keep the amount at its natural width so a long merchant truncates instead of squeezing
+            // the money label.
+            .layoutPriority(1)
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())

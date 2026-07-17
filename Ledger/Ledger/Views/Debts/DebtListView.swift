@@ -71,12 +71,16 @@ struct DebtListView: View {
                     Text("Total Owed").font(.caption).foregroundStyle(.secondary)
                     Text(CurrencyFormatter.string(from: viewModel.totalOwed))
                         .font(.title2).fontWeight(.semibold)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Monthly Payments").font(.caption).foregroundStyle(.secondary)
                     Text(CurrencyFormatter.string(from: viewModel.totalMonthlyPayment))
                         .font(.title3).fontWeight(.medium)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
                 }
             }
             .padding(.vertical, 4)
