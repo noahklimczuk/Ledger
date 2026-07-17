@@ -62,13 +62,21 @@ struct RootTabView: View {
         // didn't pick up). Measuring its height feeds `tabBarHeight` so the pages shrink to match.
         .overlay(alignment: .bottom) {
             FloatingTabBar(selection: tabSelection)
+                // Pin the bar to its intrinsic height. Without this the iOS 26 `GlassEffectContainer`
+                // inside the bar expands to fill the whole overlay (the full screen), so the measured
+                // height below ballooned, `pageHeight` collapsed to 0, and every page rendered
+                // zero-height — the app came up stuck on a blank glass bar. Fixing the vertical axis
+                // (width still fills, so the pill spans the screen) keeps the bar its real ~64pt tall.
+                .fixedSize(horizontal: false, vertical: true)
                 .background(
                     GeometryReader { geo in
                         Color.clear.preference(key: TabBarHeightKey.self, value: geo.size.height)
                     }
                 )
         }
-        .onPreferenceChange(TabBarHeightKey.self) { tabBarHeight = $0 }
+        // Clamp as a belt-and-suspenders guard: a floating pill tab bar is never taller than this, so
+        // even if a future glass/layout quirk reports a runaway height, the pages can't collapse.
+        .onPreferenceChange(TabBarHeightKey.self) { tabBarHeight = min($0, 120) }
     }
 
     /// Bridges the floating bar's `Int` selection to the pager's optional `scrolledIndex`. Reading
