@@ -8,14 +8,33 @@ struct BudgetListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppRefreshCoordinator.self) private var refresh
     @State private var viewModel: BudgetsViewModel?
-    @State private var isPresentingNew = false
-    @State private var editingRow: BudgetsViewModel.BudgetRow?
-    @State private var quickBudgetCategory: Category?
-    @State private var isEditingIncome = false
+    @State private var activeSheet: ActiveSheet?
     @State private var isConfirmingAutoGenerate = false
     @State private var autoGenerateResult: String?
-    @State private var isPresentingSuggestion = false
-    @State private var isPresentingAdvisor = false
+
+    /// One source of truth for the several sheets this screen can present. Consolidating the
+    /// previous six independent `.sheet` bindings behind a single `.sheet(item:)` removes the
+    /// stacked-sheet footgun: only one sheet can present at a time, and two flags flipping in the
+    /// same runloop tick could drop a presentation or leave a flag stuck true.
+    private enum ActiveSheet: Identifiable {
+        case suggestion
+        case advisor
+        case newBudget
+        case editRow(BudgetsViewModel.BudgetRow)
+        case quickBudget(Category)
+        case income
+
+        var id: String {
+            switch self {
+            case .suggestion: "suggestion"
+            case .advisor: "advisor"
+            case .newBudget: "newBudget"
+            case .editRow(let row): "editRow-\(row.id.hashValue)"
+            case .quickBudget(let category): "quickBudget-\(category.persistentModelID.hashValue)"
+            case .income: "income"
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -59,13 +78,13 @@ struct BudgetListView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
-                        Button { isPresentingNew = true } label: {
+                        Button { activeSheet = .newBudget } label: {
                             Label("Add Budget", systemImage: "plus")
                         }
-                        Button { isEditingIncome = true } label: {
+                        Button { activeSheet = .income } label: {
                             Label("Set Monthly Income", systemImage: "dollarsign.circle")
                         }
-                        Button { isPresentingSuggestion = true } label: {
+                        Button { activeSheet = .suggestion } label: {
                             Label("Suggest a Budget", systemImage: "sparkles")
                         }
                         Button { isConfirmingAutoGenerate = true } label: {
@@ -74,6 +93,7 @@ struct BudgetListView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Add to budget plan")
                 }
             }
             .confirmationDialog(
@@ -96,39 +116,31 @@ struct BudgetListView: View {
             } message: {
                 Text(autoGenerateResult ?? "")
             }
-            .sheet(isPresented: $isPresentingSuggestion, onDismiss: { viewModel?.load() }) {
+            // A single sheet presenter for every sheet this screen shows. Reloading on dismiss keeps
+            // the plan in sync no matter which sheet closed — including the advisor, which can apply
+            // budgets of its own; income edits already reload via `setIncomeOverride`, so the extra
+            // reload there is a harmless no-op.
+            .sheet(item: $activeSheet, onDismiss: { viewModel?.load() }) { sheet in
                 if let viewModel {
-                    BudgetSuggestionView(month: viewModel.selectedMonth)
-                }
-            }
-            .sheet(isPresented: $isPresentingAdvisor) {
-                if let viewModel {
-                    AIAdvisorView(month: viewModel.selectedMonth)
-                }
-            }
-            .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {
-                if let viewModel {
-                    BudgetEditView(month: viewModel.selectedMonth, budgetRow: nil)
-                }
-            }
-            .sheet(item: $editingRow, onDismiss: { viewModel?.load() }) { row in
-                if let viewModel {
-                    BudgetEditView(month: viewModel.selectedMonth, budgetRow: row)
-                }
-            }
-            .sheet(item: $quickBudgetCategory, onDismiss: { viewModel?.load() }) { category in
-                if let viewModel {
-                    BudgetEditView(month: viewModel.selectedMonth, budgetRow: nil, preselectedCategory: category)
-                }
-            }
-            .sheet(isPresented: $isEditingIncome) {
-                if let viewModel {
-                    BudgetIncomeEditView(
-                        month: viewModel.selectedMonth,
-                        actualIncome: viewModel.actualIncome,
-                        currentOverride: viewModel.incomeOverride
-                    ) { amount in
-                        viewModel.setIncomeOverride(amount)
+                    switch sheet {
+                    case .suggestion:
+                        BudgetSuggestionView(month: viewModel.selectedMonth)
+                    case .advisor:
+                        AIAdvisorView(month: viewModel.selectedMonth)
+                    case .newBudget:
+                        BudgetEditView(month: viewModel.selectedMonth, budgetRow: nil)
+                    case .editRow(let row):
+                        BudgetEditView(month: viewModel.selectedMonth, budgetRow: row)
+                    case .quickBudget(let category):
+                        BudgetEditView(month: viewModel.selectedMonth, budgetRow: nil, preselectedCategory: category)
+                    case .income:
+                        BudgetIncomeEditView(
+                            month: viewModel.selectedMonth,
+                            actualIncome: viewModel.actualIncome,
+                            currentOverride: viewModel.incomeOverride
+                        ) { amount in
+                            viewModel.setIncomeOverride(amount)
+                        }
                     }
                 }
             }
@@ -146,7 +158,7 @@ struct BudgetListView: View {
 
     private var advisorBubble: some View {
         Button {
-            isPresentingAdvisor = true
+            activeSheet = .advisor
         } label: {
             Image(systemName: "bubble.left.and.bubble.right.fill")
                 .font(.system(size: 22, weight: .semibold))
@@ -181,7 +193,7 @@ struct BudgetListView: View {
             Divider()
 
             HStack(spacing: 12) {
-                Button { isEditingIncome = true } label: {
+                Button { activeSheet = .income } label: {
                     planTile(
                         label: viewModel.incomeOverride == nil ? "Income · actual" : "Income · planned",
                         value: viewModel.incomeToAssign,
@@ -314,6 +326,7 @@ struct BudgetListView: View {
                 budgetRow(row, viewModel: viewModel)
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {
+                            UINotificationFeedbackGenerator().notificationOccurred(.warning)
                             viewModel.delete(row)
                         } label: {
                             Label("Delete", systemImage: "trash")
@@ -321,7 +334,7 @@ struct BudgetListView: View {
                     }
                     .swipeActions(edge: .leading) {
                         Button {
-                            editingRow = row
+                            activeSheet = .editRow(row)
                         } label: {
                             Label("Edit", systemImage: "pencil")
                         }
@@ -331,11 +344,12 @@ struct BudgetListView: View {
                     // even where the paged tab swipe competes with row swipes.
                     .contextMenu {
                         Button {
-                            editingRow = row
+                            activeSheet = .editRow(row)
                         } label: {
                             Label("Edit Budget", systemImage: "pencil")
                         }
                         Button(role: .destructive) {
+                            UINotificationFeedbackGenerator().notificationOccurred(.warning)
                             viewModel.delete(row)
                         } label: {
                             Label("Delete Budget", systemImage: "trash")
@@ -382,7 +396,7 @@ struct BudgetListView: View {
                 if item.hasCategory {
                     Button {
                         // Faulted on tap, not during render.
-                        quickBudgetCategory = item.category
+                        if let category = item.category { activeSheet = .quickBudget(category) }
                     } label: {
                         UnbudgetedRowView(
                             symbol: item.categorySymbolName,
@@ -425,13 +439,13 @@ struct BudgetListView: View {
                 .multilineTextAlignment(.center)
             HStack(spacing: 12) {
                 Button {
-                    isPresentingSuggestion = true
+                    activeSheet = .suggestion
                 } label: {
                     Label("Suggest a Budget", systemImage: "sparkles")
                 }
                 .buttonStyle(.borderedProminent)
                 Button {
-                    isPresentingNew = true
+                    activeSheet = .newBudget
                 } label: {
                     Label("Add Budget", systemImage: "plus")
                 }
@@ -459,6 +473,7 @@ private struct BudgetRowView: View {
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
                 .background(row.categoryColorHex.map { Color(hex: $0) } ?? .gray, in: Circle())
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -521,6 +536,7 @@ private struct UnbudgetedRowView: View {
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
                 .background(color, in: Circle())
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.subheadline.weight(.medium))

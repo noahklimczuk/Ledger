@@ -8,7 +8,11 @@ struct RootTabView: View {
     /// Measured height of the floating bar. Each page is shrunk by this so the bar never overlaps
     /// content (previously it sat *on top* via `safeAreaInset`, which didn't reach the inner Lists
     /// nested in the horizontal pager, so their last rows scrolled under the bar).
-    @State private var tabBarHeight: CGFloat = 0
+    ///
+    /// Seeded with an estimate close to the real bar height so the very first layout sizes pages
+    /// correctly instead of drawing them full-height and popping once the measured height arrives;
+    /// `onPreferenceChange` overwrites it with the exact value right after the first layout pass.
+    @State private var tabBarHeight: CGFloat = 64
 
     var body: some View {
         // A horizontal paging ScrollView keeps the left/right swipe between the five root screens
@@ -16,14 +20,28 @@ struct RootTabView: View {
         // keeps adjacent pages' NavigationStacks mounted at once; when two large-title nav bars
         // overlap mid-swipe UIKit crashes with "nest wrapped navigation controllers". A plain
         // ScrollView has no page/navigation controller to nest, so each tab's NavigationStack keeps
-        // its large title and back stack while the swipe still works. Inner Lists still scroll
-        // vertically since the pager only claims horizontal drags.
+        // its large title and back stack. Inner Lists still scroll vertically.
+        //
+        // The left/right swipe between tabs is intentionally turned off (`.scrollDisabled(true)`
+        // below) so a List row's horizontal swipe-actions can't be stolen by a page turn — the two
+        // are the same gesture in the same direction, with no reliable way to arbitrate them. Tabs
+        // change via the floating bar, which `scrollPosition` still drives programmatically. Delete
+        // that one modifier to bring swipe-between-tabs back; the rest of the pager is unchanged.
         GeometryReader { proxy in
             let pageHeight = max(proxy.size.height - tabBarHeight, 0)
             ScrollView(.horizontal) {
                 // Pages are shrunk to leave a strip at the bottom for the floating bar (overlaid
                 // below), and pinned to the top so that strip lands where the bar sits.
-                LazyHStack(alignment: .top, spacing: 0) {
+                //
+                // An eager HStack (not LazyHStack) keeps all five pages mounted for the app's life,
+                // so each root screen's `@State` — its view model and loaded data — survives while
+                // you're on another tab. A LazyHStack discards pages that scroll far enough off-screen
+                // and rebuilds them on return, which reset each screen to `viewModel == nil` (a
+                // LoadingView flash) and re-ran its fetch on every visit. Mounting all five is safe
+                // here: the crash this pager was built to avoid came from the *paged TabView's*
+                // UIPageViewController nesting navigation controllers, not from plain NavigationStacks
+                // sitting side by side in a ScrollView (adjacent pages already coexist during a swipe).
+                HStack(alignment: .top, spacing: 0) {
                     page(DashboardView(), width: proxy.size.width, height: pageHeight, index: 0)
                     page(AccountListView(), width: proxy.size.width, height: pageHeight, index: 1)
                     page(TransactionListView(), width: proxy.size.width, height: pageHeight, index: 2)
@@ -35,6 +53,9 @@ struct RootTabView: View {
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: $scrolledIndex)
             .scrollIndicators(.hidden)
+            // Turns off swipe-between-tabs so it can't hijack a row's swipe-actions. Bar taps still
+            // navigate (they drive `scrollPosition` above). Remove this one line to restore swiping.
+            .scrollDisabled(true)
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         // Float the bar over the reserved strip (not `safeAreaInset`, which the pager's inner Lists

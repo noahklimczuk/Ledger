@@ -40,6 +40,7 @@ struct RecurringView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
+                .accessibilityLabel("Refresh")
             }
         }
         .task {
@@ -118,6 +119,7 @@ private struct RecurringRow: View {
         HStack {
             Image(systemName: series.isIncome ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
                 .foregroundStyle(series.isIncome ? .green : .orange)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(series.displayName).fontWeight(.medium)
                 Text("\(series.cadence.displayName) · next \(DateFormatting.medium(series.nextExpected))")

@@ -47,6 +47,7 @@ struct CategoryEditorView: View {
                 Button { isPresentingNew = true } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel("Add Category")
             }
         }
         .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {
@@ -74,6 +75,7 @@ private struct CategoryRow: View {
                     .foregroundStyle(.white)
                     .frame(width: 28, height: 28)
                     .background(Color(hex: category.colorHex), in: Circle())
+                    .accessibilityHidden(true)
                 Text(category.name)
                     .foregroundStyle(.primary)
                 Spacer()

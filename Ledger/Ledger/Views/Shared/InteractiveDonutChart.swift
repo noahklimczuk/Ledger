@@ -23,6 +23,9 @@ struct InteractiveDonutChart: View {
     /// spent-vs-remaining gauge to show a percentage.
     var centerValueText: String?
     var showLegend: Bool = true
+    /// When false the ring is a passive display: it ignores taps entirely, so a pure gauge (which
+    /// shows a fixed value in the centre) can't have that value replaced by a stuck slice highlight.
+    var isInteractive: Bool = true
     var onSelect: ((DonutSegment) -> Void)?
 
     @State private var selectedValue: Double?
@@ -32,12 +35,14 @@ struct InteractiveDonutChart: View {
         centerCaption: String? = nil,
         centerValueText: String? = nil,
         showLegend: Bool = true,
+        isInteractive: Bool = true,
         onSelect: ((DonutSegment) -> Void)? = nil
     ) {
         self.segments = segments
         self.centerCaption = centerCaption
         self.centerValueText = centerValueText
         self.showLegend = showLegend
+        self.isInteractive = isInteractive
         self.onSelect = onSelect
     }
 
@@ -51,6 +56,13 @@ struct InteractiveDonutChart: View {
     }
 
     private var total: Decimal { segments.reduce(0) { $0 + $1.value } }
+
+    /// A spoken rundown of every slice, e.g. "Groceries, $420.00; Rent, $1,500.00".
+    private var accessibilitySummary: String {
+        segments
+            .map { "\($0.label), \(CurrencyFormatter.string(from: $0.value))" }
+            .joined(separator: "; ")
+    }
 
     private var selectedSegment: DonutSegment? {
         guard let selectedValue else { return nil }
@@ -73,9 +85,15 @@ struct InteractiveDonutChart: View {
             .foregroundStyle(segment.color)
             .opacity(selectedSegment == nil || selectedSegment?.id == segment.id ? 1 : 0.35)
         }
-        .chartAngleSelection(value: $selectedValue)
+        // A passive gauge binds selection to a no-op so a tap can't leave a persistent highlight.
+        .chartAngleSelection(value: isInteractive ? $selectedValue : .constant(nil))
         .chartLegend(.hidden)
         .frame(height: 200)
+        // The ring is a VoiceOver dead spot on its own (the legend, when shown, carries the detail),
+        // so give it a spoken summary of every slice for the no-legend cases like the gauge.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(centerCaption ?? "Breakdown")
+        .accessibilityValue(accessibilitySummary)
         .overlay { centerLabel }
         .animation(.easeInOut(duration: 0.2), value: selectedSegment?.id)
         .onChange(of: selectedValue) { _, _ in

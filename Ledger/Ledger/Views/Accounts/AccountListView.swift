@@ -30,6 +30,7 @@ struct AccountListView: View {
                                 .buttonStyle(.plain)
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
+                                        UINotificationFeedbackGenerator().notificationOccurred(.warning)
                                         viewModel.remove(account)
                                     } label: {
                                         Label("Delete", systemImage: "trash")
@@ -51,6 +52,7 @@ struct AccountListView: View {
                     Button { isPresentingNewAccount = true } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Add Account")
                 }
             }
             .sheet(isPresented: $isPresentingNewAccount, onDismiss: { viewModel?.load() }) {
@@ -77,6 +79,7 @@ private struct AccountRow: View {
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
                 .background(.tint, in: Circle())
+                .accessibilityHidden(true)
             VStack(alignment: .leading) {
                 Text(account.name)
                 if let institutionName = account.institutionName {

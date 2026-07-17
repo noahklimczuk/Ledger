@@ -29,6 +29,7 @@ struct SavingsGoalsView: View {
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
+                                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
                                     viewModel.delete(goal)
                                 } label: {
                                     Label("Delete", systemImage: "trash")
@@ -56,6 +57,7 @@ struct SavingsGoalsView: View {
                                     Label("Edit Goal", systemImage: "pencil")
                                 }
                                 Button(role: .destructive) {
+                                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
                                     viewModel.delete(goal)
                                 } label: {
                                     Label("Delete Goal", systemImage: "trash")
@@ -72,6 +74,7 @@ struct SavingsGoalsView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { isPresentingNew = true } label: { Image(systemName: "plus") }
+                    .accessibilityLabel("Add Goal")
             }
         }
         .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {
@@ -102,6 +105,7 @@ private struct GoalCard: View {
                     .foregroundStyle(.white)
                     .frame(width: 32, height: 32)
                     .background(Color(hex: goal.colorHex), in: Circle())
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(goal.name)
                         .fontWeight(.semibold)

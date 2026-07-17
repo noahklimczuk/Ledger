@@ -30,6 +30,7 @@ struct DebtListView: View {
                                 .buttonStyle(.plain)
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
+                                        UINotificationFeedbackGenerator().notificationOccurred(.warning)
                                         viewModel.delete(debt)
                                     } label: {
                                         Label("Delete", systemImage: "trash")
@@ -49,6 +50,7 @@ struct DebtListView: View {
                 Button { isPresentingNew = true } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel("Add Debt")
             }
         }
         .sheet(isPresented: $isPresentingNew, onDismiss: { viewModel?.load() }) {
@@ -70,12 +72,16 @@ struct DebtListView: View {
                     Text("Total Owed").font(.caption).foregroundStyle(.secondary)
                     Text(CurrencyFormatter.string(from: viewModel.totalOwed))
                         .font(.title2).fontWeight(.semibold)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Monthly Payments").font(.caption).foregroundStyle(.secondary)
                     Text(CurrencyFormatter.string(from: viewModel.totalMonthlyPayment))
                         .font(.title3).fontWeight(.medium)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
                 }
             }
             .padding(.vertical, 4)
@@ -96,6 +102,7 @@ private struct DebtRow: View {
                 .foregroundStyle(.white)
                 .frame(width: 32, height: 32)
                 .background(.red, in: Circle())
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(debt.name).fontWeight(.medium)
                 Text(subtitle)

@@ -356,7 +356,8 @@ struct DashboardView: View {
             ],
             centerCaption: isOver ? "over budget" : "of budget spent",
             centerValueText: "\(percent)%",
-            showLegend: false
+            showLegend: false,
+            isInteractive: false
         )
     }
 
