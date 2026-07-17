@@ -8,7 +8,11 @@ struct RootTabView: View {
     /// Measured height of the floating bar. Each page is shrunk by this so the bar never overlaps
     /// content (previously it sat *on top* via `safeAreaInset`, which didn't reach the inner Lists
     /// nested in the horizontal pager, so their last rows scrolled under the bar).
-    @State private var tabBarHeight: CGFloat = 0
+    ///
+    /// Seeded with an estimate close to the real bar height so the very first layout sizes pages
+    /// correctly instead of drawing them full-height and popping once the measured height arrives;
+    /// `onPreferenceChange` overwrites it with the exact value right after the first layout pass.
+    @State private var tabBarHeight: CGFloat = 64
 
     var body: some View {
         // A horizontal paging ScrollView keeps the left/right swipe between the five root screens
