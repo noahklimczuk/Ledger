@@ -54,6 +54,11 @@ final class Debt {
     var isArchived: Bool
     var createdAt: Date
 
+    /// Transactions the user has assigned to this debt (payments and charges). Deleting the debt
+    /// nullifies the link on each transaction rather than deleting the transactions themselves.
+    @Relationship(deleteRule: .nullify, inverse: \Transaction.debt)
+    var transactions: [Transaction] = []
+
     init(
         name: String,
         kind: DebtKind,

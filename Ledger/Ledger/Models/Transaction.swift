@@ -25,6 +25,10 @@ final class Transaction {
 
     var account: Account?
     var category: Category?
+    /// The debt this transaction is assigned to, if any. Assigning a *new* transaction to a debt
+    /// applies its amount to the debt's balance once, at creation (see `TransactionEditViewModel`);
+    /// linking an existing transaction only records the association and never moves the balance.
+    var debt: Debt?
 
     @Relationship(deleteRule: .cascade, inverse: \SplitAllocation.transaction)
     var splits: [SplitAllocation] = []

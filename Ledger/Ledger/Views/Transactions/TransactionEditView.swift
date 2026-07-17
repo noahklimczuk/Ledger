@@ -10,6 +10,7 @@ struct TransactionEditView: View {
 
     @State private var accounts: [Account] = []
     @State private var categories: [Category] = []
+    @State private var debts: [Debt] = []
 
     var body: some View {
         NavigationStack {
@@ -55,6 +56,23 @@ struct TransactionEditView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        if !debts.isEmpty {
+                            Section {
+                                Picker("Debt", selection: Binding(get: { viewModel.debt }, set: { viewModel.debt = $0 })) {
+                                    Text("None").tag(Debt?.none)
+                                    ForEach(debts) { debt in
+                                        Label(debt.name, systemImage: debt.kind.sfSymbolName)
+                                            .tag(Debt?.some(debt))
+                                    }
+                                }
+                            } header: {
+                                Text("Debt")
+                            } footer: {
+                                if viewModel.debt != nil && !viewModel.isEditing {
+                                    Text("This new transaction will be applied to the debt's balance. Editing it later won't change the balance again.")
+                                }
+                            }
+                        }
                         Section("Split") {
                             SplitEditorView(viewModel: viewModel, categories: categories)
                         }
@@ -91,6 +109,14 @@ struct TransactionEditView: View {
                 }
                 accounts = (try? modelContext.fetch(FetchDescriptor<Account>(sortBy: [SortDescriptor(\.name)]))) ?? []
                 categories = (try? modelContext.fetch(FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)]))) ?? []
+                // Only active (non-archived) debts are assignable, plus whatever debt an existing
+                // transaction already points at (even if since archived) so its selection still shows.
+                let activeDebts = (try? modelContext.fetch(FetchDescriptor<Debt>(predicate: #Predicate { !$0.isArchived }, sortBy: [SortDescriptor(\.name)]))) ?? []
+                if let current = viewModel?.debt, !activeDebts.contains(where: { $0.persistentModelID == current.persistentModelID }) {
+                    debts = activeDebts + [current]
+                } else {
+                    debts = activeDebts
+                }
                 if viewModel?.account == nil, accounts.count == 1 {
                     viewModel?.account = accounts.first
                 }

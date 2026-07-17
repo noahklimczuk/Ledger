@@ -51,6 +51,7 @@ struct DebtEditView: View {
                     }
                 }
                 payoffSection
+                assignedTransactionsSection
                 Section("Notes") {
                     TextField("Optional", text: $notes, axis: .vertical)
                 }
@@ -90,6 +91,20 @@ struct DebtEditView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .tint(.green)
+            }
+        }
+    }
+
+    /// The transactions the user has assigned to this debt, newest first. Read-only here — the link
+    /// is made from the transaction editor — but it makes the assignments (and which ones moved the
+    /// balance) visible from the debt itself.
+    @ViewBuilder
+    private var assignedTransactionsSection: some View {
+        if let debt, !debt.transactions.isEmpty {
+            Section("Assigned Transactions") {
+                ForEach(debt.transactions.sorted { $0.date > $1.date }) { transaction in
+                    TransactionRowView(transaction: transaction)
+                }
             }
         }
     }

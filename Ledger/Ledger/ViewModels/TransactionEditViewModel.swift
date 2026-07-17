@@ -32,6 +32,10 @@ final class TransactionEditViewModel {
     var direction: Direction = .expense
     var account: Account?
     var category: Category?
+    /// The debt this transaction is assigned to, if any. On a *new* transaction, its signed amount
+    /// is applied to the debt's balance once on save; on an existing one, changing this only re-links
+    /// and never moves the balance.
+    var debt: Debt?
     var notes: String = ""
     var splits: [SplitDraft] = []
 
@@ -51,6 +55,7 @@ final class TransactionEditViewModel {
             amountText = Self.string(from: abs(transaction.amount))
             account = transaction.account
             category = transaction.category
+            debt = transaction.debt
             notes = transaction.notes ?? ""
             splits = transaction.splits.map { SplitDraft(category: $0.category, amountText: Self.string(from: abs($0.amount))) }
         }
@@ -87,6 +92,7 @@ final class TransactionEditViewModel {
         guard canSave, let amount, let account else { return nil }
 
         let categorizer = CategorizationService(modelContext: modelContext)
+        let isNew = existingTransaction == nil
         let transaction = existingTransaction ?? Transaction(date: date, merchant: merchant, amount: amount, account: account)
         let previousCategory = transaction.category
 
@@ -95,10 +101,19 @@ final class TransactionEditViewModel {
         transaction.amount = amount
         transaction.account = account
         transaction.category = splits.isEmpty ? category : nil
+        transaction.debt = debt
         transaction.notes = notes.isEmpty ? nil : notes
 
-        if existingTransaction == nil {
+        if isNew {
             modelContext.insert(transaction)
+            // A new transaction assigned to a debt pays it down (or, for income, adds to it): the
+            // signed amount is applied to the balance once, here. Editing an existing transaction —
+            // including newly linking or re-linking it — deliberately never touches the balance, so a
+            // debt's balance only ever moves for brand-new activity. Floored at zero so an overpayment
+            // settles the debt rather than showing a negative amount owed.
+            if let debt {
+                debt.currentBalance = max(0, debt.currentBalance + amount)
+            }
         }
 
         syncSplits(on: transaction)
