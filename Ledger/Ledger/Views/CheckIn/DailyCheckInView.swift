@@ -216,8 +216,12 @@ struct DailyCheckInView: View {
                 Image(systemName: "checkmark.circle")
                     .font(.title3)
                     .foregroundStyle(Color.accentColor)
+                    // Expand the hit area to the 44pt minimum without changing the glyph size.
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Mark reviewed")
         }
         .padding(.horizontal)
         .padding(.vertical, 10)

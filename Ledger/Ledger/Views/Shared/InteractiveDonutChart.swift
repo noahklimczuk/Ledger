@@ -57,6 +57,13 @@ struct InteractiveDonutChart: View {
 
     private var total: Decimal { segments.reduce(0) { $0 + $1.value } }
 
+    /// A spoken rundown of every slice, e.g. "Groceries, $420.00; Rent, $1,500.00".
+    private var accessibilitySummary: String {
+        segments
+            .map { "\($0.label), \(CurrencyFormatter.string(from: $0.value))" }
+            .joined(separator: "; ")
+    }
+
     private var selectedSegment: DonutSegment? {
         guard let selectedValue else { return nil }
         var running = 0.0
@@ -82,6 +89,11 @@ struct InteractiveDonutChart: View {
         .chartAngleSelection(value: isInteractive ? $selectedValue : .constant(nil))
         .chartLegend(.hidden)
         .frame(height: 200)
+        // The ring is a VoiceOver dead spot on its own (the legend, when shown, carries the detail),
+        // so give it a spoken summary of every slice for the no-legend cases like the gauge.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(centerCaption ?? "Breakdown")
+        .accessibilityValue(accessibilitySummary)
         .overlay { centerLabel }
         .animation(.easeInOut(duration: 0.2), value: selectedSegment?.id)
         .onChange(of: selectedValue) { _, _ in
