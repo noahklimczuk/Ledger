@@ -123,7 +123,9 @@ private struct FloatingTabBar: View {
             .padding(.top, 6)
     }
 
-    private var content: some View {
+    /// The equal-width tab buttons. The selection slider is drawn behind this row, so the icons and
+    /// labels always render on top of it.
+    private var tabRow: some View {
         HStack(alignment: .center, spacing: 0) {
             ForEach(items.indices, id: \.self) { index in
                 let item = items[index]
@@ -146,15 +148,48 @@ private struct FloatingTabBar: View {
                 .accessibilityAddTraits(selection == index ? [.isSelected] : [])
             }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 10)
     }
 
-    /// The pill background: real Liquid Glass where available, a material capsule otherwise.
+    /// The tab row with the sliding selection capsule behind it. The slider is sized to one tab and
+    /// offset to the selected index; a spring keyed on `selection` makes it glide between tabs.
+    private var content: some View {
+        tabRow
+            .background(alignment: .leading) {
+                GeometryReader { proxy in
+                    let tabWidth = proxy.size.width / CGFloat(items.count)
+                    slider
+                        .frame(width: tabWidth - 6, height: proxy.size.height)
+                        .offset(x: CGFloat(selection) * tabWidth + 3)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.82), value: selection)
+                }
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 10)
+    }
+
+    /// The moving selection highlight: its own tinted Liquid Glass capsule on iOS 26 (so it reads as
+    /// glass sliding within glass), a soft accent capsule on the material fallback.
+    @ViewBuilder
+    private var slider: some View {
+        if #available(iOS 26.0, *) {
+            Capsule()
+                .fill(.clear)
+                .glassEffect(.regular.tint(Color.accentColor.opacity(0.28)).interactive(), in: Capsule())
+        } else {
+            Capsule()
+                .fill(Color.accentColor.opacity(0.15))
+        }
+    }
+
+    /// The pill background: real, interactive Liquid Glass where available, a material capsule
+    /// otherwise. On iOS 26 the bar and the slider share a `GlassEffectContainer` so their glass
+    /// blends into one continuous surface instead of two flat layers.
     @ViewBuilder
     private var bar: some View {
         if #available(iOS 26.0, *) {
-            content.glassEffect(.regular, in: Capsule())
+            GlassEffectContainer(spacing: 12) {
+                content.glassEffect(.regular.interactive(), in: Capsule())
+            }
         } else {
             content
                 .background(.regularMaterial, in: Capsule())
