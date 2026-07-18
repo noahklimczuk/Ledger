@@ -23,26 +23,27 @@ struct RootTabView: View {
     var body: some View {
         TabView(selection: $selection) {
             Tab("Dashboard", systemImage: "house.fill", value: 0) {
-                DashboardView()
+                DashboardView().toolbar(.hidden, for: .tabBar)
             }
             Tab("Accounts", systemImage: "banknote.fill", value: 1) {
-                AccountListView()
+                AccountListView().toolbar(.hidden, for: .tabBar)
             }
             Tab("Transactions", systemImage: "list.bullet", value: 2) {
-                TransactionListView()
+                TransactionListView().toolbar(.hidden, for: .tabBar)
             }
             Tab("Budgets", systemImage: "chart.pie.fill", value: 3) {
-                BudgetListView()
+                BudgetListView().toolbar(.hidden, for: .tabBar)
             }
             Tab("More", systemImage: "ellipsis.circle.fill", value: 4) {
-                MoreView()
+                MoreView().toolbar(.hidden, for: .tabBar)
             }
         }
-        // The system tab bar sits flush at the bottom with no API to lift it, so hide it and float a
-        // custom bar higher via `safeAreaInset` — which also reserves the bar's space so scrolling
-        // content clears it. The native `TabView` still owns tab switching and per-tab state, so the
-        // old custom-pager bugs (zero-height pages, launch hang) can't recur; only the bar is custom.
-        .toolbar(.hidden, for: .tabBar)
+        // Hide the system tab bar so only the custom floating pill shows. The modifier must sit on
+        // *each tab's content* — applying it at the `TabView` level doesn't take on iOS 26, which left
+        // the native bar visible *behind* the custom pill (the double-bar bug). The custom bar is
+        // floated higher via `safeAreaInset`, which also reserves its space so scrolling content
+        // clears it. The native `TabView` still owns tab switching and per-tab state, so none of the
+        // old custom-pager bugs (zero-height pages, launch hang) can recur; only the bar is custom.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FloatingTabBar(selection: $selection)
         }
