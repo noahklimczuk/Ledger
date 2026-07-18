@@ -70,10 +70,17 @@ struct RootTabView: View {
 
 /// A floating, pill-shaped tab bar raised off the bottom edge. It only draws the bar and writes the
 /// selection binding — the enclosing `TabView` still manages the screens — so it carries none of the
-/// custom-pager risk. It's deliberately larger than the system bar (bigger icons/labels, more height)
-/// and lifted up via bottom padding, with the selected tab tinted and capped by a soft accent capsule.
+/// custom-pager risk. It's larger than the system bar and lifted up via bottom padding.
+///
+/// On iOS 26 it re-creates the App Store tab bar's animation as closely as the public glass APIs
+/// allow: the bar's glass and the selected-tab glass are *siblings* in one `GlassEffectContainer`
+/// (so the highlight reads as a real lens floating in the bar, not a flat tint), and a shared
+/// `glassEffectID` makes the container morph that lens between tabs — the liquid "flow" — as the
+/// selection changes. Pre-iOS 26 falls back to a material pill with a soft accent capsule.
 private struct FloatingTabBar: View {
     @Binding var selection: Int
+    /// Ties the selected-tab glass to one identity so the container morphs it between tabs.
+    @Namespace private var glassNamespace
 
     private let items: [(title: String, icon: String)] = [
         ("Dashboard", "house.fill"),
@@ -84,55 +91,87 @@ private struct FloatingTabBar: View {
     ]
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(items.indices, id: \.self) { index in
-                let item = items[index]
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { selection = index }
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: item.icon)
-                            .font(.system(size: 22, weight: .medium))
-                        Text(item.title)
-                            .font(.system(size: 11, weight: .medium))
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .foregroundStyle(selection == index ? Color.accentColor : Color.secondary)
-                    .background {
-                        if selection == index {
-                            Capsule().fill(Color.accentColor.opacity(0.15))
-                                .padding(.horizontal, 4)
-                        }
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(item.title)
-                .accessibilityAddTraits(selection == index ? [.isSelected] : [])
-            }
-        }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 10)
-        .background(barBackground)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 14)
+        bar
+            .padding(.horizontal, 20)
+            .padding(.bottom, 14)
     }
 
-    /// Real Liquid Glass on iOS 26 (the App Store-style pill), a material capsule with a soft shadow
-    /// on earlier releases.
+    /// One tab — icon over label, accent-tinted when selected. Sized larger than the system bar.
+    private func tabButton(_ index: Int) -> some View {
+        let item = items[index]
+        return Button {
+            selection = index
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: item.icon)
+                    .font(.system(size: 22, weight: .medium))
+                Text(item.title)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .foregroundStyle(selection == index ? Color.accentColor : Color.secondary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(item.title)
+        .accessibilityAddTraits(selection == index ? [.isSelected] : [])
+    }
+
     @ViewBuilder
-    private var barBackground: some View {
+    private var bar: some View {
         if #available(iOS 26.0, *) {
-            Capsule()
-                .fill(.clear)
-                .glassEffect(.regular, in: Capsule())
+            GlassEffectContainer(spacing: 16) {
+                ZStack {
+                    // The bar pill — a sibling of the selection glass so the two blend into one surface.
+                    Capsule()
+                        .fill(.clear)
+                        .glassEffect(.regular.interactive(), in: Capsule())
+                    HStack(spacing: 0) {
+                        ForEach(items.indices, id: \.self) { index in
+                            tabButton(index)
+                                .background {
+                                    if selection == index {
+                                        Capsule()
+                                            .fill(.clear)
+                                            .glassEffect(
+                                                .regular.tint(Color.accentColor.opacity(0.5)).interactive(),
+                                                in: Capsule()
+                                            )
+                                            .glassEffectID("selection", in: glassNamespace)
+                                            .padding(5)
+                                    }
+                                }
+                        }
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 10)
+                }
+            }
+            // Keep the container at its intrinsic height so it can't expand and inflate the inset.
+            .fixedSize(horizontal: false, vertical: true)
+            .animation(.spring(response: 0.4, dampingFraction: 0.82), value: selection)
         } else {
-            Capsule()
-                .fill(.regularMaterial)
-                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.06)))
-                .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+            HStack(spacing: 0) {
+                ForEach(items.indices, id: \.self) { index in
+                    tabButton(index)
+                        .background {
+                            if selection == index {
+                                Capsule().fill(Color.accentColor.opacity(0.15)).padding(.horizontal, 4)
+                            }
+                        }
+                }
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 10)
+            .background(
+                Capsule()
+                    .fill(.regularMaterial)
+                    .overlay(Capsule().strokeBorder(Color.primary.opacity(0.06)))
+                    .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+            )
+            .animation(.spring(response: 0.35, dampingFraction: 0.82), value: selection)
         }
     }
 }
