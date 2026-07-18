@@ -27,7 +27,7 @@ struct AccountListView: View {
                                 Button { editingAccount = account } label: {
                                     AccountRow(account: account)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.pressable)
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
                                         UINotificationFeedbackGenerator().notificationOccurred(.warning)
@@ -38,6 +38,7 @@ struct AccountListView: View {
                                 }
                             }
                         }
+                        .scrollContentBackground(.hidden)
                         // Pull-to-refresh runs a real sync; the refreshCount observer below then
                         // reloads the VM with the new balances.
                         .refreshable { await refresh.refresh(container: modelContext.container) }
@@ -47,6 +48,8 @@ struct AccountListView: View {
                 }
             }
             .navigationTitle("Accounts")
+            .accentWash(.accounts)
+            .accent(.accounts)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button { isPresentingNewAccount = true } label: {
@@ -73,26 +76,33 @@ struct AccountListView: View {
 private struct AccountRow: View {
     let account: Account
 
-    var body: some View {
-        HStack {
-            Image(systemName: account.type.sfSymbolName)
-                .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(.tint, in: Circle())
-                .accessibilityHidden(true)
-            VStack(alignment: .leading) {
-                Text(account.name)
-                if let institutionName = account.institutionName {
-                    Text(institutionName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-            Text(CurrencyFormatter.string(from: account.currentBalance, currencyCode: account.currencyCode))
-                .fontWeight(.medium)
+    /// Each account type carries its own hue, so the list reads as a colorful, mapped set at a glance.
+    private var accent: Accent {
+        switch account.type {
+        case .chequing: .accounts
+        case .savings: .goals
+        case .credit: .debt
+        case .investment: .insights
         }
-        .padding(.vertical, 2)
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            IconBadge(systemName: account.type.sfSymbolName, accent: accent, size: 42)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(account.name).font(.appBodyMedium)
+                Text(account.institutionName ?? account.type.displayName)
+                    .font(.appCaption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            Text(CurrencyFormatter.string(from: account.currentBalance, currencyCode: account.currencyCode))
+                .font(.appBody.weight(.heavy))
+                .foregroundStyle(account.currentBalance < 0 ? Palette.expense : Color.primary)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+        }
+        .padding(.vertical, 5)
     }
 }
 

@@ -34,6 +34,11 @@ extension Font {
 
     /// Large monetary figures — the same rounded, bold treatment used for headline balances.
     static let appMoney = AppFont.scaled(34, relativeTo: .largeTitle, weight: .bold)
+
+    // Bold-editorial display sizes for hero numbers and oversized headlines. Heavier and larger than
+    // the standard scale so the numbers that matter carry the screen.
+    static let appDisplay = AppFont.scaled(46, relativeTo: .largeTitle, weight: .heavy)
+    static let appNumber = AppFont.scaled(30, relativeTo: .title, weight: .heavy)
 }
 
 // MARK: - Surfaces & spacing

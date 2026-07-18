@@ -1,7 +1,9 @@
 import SwiftUI
 
 extension Color {
-    init(hex: String) {
+    // nonisolated so the design-system palette (which the project defaults to @MainActor) can build
+    // its shared colors as nonisolated statics. Pure math over a string — safe off the main actor.
+    nonisolated init(hex: String) {
         var sanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         sanitized.removeAll { $0 == "#" }
 

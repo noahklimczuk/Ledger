@@ -3,13 +3,18 @@ import SwiftUI
 struct TransactionRowView: View {
     let transaction: Transaction
 
+    private var categoryColor: Color {
+        transaction.category.map { Color(hex: $0.colorHex) } ?? Palette.indigo
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             categoryIcon
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(transaction.merchant)
-                    .fontWeight(.medium)
-                HStack(spacing: 4) {
+                    .font(.appBodyMedium)
+                    .lineLimit(1)
+                HStack(spacing: 5) {
                     Text(DateFormatting.relativeDay(transaction.date))
                     if let categoryName = transaction.category?.name {
                         Text("· \(categoryName)")
@@ -19,18 +24,19 @@ struct TransactionRowView: View {
                 }
                 .font(.appCaption)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 4) {
                 Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.account?.currencyCode ?? "CAD"))
-                    .fontWeight(.semibold)
-                    .foregroundStyle(transaction.amount < 0 ? Color.primary : Color.green)
+                    .font(.appBody.weight(.heavy))
+                    .foregroundStyle(transaction.amount < 0 ? Color.primary : Palette.income)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 if !transaction.isReviewed {
                     Circle()
-                        .fill(.orange)
-                        .frame(width: 6, height: 6)
+                        .fill(Palette.amber)
+                        .frame(width: 7, height: 7)
                         .accessibilityLabel("Needs review")
                 }
             }
@@ -38,17 +44,23 @@ struct TransactionRowView: View {
             // the money label.
             .layoutPriority(1)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 5)
         .contentShape(Rectangle())
     }
 
+    /// A rounded-square badge tinted with the category's own color (a soft top-to-bottom gradient for
+    /// a little depth), matching the playful icon-badge language used across the redesign.
     private var categoryIcon: some View {
-        let symbol = transaction.category?.sfSymbolName ?? "questionmark.circle"
-        let color = transaction.category.map { Color(hex: $0.colorHex) } ?? .gray
+        let symbol = transaction.category?.sfSymbolName ?? "questionmark.circle.fill"
+        let color = categoryColor
         return Image(systemName: symbol)
+            .font(.system(size: 15, weight: .bold))
             .foregroundStyle(.white)
-            .frame(width: 32, height: 32)
-            .background(color, in: Circle())
+            .frame(width: 38, height: 38)
+            .background(
+                LinearGradient(colors: [color, color.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+            )
             .accessibilityHidden(true)
     }
 }

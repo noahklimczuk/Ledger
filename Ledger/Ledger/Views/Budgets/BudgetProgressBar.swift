@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct BudgetProgressBar: View {
+    /// Draws in the current screen's section accent, so the same bar reads orange on Budgets, etc.
+    @Environment(\.accent) private var accent
     let progress: Double
     let isOverBudget: Bool
     /// 0…1 position of the "you are here" tick — how far through the month we are, so a bar
@@ -10,20 +12,20 @@ struct BudgetProgressBar: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color(.systemGray5))
+                Capsule().fill(Color.primary.opacity(0.08))
                 Capsule()
-                    .fill(isOverBudget ? AnyShapeStyle(Color.red) : AnyShapeStyle(LinearGradient.brand))
-                    .frame(width: geometry.size.width * min(max(progress, 0), 1))
+                    .fill(isOverBudget ? AnyShapeStyle(Palette.expense) : AnyShapeStyle(accent.gradient))
+                    .frame(width: max(geometry.size.width * min(max(progress, 0), 1), progress > 0 ? 10 : 0))
                 if let paceMarker, paceMarker > 0.01, paceMarker < 0.99 {
                     RoundedRectangle(cornerRadius: 1)
-                        .fill(Color.primary.opacity(0.4))
-                        .frame(width: 2, height: 14)
+                        .fill(Color.primary.opacity(0.35))
+                        .frame(width: 2, height: 16)
                         .offset(x: geometry.size.width * paceMarker - 1)
                 }
             }
         }
-        .frame(height: 10)
-        .animation(.easeOut(duration: 0.25), value: progress)
+        .frame(height: 12)
+        .animation(Motion.snappy, value: progress)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Budget used")
         .accessibilityValue(isOverBudget ? "Over budget, \(Int(progress * 100)) percent" : "\(Int(progress * 100)) percent")
