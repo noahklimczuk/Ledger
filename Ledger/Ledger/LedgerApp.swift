@@ -39,6 +39,7 @@ struct LedgerApp: App {
                         .zIndex(1)
                 }
             }
+            .font(.appBody)
             .tint(.accentColor)
             .environment(refreshCoordinator)
             .animation(.default, value: lockService.isUnlocked)

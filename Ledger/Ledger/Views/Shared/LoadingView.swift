@@ -7,7 +7,7 @@ struct LoadingView: View {
         VStack(spacing: 12) {
             ProgressView()
             Text(message)
-                .font(.footnote)
+                .font(.appFootnote)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
