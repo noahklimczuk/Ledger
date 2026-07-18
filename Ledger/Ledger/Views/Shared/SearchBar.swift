@@ -82,9 +82,10 @@ struct SearchBar: View {
 }
 
 extension View {
-    /// Slides a `SearchBar` in above `self` when `isPresented` is true, using the app's standard
-    /// search transition and spring so every search menu opens and closes identically. The bar and
-    /// the content below it move together as one clean unit.
+    /// Reveals a `SearchBar` above `self` when `isPresented` is true. Rather than sliding down as a
+    /// block, the bar scales out of its top-trailing corner — right under the toolbar's search button
+    /// — so it reads as expanding *from the button* and collapsing back into it. Every search menu
+    /// opens and closes identically off this one helper.
     func searchBarRow(
         isPresented: Bool,
         text: Binding<String>,
@@ -103,11 +104,13 @@ extension View {
                 .padding(.horizontal)
                 .padding(.top, 4)
                 .padding(.bottom, 8)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                // Grow out of the top-trailing corner (under the search button) instead of sliding
+                // down, so the bar looks like it springs from the button and folds back into it.
+                .transition(.scale(scale: 0.2, anchor: .topTrailing).combined(with: .opacity))
             }
             self
         }
-        .animation(.spring(response: 0.38, dampingFraction: 0.86), value: isPresented)
+        .animation(.spring(response: 0.4, dampingFraction: 0.82), value: isPresented)
     }
 }
 
