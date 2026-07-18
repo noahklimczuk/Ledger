@@ -38,6 +38,14 @@ struct RootTabView: View {
                 MoreView()
             }
         }
+        // The system tab bar sits flush at the bottom with no API to lift it, so hide it and float a
+        // custom bar higher via `safeAreaInset` — which also reserves the bar's space so scrolling
+        // content clears it. The native `TabView` still owns tab switching and per-tab state, so the
+        // old custom-pager bugs (zero-height pages, launch hang) can't recur; only the bar is custom.
+        .toolbar(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            FloatingTabBar(selection: $selection)
+        }
         .simultaneousGesture(swipeBetweenTabs)
     }
 
@@ -56,6 +64,75 @@ struct RootTabView: View {
                     selection = max(0, min(Self.tabCount - 1, selection + (dx < 0 ? 1 : -1)))
                 }
             }
+    }
+}
+
+/// A floating, pill-shaped tab bar raised off the bottom edge. It only draws the bar and writes the
+/// selection binding — the enclosing `TabView` still manages the screens — so it carries none of the
+/// custom-pager risk. It's deliberately larger than the system bar (bigger icons/labels, more height)
+/// and lifted up via bottom padding, with the selected tab tinted and capped by a soft accent capsule.
+private struct FloatingTabBar: View {
+    @Binding var selection: Int
+
+    private let items: [(title: String, icon: String)] = [
+        ("Dashboard", "house.fill"),
+        ("Accounts", "banknote.fill"),
+        ("Transactions", "list.bullet"),
+        ("Budgets", "chart.pie.fill"),
+        ("More", "ellipsis.circle.fill"),
+    ]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(items.indices, id: \.self) { index in
+                let item = items[index]
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { selection = index }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: item.icon)
+                            .font(.system(size: 22, weight: .medium))
+                        Text(item.title)
+                            .font(.system(size: 11, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .foregroundStyle(selection == index ? Color.accentColor : Color.secondary)
+                    .background {
+                        if selection == index {
+                            Capsule().fill(Color.accentColor.opacity(0.15))
+                                .padding(.horizontal, 4)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(item.title)
+                .accessibilityAddTraits(selection == index ? [.isSelected] : [])
+            }
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 10)
+        .background(barBackground)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 14)
+    }
+
+    /// Real Liquid Glass on iOS 26 (the App Store-style pill), a material capsule with a soft shadow
+    /// on earlier releases.
+    @ViewBuilder
+    private var barBackground: some View {
+        if #available(iOS 26.0, *) {
+            Capsule()
+                .fill(.clear)
+                .glassEffect(.regular, in: Capsule())
+        } else {
+            Capsule()
+                .fill(.regularMaterial)
+                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.06)))
+                .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+        }
     }
 }
 
