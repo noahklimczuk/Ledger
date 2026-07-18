@@ -126,6 +126,21 @@ final class RecurringSeries {
         return calendar.dateComponents([.day], from: nextExpected, to: today).day ?? 0
     }
 
+    /// The next expected charge date on or after today. A stored `nextExpected` can sit in the recent
+    /// past (an active series is kept until it's well overdue), so rolling it forward by whole cadences
+    /// keeps the UI from ever showing a "next" date that has already passed, and matches how the
+    /// forecast projects upcoming charges.
+    func projectedNextDate(asOf now: Date = .now, calendar: Calendar = .current) -> Date {
+        let today = calendar.startOfDay(for: now)
+        var next = nextExpected
+        var guardCounter = 0
+        while next < today && guardCounter < 60 {
+            next = cadence.nextDate(after: next, calendar: calendar)
+            guardCounter += 1
+        }
+        return next
+    }
+
     /// A detected change between the baseline amount and the most recent one, past a meaningful
     /// threshold (>10% and >$1 in magnitude) — nil when the price is effectively steady or unknown.
     var priceChange: PriceChange? {

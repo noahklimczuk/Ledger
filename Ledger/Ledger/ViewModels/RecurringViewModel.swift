@@ -110,14 +110,9 @@ final class RecurringViewModel {
 
         var charges: [UpcomingCharge] = []
         for series in live {
-            // Roll a stale next-expected forward so forecasting stays meaningful even if the series
-            // hasn't been re-detected in a while.
-            var next = series.nextExpected
-            var guardCounter = 0
-            while next < calendar.startOfDay(for: now) && guardCounter < 24 {
-                next = series.cadence.nextDate(after: next)
-                guardCounter += 1
-            }
+            // Start from the next charge on/after today (rolling any stale next-expected forward),
+            // the same date each row shows, so the timeline and the list agree.
+            var next = series.projectedNextDate(asOf: now, calendar: calendar)
             var occurrenceCount = 0
             while next <= horizon && occurrenceCount < 24 {
                 charges.append(UpcomingCharge(
@@ -126,7 +121,7 @@ final class RecurringViewModel {
                     date: next,
                     amount: series.predictedAmount
                 ))
-                next = series.cadence.nextDate(after: next)
+                next = series.cadence.nextDate(after: next, calendar: calendar)
                 occurrenceCount += 1
             }
         }
