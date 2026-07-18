@@ -97,16 +97,25 @@ struct RecurringDetailView: View {
 
     private var statsSection: some View {
         Section("Details") {
-            statRow("Predicted next", value: "\(CurrencyFormatter.string(from: series.predictedAmount)) · \(DateFormatting.medium(series.nextExpected))")
+            if series.status == .ended {
+                statRow("Last charge", value: DateFormatting.medium(series.lastOccurrence))
+            } else {
+                // Roll a stale next-expected forward so this never reads as a date in the past.
+                statRow("Predicted next", value: "\(CurrencyFormatter.string(from: series.predictedAmount)) · \(DateFormatting.medium(series.projectedNextDate()))")
+            }
             statRow("Monthly equivalent", value: CurrencyFormatter.string(from: series.monthlyEquivalent))
             statRow("Yearly", value: CurrencyFormatter.string(from: series.annualEquivalent))
             statRow("Times seen", value: "\(series.occurrenceCount)")
             if let first = series.firstOccurrence {
                 statRow("Tracking since", value: DateFormatting.medium(first))
             }
-            let overdue = series.daysOverdue()
-            if overdue > 0 {
-                statRow("Overdue", value: "\(overdue) days")
+            // Only surfaced for a cancelled series to explain why — an active one shows a
+            // rolled-forward "Predicted next", so an "Overdue" row next to it would contradict it.
+            if series.status == .ended {
+                let overdue = series.daysOverdue()
+                if overdue > 0 {
+                    statRow("Overdue", value: "\(overdue) days")
+                }
             }
         }
     }
@@ -176,8 +185,12 @@ struct RecurringDetailView: View {
 
     private func loadHistory() {
         let all = (try? modelContext.fetch(FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date, order: .reverse)]))) ?? []
+        // Mirror detection's own filters (archived-account and transfer exclusion) so the history and
+        // sparkline reflect exactly the transactions the series was built from.
         history = all.filter {
-            RecurringDetectionService.normalizeMerchant($0.merchant) == series.merchantKey && $0.countsTowardTotals
+            RecurringDetectionService.normalizeMerchant($0.merchant) == series.merchantKey
+                && $0.countsTowardTotals
+                && !$0.isTransfer
         }
     }
 }

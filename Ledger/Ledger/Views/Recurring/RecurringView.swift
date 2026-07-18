@@ -143,10 +143,9 @@ struct RecurringView: View {
                 Text(insight.detail).font(.caption).foregroundStyle(.secondary)
             }
             Spacer(minLength: 4)
-            if insight.series != nil {
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-            }
         }
+        // A navigable insight is wrapped in a NavigationLink, which supplies its own disclosure
+        // chevron — so we don't add one here (doing both showed a double arrow).
         if let series = insight.series {
             NavigationLink(value: series) { content }
         } else {
@@ -163,23 +162,17 @@ struct RecurringView: View {
                     NavigationLink(value: series) {
                         RecurringRow(series: series)
                     }
+                    // These live in the same List row as the NavigationLink above, so they must be
+                    // borderless: a bordered button here has its tap swallowed by the row's
+                    // navigation instead of confirming/dismissing. The filled look is drawn on the
+                    // label so the buttons still read as primary/secondary actions.
                     HStack(spacing: 10) {
-                        Button {
+                        reviewButton("Confirm", systemImage: "checkmark", prominent: true) {
                             viewModel.confirm(series)
-                        } label: {
-                            Label("Confirm", systemImage: "checkmark")
-                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                        Button {
+                        reviewButton("Not recurring", systemImage: "xmark", prominent: false) {
                             viewModel.ignore(series)
-                        } label: {
-                            Label("Not recurring", systemImage: "xmark")
-                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
                     }
                 }
             }
@@ -190,6 +183,21 @@ struct RecurringView: View {
         }
     }
 
+    private func reviewButton(_ title: String, systemImage: String, prominent: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .foregroundStyle(prominent ? Color.white : Color.primary)
+                .background(prominent ? Color.accentColor : Color.secondary.opacity(0.15), in: Capsule())
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.borderless)
+    }
+
     // MARK: - Upcoming
 
     private func upcomingSection(_ viewModel: RecurringViewModel) -> some View {
@@ -198,7 +206,7 @@ struct RecurringView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(charge.series.displayName).fontWeight(.medium)
-                        Text(DateFormatting.relativeDay(charge.date))
+                        Text(DateFormatting.relativeUpcoming(charge.date))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
@@ -285,10 +293,8 @@ private struct RecurringRow: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(series.displayName).fontWeight(.medium)
-                HStack(spacing: 6) {
-                    Text("\(series.cadence.displayName) · next \(DateFormatting.medium(series.nextExpected))")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
+                Text(scheduleLine)
+                    .font(.caption).foregroundStyle(.secondary)
                 badges
             }
             Spacer(minLength: 6)
@@ -299,6 +305,16 @@ private struct RecurringRow: View {
                 .lineLimit(1)
         }
         .padding(.vertical, 2)
+    }
+
+    /// Cadence plus the next (or, for a cancelled series, the last) charge date. `nextExpected` can
+    /// have slipped into the past, so an active/paused/suggested series shows a rolled-forward date
+    /// and an ended one shows when it last charged rather than a meaningless future "next".
+    private var scheduleLine: String {
+        if series.status == .ended {
+            return "\(series.cadence.displayName) · last \(DateFormatting.medium(series.lastOccurrence))"
+        }
+        return "\(series.cadence.displayName) · next \(DateFormatting.medium(series.projectedNextDate()))"
     }
 
     @ViewBuilder

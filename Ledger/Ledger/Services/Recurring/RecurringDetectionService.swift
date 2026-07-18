@@ -61,6 +61,9 @@ nonisolated final class RecurringDetectionService {
         for item in detected {
             let nextExpected = item.cadence.nextDate(after: item.lastOccurrence)
             if let series = existingByKey[item.merchantKey] {
+                // Capture whether this run actually saw a newer charge than we had before, so a
+                // user-ended series isn't revived just because it happens not to be overdue.
+                let hadNewCharge = item.lastOccurrence > series.lastOccurrence
                 series.displayName = item.displayName
                 series.averageAmount = item.averageAmount
                 series.lastAmount = item.lastAmount
@@ -72,7 +75,7 @@ nonisolated final class RecurringDetectionService {
                 series.occurrenceCount = item.occurrenceCount
                 series.detectionConfidence = item.confidence
                 series.updatedAt = .now
-                series.statusRaw = reconciledStatus(for: series, detected: item, nextExpected: nextExpected, now: now).rawValue
+                series.statusRaw = reconciledStatus(for: series, nextExpected: nextExpected, now: now, hadNewCharge: hadNewCharge).rawValue
             } else {
                 let status: RecurringStatus = item.confidence >= autoActiveConfidence ? .active : .suggested
                 let series = RecurringSeries(
@@ -106,16 +109,20 @@ nonisolated final class RecurringDetectionService {
     }
 
     /// Chooses the lifecycle state for an existing series after refresh, honoring user intent:
-    /// ignored/paused are left alone; suggested stays suggested until the user acts; otherwise it's
-    /// active unless the next charge is well overdue (then it's ended — likely cancelled).
-    private func reconciledStatus(for series: RecurringSeries, detected: Detected, nextExpected: Date, now: Date) -> RecurringStatus {
+    /// ignored/paused/suggested are left as the user (or a prior run) set them. A live series is kept
+    /// active unless its next charge is well overdue (then it's ended — likely cancelled). An ended
+    /// series stays ended until a genuinely newer charge lands, so a manual "Mark as Ended" (or an
+    /// auto-end) doesn't flip back the instant the series isn't technically overdue.
+    private func reconciledStatus(for series: RecurringSeries, nextExpected: Date, now: Date, hadNewCharge: Bool) -> RecurringStatus {
         if series.isIgnored { return .ignored }
         switch RecurringStatus(rawValue: series.statusRaw) ?? .active {
         case .ignored: return .ignored
         case .paused: return .paused
         case .suggested: return .suggested
-        case .active, .ended:
+        case .active:
             return overdueEnds(series, nextExpected: nextExpected, now: now) ? .ended : .active
+        case .ended:
+            return (hadNewCharge && !overdueEnds(series, nextExpected: nextExpected, now: now)) ? .active : .ended
         }
     }
 
