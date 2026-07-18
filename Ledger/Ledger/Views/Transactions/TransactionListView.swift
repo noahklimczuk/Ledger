@@ -133,11 +133,11 @@ struct TransactionListView: View {
                 if !didLoad {
                     LoadingView()
                 } else {
-                    // The search field slides in below the nav bar as a row — not inside the
+                    // The search field unfurls in below the nav bar as a row — not inside the
                     // toolbar. A TextField embedded in the navigation bar grabs an unpredictable
                     // width when focused (it sprawled across the title area), so the toolbar only
                     // holds the button that toggles this row. `searchBarRow` renders the app's
-                    // standard pill search bar and drives the clean slide-in/out animation.
+                    // standard pill search bar and drives the unfurl-from-the-button animation.
                     transactionList
                         .searchBarRow(
                             isPresented: isSearchExpanded,
@@ -164,7 +164,7 @@ struct TransactionListView: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     // Search and add sit together in the same toolbar-button style. Tapping search
-                    // toggles the field that slides in below the bar (see `searchBarRow`).
+                    // toggles the field that unfurls out from under it (see `searchBarRow`).
                     HStack(spacing: 16) {
                         Button {
                             if isSearchExpanded {
