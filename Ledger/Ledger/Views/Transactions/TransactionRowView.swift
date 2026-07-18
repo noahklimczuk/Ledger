@@ -17,7 +17,7 @@ struct TransactionRowView: View {
                         Text("· Split")
                     }
                 }
-                .font(.caption)
+                .font(.appCaption)
                 .foregroundStyle(.secondary)
             }
             Spacer()

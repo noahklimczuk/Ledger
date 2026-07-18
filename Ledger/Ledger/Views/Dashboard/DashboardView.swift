@@ -73,7 +73,7 @@ struct DashboardView: View {
             onboardingCard
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: Theme.sectionSpacing) {
                     if isCheckInDue {
                         checkInCard
                     }
@@ -91,6 +91,7 @@ struct DashboardView: View {
                 }
                 .padding()
             }
+            .background(Color.appBackground)
         }
     }
 
@@ -103,9 +104,9 @@ struct DashboardView: View {
                         .font(.system(size: 40))
                         .foregroundStyle(LinearGradient.brand)
                     Text("Welcome to Ledger")
-                        .font(.title2.bold())
+                        .font(.appTitle2)
                     Text("Three ways to get your money in — pick whichever fits.")
-                        .font(.subheadline)
+                        .font(.appSubheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -132,12 +133,13 @@ struct DashboardView: View {
                 )
 
                 Text("Once transactions are in, Ledger auto-categorizes them, spots recurring bills, and can suggest a monthly budget from your real spending.")
-                    .font(.footnote)
+                    .font(.appFootnote)
                     .foregroundStyle(.secondary)
                     .padding(.top, 4)
             }
             .padding()
         }
+        .background(Color.appBackground)
     }
 
     private func onboardingStep(number: Int, symbol: String, title: String, detail: String) -> some View {
@@ -149,16 +151,20 @@ struct DashboardView: View {
                 .background(LinearGradient.brand, in: Circle())
             VStack(alignment: .leading, spacing: 3) {
                 Label(title, systemImage: symbol)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.appSubheadline.weight(.semibold))
                 Text(detail)
-                    .font(.footnote)
+                    .font(.appFootnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous)
+                .strokeBorder(Color.appHairline, lineWidth: 1)
+        )
         .accessibilityElement(children: .combine)
     }
 
@@ -176,10 +182,10 @@ struct DashboardView: View {
                     .background(LinearGradient.brand, in: Circle())
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Daily Check-In")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.appHeadline)
                         .foregroundStyle(Color.primary)
                     Text("2 minutes to review today and keep the plan at zero")
-                        .font(.caption)
+                        .font(.appCaption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -187,8 +193,7 @@ struct DashboardView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
-            .padding()
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+            .card()
         }
         .buttonStyle(.plain)
     }
@@ -206,10 +211,10 @@ struct DashboardView: View {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Total Balance")
-                            .font(.subheadline)
+                            .font(.appSubheadline)
                             .foregroundStyle(.white.opacity(0.85))
                         Text(CurrencyFormatter.string(from: viewModel.totalBalance))
-                            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                            .font(.appMoney)
                             .foregroundStyle(.white)
                             .minimumScaleFactor(0.6)
                             .lineLimit(1)
@@ -233,9 +238,9 @@ struct DashboardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(LinearGradient.brand, in: RoundedRectangle(cornerRadius: 16))
-        .shadow(color: Color.brandTeal.opacity(0.35), radius: 10, y: 5)
+        .padding(Theme.cardPadding + 2)
+        .background(LinearGradient.brand, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .shadow(color: Color.brandTeal.opacity(0.35), radius: 16, y: 8)
     }
 
     /// The per-account rows shown when the balance card is expanded: account icon, name (with its
@@ -286,7 +291,7 @@ struct DashboardView: View {
     private func monthSummaryCard(_ viewModel: DashboardViewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("This Month · \(DateFormatting.monthYear(.now))")
-                .font(.subheadline)
+                .font(.appSubheadline)
                 .foregroundStyle(.secondary)
             HStack(spacing: 12) {
                 // Income and Expenses drill into the month's matching transactions; Net is a
@@ -314,7 +319,7 @@ struct DashboardView: View {
     private func summaryTileBody(_ label: String, value: Decimal, color: Color, tappable: Bool) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 3) {
-                Text(label).font(.caption).foregroundStyle(.secondary)
+                Text(label).font(.appCaption).foregroundStyle(.secondary)
                 if tappable {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 9, weight: .semibold))
@@ -322,14 +327,18 @@ struct DashboardView: View {
                 }
             }
             Text(CurrencyFormatter.string(from: value))
-                .font(.headline)
+                .font(.appHeadline)
                 .foregroundStyle(color)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous)
+                .strokeBorder(Color.appHairline, lineWidth: 1)
+        )
     }
 
     @ViewBuilder
@@ -361,26 +370,25 @@ struct DashboardView: View {
 
     private func card<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.headline)
+            Text(title).font(.appHeadline)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .card()
     }
 
     private func safeToSpendCard(_ viewModel: DashboardViewModel) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Safe to Spend")
-                    .font(.subheadline)
+                    .font(.appSubheadline)
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: viewModel.safeToSpend))
-                    .font(.title2.bold())
+                    .font(.appTitle2)
                     .foregroundStyle(viewModel.safeToSpend < 0 ? Color.red : Color.primary)
                 if viewModel.reservedForBills > 0 {
                     Text("After reserving \(CurrencyFormatter.string(from: viewModel.reservedForBills)) for upcoming bills")
-                        .font(.caption)
+                        .font(.appCaption)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -392,20 +400,19 @@ struct DashboardView: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.tertiary)
         }
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .card()
     }
 
     private func budgetCard(_ viewModel: DashboardViewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Spending vs Budget")
-                .font(.subheadline)
+                .font(.appSubheadline)
                 .foregroundStyle(.secondary)
             HStack {
                 Text(CurrencyFormatter.string(from: viewModel.monthSpending))
-                    .font(.title3.bold())
+                    .font(.appTitle3)
                 Text("of \(CurrencyFormatter.string(from: viewModel.monthBudgetTotal)) budgeted")
-                    .font(.footnote)
+                    .font(.appFootnote)
                     .foregroundStyle(.secondary)
             }
             if viewModel.monthBudgetTotal > 0 {
@@ -413,8 +420,7 @@ struct DashboardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .card()
     }
 
     /// A spent-vs-remaining ring: the spent portion (red once it overruns) against the leftover
@@ -439,10 +445,10 @@ struct DashboardView: View {
     private func recentTransactionsSection(_ viewModel: DashboardViewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Recent Transactions")
-                .font(.headline)
+                .font(.appHeadline)
             if viewModel.recentTransactions.isEmpty {
                 Text("No transactions yet.")
-                    .font(.footnote)
+                    .font(.appFootnote)
                     .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 0) {
@@ -455,7 +461,12 @@ struct DashboardView: View {
                     }
                 }
                 .padding(.vertical, 8)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                        .strokeBorder(Color.appHairline, lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.05), radius: 14, y: 6)
             }
         }
     }
