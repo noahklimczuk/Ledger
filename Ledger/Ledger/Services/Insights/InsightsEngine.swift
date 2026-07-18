@@ -106,7 +106,7 @@ struct InsightsEngine {
 
     /// Two active recurring charges at the same cadence and near-identical amount — likely paying twice.
     private func duplicateSubscriptions() -> [Insight] {
-        let subs = recurringSeries.filter { !$0.isIgnored && !$0.isIncome }
+        let subs = recurringSeries.filter { $0.isActive && !$0.isIncome }
         var results: [Insight] = []
         var reported = Set<String>()
 
@@ -137,7 +137,7 @@ struct InsightsEngine {
     /// The priciest active subscription, surfaced so the user can reconsider it.
     private func forgottenSubscriptions() -> [Insight] {
         let ranked = recurringSeries
-            .filter { !$0.isIgnored && !$0.isIncome }
+            .filter { $0.isActive && !$0.isIncome }
             .map { series -> (series: RecurringSeries, annual: Double) in
                 (series, abs(double(series.averageAmount)) * 365.0 / Double(series.cadence.approximateDays))
             }

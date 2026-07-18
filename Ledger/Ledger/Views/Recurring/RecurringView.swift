@@ -8,7 +8,7 @@ struct RecurringView: View {
     var body: some View {
         Group {
             if let viewModel {
-                if viewModel.activeSeries.isEmpty && viewModel.ignoredSeries.isEmpty {
+                if !viewModel.hasAnySeries {
                     EmptyStateView(
                         systemImage: "arrow.triangle.2.circlepath",
                         title: "No Recurring Charges Found",
@@ -16,15 +16,24 @@ struct RecurringView: View {
                     )
                 } else {
                     List {
-                        forecastSection(viewModel)
-                        if !viewModel.incomeSeries.isEmpty {
-                            seriesSection(viewModel, title: "Income", series: viewModel.incomeSeries)
+                        summarySection(viewModel)
+                        if !viewModel.insights.isEmpty { insightsSection(viewModel) }
+                        if !viewModel.suggestedSeries.isEmpty { suggestedSection(viewModel) }
+                        if !viewModel.upcoming.isEmpty { upcomingSection(viewModel) }
+                        if !viewModel.activeExpenses.isEmpty {
+                            seriesSection(viewModel, title: "Subscriptions & Bills", series: viewModel.activeExpenses)
                         }
-                        if !viewModel.expenseSeries.isEmpty {
-                            seriesSection(viewModel, title: "Bills & Subscriptions", series: viewModel.expenseSeries)
+                        if !viewModel.incomeSeries.isEmpty {
+                            seriesSection(viewModel, title: "Recurring Income", series: viewModel.incomeSeries)
+                        }
+                        if !viewModel.pausedSeries.isEmpty {
+                            seriesSection(viewModel, title: "Paused", series: viewModel.pausedSeries)
+                        }
+                        if !viewModel.endedSeries.isEmpty {
+                            seriesSection(viewModel, title: "Ended", series: viewModel.endedSeries)
                         }
                         if !viewModel.ignoredSeries.isEmpty {
-                            ignoredSection(viewModel)
+                            seriesSection(viewModel, title: "Ignored", series: viewModel.ignoredSeries)
                         }
                     }
                 }
@@ -33,6 +42,9 @@ struct RecurringView: View {
             }
         }
         .navigationTitle("Recurring")
+        .navigationDestination(for: RecurringSeries.self) { series in
+            RecurringDetailView(series: series, viewModel: viewModel)
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -40,7 +52,7 @@ struct RecurringView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
-                .accessibilityLabel("Refresh")
+                .accessibilityLabel("Rescan")
             }
         }
         .task {
@@ -49,87 +61,293 @@ struct RecurringView: View {
         }
     }
 
-    @ViewBuilder
-    private func forecastSection(_ viewModel: RecurringViewModel) -> some View {
-        if !viewModel.upcoming.isEmpty {
-            Section {
-                ForEach(viewModel.upcoming) { charge in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(charge.series.displayName).fontWeight(.medium)
-                            Text(DateFormatting.relativeDay(charge.date))
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
+    // MARK: - Summary
+
+    private func summarySection(_ viewModel: RecurringViewModel) -> some View {
+        Section {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Monthly Recurring")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.85))
+                        Text(CurrencyFormatter.string(from: viewModel.monthlyRecurringExpense))
+                            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                            .foregroundStyle(.white)
+                            .minimumScaleFactor(0.6)
+                            .lineLimit(1)
+                        Text("≈ \(CurrencyFormatter.string(from: viewModel.annualRecurringExpense)) / year")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                    Spacer()
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.title2)
+                        .foregroundStyle(.white.opacity(0.9))
+                }
+                Divider().overlay(Color.white.opacity(0.25))
+                HStack {
+                    summaryStat("Subscriptions", "\(viewModel.activeSubscriptionCount)")
+                    Spacer()
+                    if viewModel.monthlyRecurringIncome > 0 {
+                        summaryStat("Income / mo", CurrencyFormatter.string(from: viewModel.monthlyRecurringIncome))
                         Spacer()
-                        Text(CurrencyFormatter.string(from: charge.series.averageAmount))
-                            .foregroundStyle(charge.series.isIncome ? Color.green : Color.primary)
                     }
+                    summaryStat("Next 30 days", CurrencyFormatter.string(from: viewModel.next30DaysOutflow))
                 }
-            } header: {
-                Text("Upcoming (next 60 days)")
-            } footer: {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Projected outflow (next 30 days): \(CurrencyFormatter.string(from: viewModel.next30DaysOutflow))")
-                    if viewModel.next30DaysIncome > 0 {
-                        Text("Projected income (next 30 days): \(CurrencyFormatter.string(from: viewModel.next30DaysIncome))")
-                    }
-                }
+            }
+            .padding(6)
+            .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+            .listRowBackground(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(LinearGradient.brand)
+                    .padding(4)
+            )
+        }
+    }
+
+    private func summaryStat(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.headline)
+                .foregroundStyle(.white)
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.8))
+        }
+    }
+
+    // MARK: - Insights
+
+    private func insightsSection(_ viewModel: RecurringViewModel) -> some View {
+        Section("Needs Attention") {
+            ForEach(viewModel.insights) { insight in
+                insightRow(insight)
             }
         }
     }
+
+    @ViewBuilder
+    private func insightRow(_ insight: RecurringViewModel.Insight) -> some View {
+        let content = HStack(spacing: 12) {
+            Image(systemName: insight.symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(insight.tint, in: Circle())
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(insight.title).font(.subheadline.weight(.semibold))
+                Text(insight.detail).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 4)
+            if insight.series != nil {
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+            }
+        }
+        if let series = insight.series {
+            NavigationLink(value: series) { content }
+        } else {
+            content
+        }
+    }
+
+    // MARK: - Suggested (review)
+
+    private func suggestedSection(_ viewModel: RecurringViewModel) -> some View {
+        Section {
+            ForEach(viewModel.suggestedSeries) { series in
+                VStack(spacing: 10) {
+                    NavigationLink(value: series) {
+                        RecurringRow(series: series)
+                    }
+                    HStack(spacing: 10) {
+                        Button {
+                            viewModel.confirm(series)
+                        } label: {
+                            Label("Confirm", systemImage: "checkmark")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        Button {
+                            viewModel.ignore(series)
+                        } label: {
+                            Label("Not recurring", systemImage: "xmark")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+            }
+        } header: {
+            Text("Review")
+        } footer: {
+            Text("Ledger isn't fully sure these repeat. Confirm the real ones so they count toward your totals and forecast.")
+        }
+    }
+
+    // MARK: - Upcoming
+
+    private func upcomingSection(_ viewModel: RecurringViewModel) -> some View {
+        Section {
+            ForEach(viewModel.upcoming.prefix(8)) { charge in
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(charge.series.displayName).fontWeight(.medium)
+                        Text(DateFormatting.relativeDay(charge.date))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Text(CurrencyFormatter.string(from: charge.amount))
+                        .foregroundStyle(charge.amount > 0 ? Color.green : Color.primary)
+                }
+            }
+        } header: {
+            Text("Upcoming (next 60 days)")
+        }
+    }
+
+    // MARK: - Series sections
 
     private func seriesSection(_ viewModel: RecurringViewModel, title: String, series: [RecurringSeries]) -> some View {
         Section(title) {
             ForEach(series) { item in
-                RecurringRow(series: item)
-                    .swipeActions {
-                        Button {
-                            viewModel.setIgnored(item, ignored: true)
-                        } label: {
-                            Label("Ignore", systemImage: "bell.slash")
-                        }
-                        .tint(.gray)
-                    }
+                NavigationLink(value: item) {
+                    RecurringRow(series: item)
+                }
+                .swipeActions(edge: .trailing) {
+                    swipeActions(viewModel, series: item)
+                }
+                .contextMenu {
+                    menuActions(viewModel, series: item)
+                }
             }
         }
     }
 
-    private func ignoredSection(_ viewModel: RecurringViewModel) -> some View {
-        Section("Ignored") {
-            ForEach(viewModel.ignoredSeries) { series in
-                RecurringRow(series: series)
-                    .foregroundStyle(.secondary)
-                    .swipeActions {
-                        Button {
-                            viewModel.setIgnored(series, ignored: false)
-                        } label: {
-                            Label("Restore", systemImage: "bell")
-                        }
-                        .tint(.blue)
-                    }
-            }
+    @ViewBuilder
+    private func swipeActions(_ viewModel: RecurringViewModel, series: RecurringSeries) -> some View {
+        switch series.status {
+        case .active:
+            Button { viewModel.pause(series) } label: { Label("Pause", systemImage: "pause.circle") }
+                .tint(.orange)
+            Button(role: .destructive) { viewModel.ignore(series) } label: { Label("Ignore", systemImage: "bell.slash") }
+        case .paused:
+            Button { viewModel.resume(series) } label: { Label("Resume", systemImage: "play.circle") }
+                .tint(.green)
+        case .ended:
+            Button { viewModel.reactivate(series) } label: { Label("Reactivate", systemImage: "arrow.clockwise") }
+                .tint(.green)
+            Button(role: .destructive) { viewModel.ignore(series) } label: { Label("Ignore", systemImage: "bell.slash") }
+        case .ignored:
+            Button { viewModel.restore(series) } label: { Label("Restore", systemImage: "bell") }
+                .tint(.blue)
+        case .suggested:
+            Button { viewModel.confirm(series) } label: { Label("Confirm", systemImage: "checkmark") }
+                .tint(.green)
+        }
+    }
+
+    @ViewBuilder
+    private func menuActions(_ viewModel: RecurringViewModel, series: RecurringSeries) -> some View {
+        if series.status == .active {
+            Button { viewModel.pause(series) } label: { Label("Pause", systemImage: "pause.circle") }
+            Button { viewModel.markEnded(series) } label: { Label("Mark Ended", systemImage: "xmark.circle") }
+        }
+        if series.status == .paused {
+            Button { viewModel.resume(series) } label: { Label("Resume", systemImage: "play.circle") }
+        }
+        if series.status == .ended {
+            Button { viewModel.reactivate(series) } label: { Label("Reactivate", systemImage: "arrow.clockwise") }
+        }
+        if series.status == .ignored {
+            Button { viewModel.restore(series) } label: { Label("Restore", systemImage: "bell") }
+        } else {
+            Button(role: .destructive) { viewModel.ignore(series) } label: { Label("Ignore", systemImage: "bell.slash") }
         }
     }
 }
 
+/// One recurring series row: icon, name, cadence + next date, amount, and small badges for a price
+/// change or a low-confidence detection.
 private struct RecurringRow: View {
     let series: RecurringSeries
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: series.isIncome ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
                 .foregroundStyle(series.isIncome ? .green : .orange)
+                .font(.title3)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(series.displayName).fontWeight(.medium)
-                Text("\(series.cadence.displayName) · next \(DateFormatting.medium(series.nextExpected))")
-                    .font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text("\(series.cadence.displayName) · next \(DateFormatting.medium(series.nextExpected))")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                badges
             }
-            Spacer()
+            Spacer(minLength: 6)
             Text(CurrencyFormatter.string(from: series.averageAmount))
+                .fontWeight(.semibold)
                 .foregroundStyle(series.isIncome ? Color.green : Color.primary)
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
         }
         .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private var badges: some View {
+        HStack(spacing: 6) {
+            if let change = series.priceChange {
+                chip(
+                    text: "\(change.isIncrease ? "↑" : "↓") \(CurrencyFormatter.string(from: change.current))",
+                    color: change.isIncrease ? .red : .green
+                )
+            }
+            if series.status == .suggested {
+                chip(text: "\(Int((series.detectionConfidence * 100).rounded()))% match", color: .blue)
+            }
+            if series.status == .ended {
+                chip(text: "Likely cancelled", color: .secondary)
+            }
+        }
+    }
+
+    private func chip(text: String, color: Color) -> some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.15), in: Capsule())
+            .foregroundStyle(color)
+    }
+}
+
+extension RecurringViewModel.Insight {
+    var symbol: String {
+        switch kind {
+        case .needsReview: "questionmark.circle.fill"
+        case .likelyCancelled: "xmark.circle.fill"
+        case .priceIncrease: "arrow.up.right.circle.fill"
+        case .priceDecrease: "arrow.down.right.circle.fill"
+        case .dueThisWeek: "calendar.badge.clock"
+        }
+    }
+
+    var tint: Color {
+        switch kind {
+        case .needsReview: .blue
+        case .likelyCancelled: .gray
+        case .priceIncrease: .red
+        case .priceDecrease: .green
+        case .dueThisWeek: .orange
+        }
     }
 }
 
