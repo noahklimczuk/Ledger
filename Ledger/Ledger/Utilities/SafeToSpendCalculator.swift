@@ -34,7 +34,9 @@ enum SafeToSpendCalculator {
         let billNames = Set(dueBills.map { $0.name.lowercased().trimmingCharacters(in: .whitespaces) })
         let recurringTotal = recurring
             .filter { series in
-                !series.isIgnored
+                // Only genuinely-live subscriptions reserve money — a suggested, paused, ended, or
+                // ignored series shouldn't hold back Safe to Spend.
+                series.isActive
                     && !series.isIncome
                     && !billNames.contains(series.displayName.lowercased().trimmingCharacters(in: .whitespaces))
             }
