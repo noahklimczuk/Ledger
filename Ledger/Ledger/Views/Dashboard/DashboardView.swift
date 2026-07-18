@@ -24,6 +24,8 @@ struct DashboardView: View {
     @State private var isCheckInDue = false
     @State private var drilldown: CategoryDrilldown?
     @State private var flowDrilldown: MonthFlow?
+    /// Whether the Total Balance card is expanded to reveal the per-account breakdown.
+    @State private var isBalanceExpanded = false
 
     var body: some View {
         NavigationStack {
@@ -191,19 +193,92 @@ struct DashboardView: View {
         .buttonStyle(.plain)
     }
 
+    /// The Total Balance card. Tapping it expands a clean per-account breakdown in place, so the
+    /// single headline number can be unfolded into the accounts that make it up without leaving the
+    /// dashboard.
     private func balanceCard(_ viewModel: DashboardViewModel) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Total Balance")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.85))
-            Text(CurrencyFormatter.string(from: viewModel.totalBalance))
-                .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
+                    isBalanceExpanded.toggle()
+                }
+            } label: {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Total Balance")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.85))
+                        Text(CurrencyFormatter.string(from: viewModel.totalBalance))
+                            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                            .foregroundStyle(.white)
+                            .minimumScaleFactor(0.6)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.down")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .rotationEffect(.degrees(isBalanceExpanded ? 180 : 0))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Total Balance, \(CurrencyFormatter.string(from: viewModel.totalBalance))")
+            .accessibilityHint(isBalanceExpanded ? "Hides accounts" : "Shows all accounts")
+            .accessibilityAddTraits(.isButton)
+
+            if isBalanceExpanded {
+                accountBreakdown(viewModel.accounts)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(LinearGradient.brand, in: RoundedRectangle(cornerRadius: 16))
         .shadow(color: Color.brandTeal.opacity(0.35), radius: 10, y: 5)
+    }
+
+    /// The per-account rows shown when the balance card is expanded: account icon, name (with its
+    /// institution when known), and the account's own balance — styled in white to sit on the brand
+    /// gradient, separated by hairline dividers.
+    private func accountBreakdown(_ accounts: [Account]) -> some View {
+        VStack(spacing: 0) {
+            Divider()
+                .overlay(Color.white.opacity(0.25))
+                .padding(.vertical, 12)
+            ForEach(Array(accounts.enumerated()), id: \.element.persistentModelID) { index, account in
+                if index > 0 {
+                    Divider()
+                        .overlay(Color.white.opacity(0.15))
+                        .padding(.vertical, 10)
+                }
+                HStack(spacing: 12) {
+                    Image(systemName: account.type.sfSymbolName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.white.opacity(0.18), in: Circle())
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(account.name)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.white)
+                        if let institution = account.institutionName, !institution.isEmpty {
+                            Text(institution)
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                    }
+                    Spacer(minLength: 8)
+                    Text(CurrencyFormatter.string(from: account.currentBalance, currencyCode: account.currencyCode))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
     }
 
     // MARK: - This month: income / expenses / net
