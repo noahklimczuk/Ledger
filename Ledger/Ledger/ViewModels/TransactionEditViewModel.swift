@@ -92,9 +92,11 @@ final class TransactionEditViewModel {
         guard canSave, let amount, let account else { return nil }
 
         let categorizer = CategorizationService(modelContext: modelContext)
+        let debtAssigner = DebtAssignmentService(modelContext: modelContext)
         let isNew = existingTransaction == nil
         let transaction = existingTransaction ?? Transaction(date: date, merchant: merchant, amount: amount, account: account)
         let previousCategory = transaction.category
+        let previousDebt = transaction.debt
 
         transaction.date = date
         transaction.merchant = merchant
@@ -128,6 +130,20 @@ final class TransactionEditViewModel {
                 categorizer.categorizeAllUncategorized()
             } else if transaction.category == nil {
                 categorizer.applyRule(to: transaction)
+            }
+        }
+
+        // Debt auto-assignment mirrors categorization: an explicit debt choice teaches the merchant →
+        // debt rule and links the merchant's other unassigned transactions (without moving their
+        // balances); leaving it blank lets a previously-learned rule fill it in. An explicit choice on
+        // a new transaction already moved the balance above, so only the blank-fill path moves it —
+        // and only when the transaction is new, matching the "new activity only" balance rule.
+        if transaction.splits.isEmpty {
+            if let chosen = debt, chosen !== previousDebt {
+                debtAssigner.learn(merchant: merchant, debt: chosen)
+                debtAssigner.assignAllUnassigned()
+            } else if transaction.debt == nil {
+                debtAssigner.applyRule(to: transaction, moveBalance: isNew)
             }
         }
 

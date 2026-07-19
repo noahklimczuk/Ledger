@@ -96,16 +96,20 @@ struct DebtEditView: View {
         }
     }
 
-    /// The transactions the user has assigned to this debt, newest first. Read-only here — the link
-    /// is made from the transaction editor — but it makes the assignments (and which ones moved the
-    /// balance) visible from the debt itself.
+    /// The transactions assigned to this debt, newest first. Read-only here — the link is made from
+    /// the transaction editor or automatically — but it makes the assignments (and which ones moved
+    /// the balance) visible from the debt itself.
     @ViewBuilder
     private var assignedTransactionsSection: some View {
         if let debt, !debt.transactions.isEmpty {
-            Section("Assigned Transactions") {
+            Section {
                 ForEach(debt.transactions.sorted { $0.date > $1.date }) { transaction in
                     TransactionRowView(transaction: transaction)
                 }
+            } header: {
+                Text("Assigned Transactions")
+            } footer: {
+                Text("Once you file a payment under a debt, Ledger recognizes that merchant and files matching payments here automatically — paying the balance down as they arrive.")
             }
         }
     }

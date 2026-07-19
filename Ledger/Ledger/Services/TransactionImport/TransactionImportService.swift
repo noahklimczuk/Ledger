@@ -19,6 +19,7 @@ nonisolated final class TransactionImportService {
 
     private let modelContext: ModelContext
     private lazy var categorizer = CategorizationService(modelContext: modelContext)
+    private lazy var debtAssigner = DebtAssignmentService(modelContext: modelContext)
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -241,6 +242,9 @@ nonisolated final class TransactionImportService {
         modelContext.insert(transaction)
         // Replay learned merchant → category rules onto freshly imported transactions.
         categorizer.applyRule(to: transaction)
+        // And learned merchant → debt rules: a freshly imported transaction is new activity, so a
+        // matched debt payment is applied to that debt's balance (once).
+        debtAssigner.applyRule(to: transaction, moveBalance: true)
         return true
     }
 }

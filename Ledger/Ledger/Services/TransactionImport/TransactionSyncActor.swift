@@ -43,6 +43,10 @@ actor TransactionSyncActor {
     /// on the same background context the import just wrote to.
     func categorizeAndDetectRecurring() {
         CategorizationService(modelContext: modelContext).categorizeAllUncategorized()
+        // Back-fill debt links onto anything a rule now matches (e.g. a rule learned after these were
+        // imported). Freshly imported rows already assigned + moved their balance during import, so
+        // this pass links the rest without moving any money.
+        DebtAssignmentService(modelContext: modelContext).assignAllUnassigned()
         RecurringDetectionService(modelContext: modelContext).refresh()
     }
 }
