@@ -65,12 +65,15 @@ struct SavingsGoalsView: View {
                             }
                         }
                     }
+                    .scrollContentBackground(.hidden)
                 }
             } else {
                 LoadingView()
             }
         }
         .navigationTitle("Savings Goals")
+        .accentWash(.goals)
+        .accent(.goals)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { isPresentingNew = true } label: { Image(systemName: "plus") }
@@ -101,14 +104,17 @@ private struct GoalCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Image(systemName: goal.sfSymbolName)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 32, height: 32)
-                    .background(Color(hex: goal.colorHex), in: Circle())
+                    .frame(width: 38, height: 38)
+                    .background(
+                        LinearGradient(colors: [Color(hex: goal.colorHex), Color(hex: goal.colorHex).opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(goal.name)
-                        .fontWeight(.semibold)
+                        .font(.appBodyMedium)
                         .lineLimit(1)
                     Text(goal.isComplete
                          ? "Goal reached 🎉"

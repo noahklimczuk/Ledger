@@ -31,12 +31,15 @@ struct InsightsView: View {
                             Text("Swipe a card to snooze it for a week or dismiss it. Insights refresh automatically as your data changes.")
                         }
                     }
+                    .scrollContentBackground(.hidden)
                 }
             } else {
                 LoadingView()
             }
         }
         .navigationTitle("Insights")
+        .accentWash(.insights)
+        .accent(.insights)
         .task {
             if viewModel == nil { viewModel = InsightsViewModel(modelContext: modelContext) }
             viewModel?.load()
@@ -49,17 +52,22 @@ private struct InsightCard: View {
     let onDismiss: () -> Void
     let onSnooze: () -> Void
 
+    private var tint: Color { Color(hex: insight.severity.tintHex) }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: insight.systemImage)
-                .font(.title3)
-                .foregroundStyle(Color(hex: insight.severity.tintHex))
-                .frame(width: 28)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 38, height: 38)
+                .background(
+                    LinearGradient(colors: [tint, tint.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                )
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(insight.title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.appSubheadline.weight(.bold))
                 Text(insight.message)
                     .font(.footnote)
                     .foregroundStyle(.secondary)

@@ -54,12 +54,15 @@ struct BillRemindersView: View {
                             }
                         }
                     }
+                    .scrollContentBackground(.hidden)
                 }
             } else {
                 LoadingView()
             }
         }
         .navigationTitle("Bill Reminders")
+        .accentWash(.bills)
+        .accent(.bills)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { isPresentingNew = true } label: { Image(systemName: "plus") }
@@ -84,26 +87,31 @@ private struct BillRow: View {
     let onToggle: (Bool) -> Void
 
     var body: some View {
-        HStack {
+        HStack(spacing: 14) {
+            IconBadge(
+                systemName: reminder.isOverdue ? "exclamationmark" : "bell.fill",
+                accent: reminder.isOverdue ? .debt : .bills,
+                size: 38
+            )
             VStack(alignment: .leading, spacing: 2) {
-                Text(reminder.name).fontWeight(.medium)
+                Text(reminder.name).font(.appBodyMedium)
                 HStack(spacing: 4) {
                     Text("Due \(DateFormatting.medium(reminder.dueDate))")
                     if reminder.isRecurring, let cadence = reminder.cadence {
                         Text("· \(cadence.displayName)")
                     }
                 }
-                .font(.caption)
-                .foregroundStyle(reminder.isOverdue ? Color.red : Color.secondary)
+                .font(.appCaption)
+                .foregroundStyle(reminder.isOverdue ? Palette.expense : Color.secondary)
             }
-            Spacer()
+            Spacer(minLength: 8)
             Text(CurrencyFormatter.string(from: reminder.amount))
-                .fontWeight(.medium)
+                .font(.appBody.weight(.heavy))
             Toggle("", isOn: Binding(get: { reminder.isEnabled }, set: { onToggle($0) }))
                 .labelsHidden()
                 .accessibilityLabel("Reminders for \(reminder.name)")
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 5)
     }
 }
 

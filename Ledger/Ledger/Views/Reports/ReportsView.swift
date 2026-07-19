@@ -36,6 +36,8 @@ struct ReportsView: View {
             }
         }
         .navigationTitle("Reports")
+        .accentWash(.reports)
+        .accent(.reports)
         .navigationDestination(item: $drilldownCategory) { category in
             if let viewModel {
                 CategoryTransactionsView(
@@ -76,25 +78,25 @@ struct ReportsView: View {
     // MARK: - Summary
 
     private func summaryCards(_ viewModel: ReportsViewModel) -> some View {
-        HStack(spacing: 12) {
-            summaryTile("Income", value: viewModel.totalIncome, color: .green)
-            summaryTile("Expenses", value: viewModel.totalExpense, color: .red)
-            summaryTile("Net", value: viewModel.net, color: viewModel.net < 0 ? .red : .primary)
+        HStack(spacing: 10) {
+            summaryTile("Income", value: viewModel.totalIncome, color: Palette.income)
+            summaryTile("Expenses", value: viewModel.totalExpense, color: Palette.expense)
+            summaryTile("Net", value: viewModel.net, color: viewModel.net < 0 ? Palette.expense : Palette.indigo)
         }
     }
 
     private func summaryTile(_ label: String, value: Decimal, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.caption).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
             Text(CurrencyFormatter.string(from: value))
-                .font(.headline)
+                .font(.appTitle3.weight(.heavy))
                 .foregroundStyle(color)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.5)
                 .lineLimit(1)
+            Text(label).font(.appCaption.weight(.semibold)).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(14)
+        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
     }
 
     // MARK: - Net worth
@@ -222,12 +224,11 @@ struct ReportsView: View {
 
     private func card<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.headline)
+            SectionHeadline(title)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .card()
     }
 }
 
