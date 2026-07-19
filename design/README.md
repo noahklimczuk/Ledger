@@ -73,7 +73,9 @@ energy), periwinkle (AI), deep plum ink.
 
 **On mobile** — [`concepts/bloom-mobile.html`](concepts/bloom-mobile.html)
 lays the same four screens out as phone mockups (single column, big touch
-targets, a floating clay tab bar with a green FAB), in both Day and Dusk.
+targets, a floating **Liquid Glass** tab bar with a green FAB), in both Day and
+Dusk. The tab bar is frosted and translucent — content refracts and blurs as it
+scrolls behind it.
 
 - **Hosted (mobile):** <https://claude.ai/code/artifact/c77cae19-2918-461f-89b7-b9ecc16eb777>
 

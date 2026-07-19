@@ -71,7 +71,7 @@ h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em
 .status{display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-weight:700;font-size:14px;color:var(--ink);flex:none}
 .status .r{display:flex;gap:6px;align-items:center;font-size:13px}
 .status .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:26px;background:#0d0b0f;border-radius:16px}
-.pbody{flex:1;overflow-y:auto;padding:8px 16px 16px;scrollbar-width:none}
+.pbody{flex:1;overflow-y:auto;padding:8px 16px 106px;scrollbar-width:none}
 .pbody::-webkit-scrollbar{display:none}
 
 /* app chrome */
@@ -195,12 +195,23 @@ h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em
 .legend span{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink2);font-weight:700}
 .legend i{width:10px;height:10px;border-radius:4px}
 
-/* bottom nav */
-.navbar{flex:none;display:flex;justify-content:space-around;align-items:center;padding:10px 8px 22px;background:var(--surf);box-shadow:0 -6px 20px -10px var(--sd),inset 0 1px 0 var(--line)}
-.navbar a{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:9.5px;font-weight:800;color:var(--ink3);text-decoration:none}
-.navbar a .i{font-size:20px;filter:grayscale(.3);opacity:.65}
-.navbar a.on{color:var(--green-d)}.navbar a.on .i{filter:none;opacity:1}
-.navbar a.fab .i{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;color:#fff;font-size:24px;background:linear-gradient(145deg,var(--green),var(--green-d));box-shadow:5px 5px 13px var(--sd);margin-top:-14px}
+/* bottom nav — floating Liquid Glass bar */
+.navbar{position:absolute;left:16px;right:16px;bottom:16px;z-index:6;
+  display:flex;justify-content:space-around;align-items:center;padding:11px 12px;border-radius:30px;
+  background:color-mix(in srgb,var(--surf) 60%,transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid color-mix(in srgb,var(--sl) 65%,transparent);
+  box-shadow:0 22px 44px -16px rgba(0,0,0,.5),0 6px 16px -8px var(--sd),
+    inset 0 1px 0 rgba(255,255,255,.55),inset 0 -8px 18px color-mix(in srgb,var(--sl) 8%,transparent)}
+.navbar::before{content:"";position:absolute;inset:0;border-radius:30px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.30),transparent 44%)}
+.navbar a{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px 11px;border-radius:15px;font-size:9.5px;font-weight:800;color:var(--ink3);text-decoration:none}
+.navbar a .i{font-size:20px;filter:grayscale(.3);opacity:.62}
+.navbar a.on{color:var(--green-d);background:color-mix(in srgb,var(--green) 15%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.navbar a.on .i{filter:none;opacity:1}
+.navbar a.fab{padding:0}
+.navbar a.fab .i{width:50px;height:50px;border-radius:17px;display:grid;place-items:center;color:#fff;font-size:25px;background:linear-gradient(145deg,var(--green),var(--green-d));margin-top:-26px;
+  box-shadow:0 12px 24px -8px color-mix(in srgb,var(--green) 70%,transparent),inset 0 1px 0 rgba(255,255,255,.5),0 0 0 5px color-mix(in srgb,var(--surf) 55%,transparent)}
 
 @media (max-width:520px){
   .phone{width:100%;max-width:392px}
@@ -214,7 +225,7 @@ h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em
     <div>
       <div class="eyebrow"><span class="seed"></span>Ledger · Bloom · Mobile</div>
       <h1>Bloom, on your phone</h1>
-      <p class="sub">The <b>Bloom</b> direction laid out for mobile — single column, big touch targets, a floating clay tab bar — in the same warm design language. Swipe the phones; toggle <b>Day / Dusk</b> top-right.</p>
+      <p class="sub">The <b>Bloom</b> direction laid out for mobile — single column, big touch targets, a floating <b>Liquid&nbsp;Glass</b> tab bar — in the same warm design language. Swipe the phones; toggle <b>Day / Dusk</b> top-right.</p>
     </div>
     <div class="tglr" role="group" aria-label="Theme">
       <button data-theme-set="light" class="on" title="Day">☀️</button>
