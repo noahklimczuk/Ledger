@@ -265,7 +265,7 @@ struct BudgetListView: View {
             .foregroundStyle(color)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(color.opacity(0.12), in: Capsule())
+            .background(color.opacity(0.18), in: Capsule())
     }
 
     private func planTile(label: String, value: Decimal, color: Color, showsChevron: Bool = false) -> some View {
@@ -521,7 +521,7 @@ private struct BudgetRowView: View {
             .foregroundStyle(row.isOverBudget ? Palette.expense : Palette.income)
             .padding(.horizontal, 9)
             .padding(.vertical, 3)
-            .background((row.isOverBudget ? Palette.expense : Palette.income).opacity(0.16), in: Capsule())
+            .background((row.isOverBudget ? Palette.expense : Palette.income).opacity(0.22), in: Capsule())
             .layoutPriority(1)
     }
 

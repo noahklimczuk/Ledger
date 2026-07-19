@@ -323,7 +323,7 @@ struct DashboardView: View {
                 .font(.system(size: 12, weight: .black))
                 .foregroundStyle(color)
                 .frame(width: 26, height: 26)
-                .background(color.opacity(0.18), in: Circle())
+                .background(color.opacity(0.26), in: Circle())
             Text(CurrencyFormatter.string(from: value))
                 .font(.appNumber)
                 .foregroundStyle(color)
@@ -340,7 +340,7 @@ struct DashboardView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
+        .background(color.opacity(0.18), in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
     }
 
     @ViewBuilder

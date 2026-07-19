@@ -5,30 +5,31 @@ import SwiftUI
 /// through shared gradients, radii, and motion. Every hue is defined bright→deep so one accent yields
 /// a solid tint, a soft wash, and a bold gradient.
 nonisolated enum Palette {
-    // Bright signature hues.
-    static let emerald = Color(hex: "34D399")
-    static let teal    = Color(hex: "14B8A6")
-    static let sky     = Color(hex: "38BDF8")
-    static let blue    = Color(hex: "3B82F6")
-    static let indigo  = Color(hex: "6366F1")
-    static let violet  = Color(hex: "8B5CF6")
-    static let purple  = Color(hex: "A855F7")
-    static let pink    = Color(hex: "EC4899")
-    static let rose    = Color(hex: "F43F5E")
-    static let orange  = Color(hex: "F97316")
-    static let amber   = Color(hex: "F59E0B")
-    static let cyan    = Color(hex: "06B6D4")
-    static let lime    = Color(hex: "84CC16")
+    // Bright signature hues — punched up a notch past Tailwind-500 for a more vivid, saturated look.
+    static let emerald = Color(hex: "05D68C")
+    static let teal    = Color(hex: "06C2AE")
+    static let sky     = Color(hex: "1FB4FF")
+    static let blue    = Color(hex: "2E6DFF")
+    static let indigo  = Color(hex: "5B5CF7")
+    static let violet  = Color(hex: "8E3BFF")
+    static let purple  = Color(hex: "B23BFF")
+    static let pink    = Color(hex: "FF3D96")
+    static let rose    = Color(hex: "FF2D55")
+    static let orange  = Color(hex: "FF6A00")
+    static let amber   = Color(hex: "FFA400")
+    static let cyan    = Color(hex: "06C9E8")
+    static let lime    = Color(hex: "8CE00C")
 
-    // Deep companions, used as the far end of each accent gradient.
-    static let emeraldDeep = Color(hex: "0E7C7B")
-    static let blueDeep    = Color(hex: "2563EB")
-    static let indigoDeep  = Color(hex: "4F46E5")
-    static let violetDeep  = Color(hex: "7C3AED")
-    static let pinkDeep    = Color(hex: "DB2777")
-    static let roseDeep    = Color(hex: "E11D48")
-    static let orangeDeep  = Color(hex: "EA580C")
-    static let cyanDeep    = Color(hex: "0891B2")
+    // Deep companions, used as the far end of each accent gradient — kept rich and saturated so the
+    // hero gradients read boldly rather than fading to a muddy dark.
+    static let emeraldDeep = Color(hex: "01997C")
+    static let blueDeep    = Color(hex: "2E5BFF")
+    static let indigoDeep  = Color(hex: "4B3BF0")
+    static let violetDeep  = Color(hex: "7A1FFF")
+    static let pinkDeep    = Color(hex: "E4157F")
+    static let roseDeep    = Color(hex: "F5003C")
+    static let orangeDeep  = Color(hex: "F94A00")
+    static let cyanDeep    = Color(hex: "0499C4")
 
     // Shared money semantics used on every screen, so income/expense read the same everywhere.
     static let income  = emerald
@@ -53,15 +54,16 @@ nonisolated struct Accent: Equatable {
         LinearGradient(colors: [base.opacity(0.16), deep.opacity(0.10)], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
-    /// A soft, low-opacity fill of the hue for chips, icon badges, and tinted cards.
-    var soft: Color { base.opacity(0.15) }
+    /// A soft fill of the hue for chips, icon badges, and tinted cards. Kept fairly strong so tinted
+    /// surfaces read as clearly colored rather than a barely-there gray.
+    var soft: Color { base.opacity(0.24) }
 
     /// Text/'glyph color that reads clearly on `soft`.
     var onSoft: Color { deep }
 
     // MARK: Section accents
 
-    static let dashboard    = Accent(base: Color(hex: "3BD18F"), deep: Color(hex: "0E7C7B")) // brand emerald→teal
+    static let dashboard    = Accent(base: Color(hex: "1FDD97"), deep: Color(hex: "05A07E")) // brand emerald→teal, brighter
     static let accounts     = Accent(base: Palette.sky,    deep: Palette.blueDeep)
     static let transactions = Accent(base: Palette.violet, deep: Palette.violetDeep)
     static let budgets      = Accent(base: Palette.amber,  deep: Palette.orangeDeep)

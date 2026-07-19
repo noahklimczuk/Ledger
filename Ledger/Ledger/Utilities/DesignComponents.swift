@@ -84,7 +84,7 @@ struct Chip: View {
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
         .foregroundStyle(color)
-        .background(color.opacity(0.16), in: Capsule())
+        .background(color.opacity(0.22), in: Capsule())
     }
 }
 
@@ -215,10 +215,12 @@ extension View {
         background(
             ZStack {
                 Color.appBackground
+                // Stronger at the top and carried all the way down (rather than fading out by
+                // mid-screen), so each screen clearly reads in its section color.
                 LinearGradient(
-                    colors: [accent.base.opacity(0.18), accent.base.opacity(0.0)],
+                    colors: [accent.base.opacity(0.32), accent.base.opacity(0.06)],
                     startPoint: .top,
-                    endPoint: .center
+                    endPoint: .bottom
                 )
             }
             .ignoresSafeArea()
