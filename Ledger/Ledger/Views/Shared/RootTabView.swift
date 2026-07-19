@@ -129,7 +129,7 @@ private struct FloatingTabBar: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.6, anchor: .leading)))
                 }
             }
-            .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(Color.secondary))
+            .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(Color.secondary))
             .padding(.horizontal, isSelected ? 15 : 13)
             .padding(.vertical, 11)
             .background {

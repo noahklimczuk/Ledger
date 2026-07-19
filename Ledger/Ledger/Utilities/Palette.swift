@@ -75,11 +75,18 @@ nonisolated struct Accent: Equatable {
     static let categories   = Accent(base: Palette.blue,   deep: Palette.indigoDeep)
 }
 
+nonisolated private struct AccentEnvironmentKey: EnvironmentKey {
+    static let defaultValue: Accent = .dashboard
+}
+
 extension EnvironmentValues {
     /// The current screen's signature accent, so shared components (headers, buttons, chips) pick up
     /// the right hue without every call site passing it. Screens set it once at the top with
     /// `.accent(.transactions)` etc.
-    @Entry var accent: Accent = .dashboard
+    nonisolated var accent: Accent {
+        get { self[AccentEnvironmentKey.self] }
+        set { self[AccentEnvironmentKey.self] = newValue }
+    }
 }
 
 extension View {

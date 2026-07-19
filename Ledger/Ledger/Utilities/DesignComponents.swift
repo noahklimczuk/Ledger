@@ -11,7 +11,9 @@ import Foundation
 /// `View` + `Animatable`: SwiftUI interpolates `value` each frame and re-renders the formatted text.
 struct CountingNumber: View, Animatable {
     var value: Double
-    var format: (Double) -> String
+    // @MainActor so the formatter closure can call the main-actor CurrencyFormatter without a
+    // concurrency diagnostic; the body that invokes it is main-actor anyway.
+    var format: @MainActor (Double) -> String
 
     var animatableData: Double {
         get { value }
@@ -54,7 +56,7 @@ struct IconBadge: View {
     var body: some View {
         Image(systemName: systemName)
             .font(.system(size: size * 0.42, weight: .bold))
-            .foregroundStyle(filled ? AnyShapeStyle(.white) : AnyShapeStyle(accent.base))
+            .foregroundStyle(filled ? AnyShapeStyle(Color.white) : AnyShapeStyle(accent.base))
             .frame(width: size, height: size)
             .background {
                 RoundedRectangle(cornerRadius: size * 0.32, style: .continuous)
