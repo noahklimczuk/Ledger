@@ -1,0 +1,562 @@
+<title>Ledger — Bloom for iOS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* ============================================================
+   LEDGER · BLOOM for iOS — the rest of the app flow
+   Onboarding · Accounts & Subscriptions · Transactions · States
+   Bloom warm design language + floating Liquid Glass tab bar.
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+
+:root{
+  --bg:#f1ebe3;--bg2:#e8e0d5;--surf:#fbf7f1;--surf2:#f4eee6;
+  --ink:#2e2731;--ink2:#6f6570;--ink3:#a59aa0;--line:rgba(120,95,80,.14);
+  --green:#3e9e6e;--green-d:#2f7b54;--peach:#ff8f6b;--amber:#ffb15c;
+  --peri:#8e7cf0;--good:#3e9e6e;--warn:#e8952e;--over:#ef5f3d;
+  --sd:rgba(150,120,95,.30);--sl:#ffffff;--page:#efe7dd;--bezel:#191418;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:24px;--r2:18px;--r3:14px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#201b21;--bg2:#181418;--surf:#2a242c;--surf2:#241f26;
+  --ink:#f4efe8;--ink2:#b8acb3;--ink3:#7d727a;--line:rgba(255,255,255,.09);
+  --green:#5fc98e;--green-d:#46a874;--peach:#ff9e7e;--amber:#ffc07a;
+  --peri:#a896ff;--good:#5fc98e;--warn:#f0a94a;--over:#ff775a;
+  --sd:rgba(0,0,0,.55);--sl:rgba(255,255,255,.045);--page:#15121a;}}
+:root[data-theme="light"]{--bg:#f1ebe3;--bg2:#e8e0d5;--surf:#fbf7f1;--surf2:#f4eee6;
+  --ink:#2e2731;--ink2:#6f6570;--ink3:#a59aa0;--line:rgba(120,95,80,.14);
+  --green:#3e9e6e;--green-d:#2f7b54;--peach:#ff8f6b;--amber:#ffb15c;
+  --peri:#8e7cf0;--good:#3e9e6e;--warn:#e8952e;--over:#ef5f3d;
+  --sd:rgba(150,120,95,.30);--sl:#ffffff;--page:#efe7dd;}
+:root[data-theme="dark"]{--bg:#201b21;--bg2:#181418;--surf:#2a242c;--surf2:#241f26;
+  --ink:#f4efe8;--ink2:#b8acb3;--ink3:#7d727a;--line:rgba(255,255,255,.09);
+  --green:#5fc98e;--green-d:#46a874;--peach:#ff9e7e;--amber:#ffc07a;
+  --peri:#a896ff;--good:#5fc98e;--warn:#f0a94a;--over:#ff775a;
+  --sd:rgba(0,0,0,.55);--sl:rgba(255,255,255,.045);--page:#15121a;}
+
+body{font-family:var(--ui);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;
+  background:radial-gradient(700px 420px at 88% -6%,color-mix(in srgb,var(--amber) 22%,transparent),transparent 62%),
+   radial-gradient(620px 460px at 2% 108%,color-mix(in srgb,var(--green) 16%,transparent),transparent 58%),var(--page)}
+.tnum{font-variant-numeric:tabular-nums}
+.wrap{max-width:1330px;margin:0 auto;padding:26px clamp(14px,3vw,30px) 70px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:6px}
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.26em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.eyebrow .seed{width:18px;height:18px;border-radius:7px;background:conic-gradient(from 40deg,var(--green),var(--amber),var(--peach),var(--peri),var(--green))}
+h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em;font-weight:800;
+  background:linear-gradient(135deg,var(--green-d),var(--peach) 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{margin:12px 0 0;max-width:56ch;color:var(--ink2);font-size:14.5px;line-height:1.55}.sub b{color:var(--ink)}
+.tglr{display:flex;gap:4px;background:var(--surf);border-radius:999px;padding:5px;box-shadow:4px 4px 12px var(--sd),-3px -3px 9px var(--sl)}
+.tglr button{border:0;background:transparent;cursor:pointer;font-size:15px;width:38px;height:32px;border-radius:999px;color:var(--ink3)}
+.tglr button.on{background:var(--surf2);color:var(--ink);box-shadow:inset 2px 2px 6px var(--sd),inset -2px -2px 6px var(--sl)}
+.sectitle{font:800 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin:38px 0 2px;display:flex;align-items:center;gap:12px}
+.sectitle::after{content:"";flex:1;height:1px;background:var(--line)}
+.rail{display:flex;flex-wrap:wrap;justify-content:center;gap:34px 26px;padding:26px 4px 12px}
+.col{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:13px}
+.cap{font:700 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+
+/* phone */
+.phone{width:390px;border-radius:52px;background:linear-gradient(150deg,#2a262e,var(--bezel));padding:13px;
+  box-shadow:0 50px 90px -40px rgba(0,0,0,.6),inset 0 0 0 2px rgba(255,255,255,.05),0 0 0 1px rgba(0,0,0,.4)}
+.pscreen{border-radius:40px;overflow:hidden;background:var(--bg);height:812px;position:relative;display:flex;flex-direction:column}
+.status{display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-weight:700;font-size:14px;color:var(--ink);flex:none;z-index:8}
+.status .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:26px;background:#0d0b0f;border-radius:16px}
+.sic{width:70px;height:13px;color:var(--ink)}
+.pbody{flex:1;overflow-y:auto;padding:8px 16px 106px;scrollbar-width:none}
+.pbody::-webkit-scrollbar{display:none}
+.pbody.noNav{padding-bottom:24px}
+.pbody.center{display:flex;flex-direction:column;padding:26px 24px}
+
+/* app chrome bits */
+.apptop{display:flex;align-items:center;gap:10px;margin:8px 2px 16px}
+.apptop .ti{flex:1;font-size:21px;font-weight:800;letter-spacing:-.02em}
+.back{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:18px;font-weight:800;color:var(--ink2);background:var(--surf);box-shadow:3px 3px 9px var(--sd),-2px -2px 7px var(--sl)}
+.chip{padding:9px 14px;border-radius:999px;background:var(--surf);font-size:12.5px;font-weight:700;color:var(--ink2);box-shadow:3px 3px 9px var(--sd),-3px -3px 8px var(--sl)}
+.clay{background:var(--surf);border-radius:var(--r);box-shadow:7px 7px 20px var(--sd),-6px -6px 14px var(--sl),inset 0 0 0 1px color-mix(in srgb,var(--sl) 50%,transparent);padding:18px}
+.clay.inset{box-shadow:inset 5px 5px 12px var(--sd),inset -5px -5px 12px var(--sl)}
+.stack{display:flex;flex-direction:column;gap:13px}
+.lbl{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+.h5{margin:0 0 14px;font-size:17px;font-weight:800;letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:center}
+.h5 a{font-size:12.5px;font-weight:700;color:var(--green-d);text-decoration:none}
+.big{font-size:34px;line-height:.94;font-weight:800;letter-spacing:-.03em;color:var(--ink)}
+.delta{display:inline-flex;gap:5px;margin-top:11px;font-size:12.5px;font-weight:800;color:var(--green-d);background:color-mix(in srgb,var(--green) 16%,transparent);padding:6px 11px;border-radius:999px}
+
+/* floating Liquid Glass tab bar */
+.navbar{position:absolute;left:16px;right:16px;bottom:16px;z-index:6;display:flex;justify-content:space-around;align-items:center;padding:11px 12px;border-radius:30px;
+  background:color-mix(in srgb,var(--surf) 60%,transparent);-webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid color-mix(in srgb,var(--sl) 65%,transparent);
+  box-shadow:0 22px 44px -16px rgba(0,0,0,.5),0 6px 16px -8px var(--sd),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -8px 18px color-mix(in srgb,var(--sl) 8%,transparent)}
+.navbar::before{content:"";position:absolute;inset:0;border-radius:30px;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.30),transparent 44%)}
+.navbar a{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px 11px;border-radius:15px;font-size:9.5px;font-weight:800;color:var(--ink3);text-decoration:none}
+.navbar a .i{font-size:20px;filter:grayscale(.3);opacity:.62}
+.navbar a.on{color:var(--green-d);background:color-mix(in srgb,var(--green) 15%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.navbar a.on .i{filter:none;opacity:1}
+.navbar a.fab{padding:0}
+.navbar a.fab .i{width:50px;height:50px;border-radius:17px;display:grid;place-items:center;color:#fff;font-size:25px;background:linear-gradient(145deg,var(--green),var(--green-d));margin-top:-26px;
+  box-shadow:0 12px 24px -8px color-mix(in srgb,var(--green) 70%,transparent),inset 0 1px 0 rgba(255,255,255,.5),0 0 0 5px color-mix(in srgb,var(--surf) 55%,transparent)}
+
+/* buttons */
+.btnP{display:block;width:100%;text-align:center;padding:16px;border-radius:18px;font-size:16px;font-weight:800;color:#fff;border:0;cursor:pointer;
+  background:linear-gradient(145deg,var(--green),var(--green-d));box-shadow:6px 6px 16px var(--sd),-3px -3px 10px var(--sl)}
+.btnG{display:block;width:100%;text-align:center;padding:15px;border-radius:18px;font-size:15px;font-weight:800;color:var(--ink2);background:transparent;border:0;margin-top:6px;cursor:pointer}
+.btnC{display:flex;align-items:center;justify-content:center;gap:11px;width:100%;padding:16px;border-radius:16px;font-size:15px;font-weight:800;color:var(--ink);background:var(--surf);box-shadow:5px 5px 13px var(--sd),-4px -4px 10px var(--sl);margin-bottom:11px}
+.btnC .ilogo{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:15px;background:color-mix(in srgb,var(--green) 22%,var(--surf))}
+
+/* onboarding / faceid */
+.grow{flex:1}
+.logo{width:78px;height:78px;border-radius:24px;background:linear-gradient(145deg,var(--green),var(--green-d));display:grid;place-items:center;font-size:40px;box-shadow:8px 8px 20px var(--sd),-5px -5px 14px var(--sl)}
+.brandc{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+.brandc .nm{font-size:26px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(135deg,var(--green-d),var(--peach));-webkit-background-clip:text;background-clip:text;color:transparent}
+.fid{width:82px;height:82px;color:var(--green-d)}
+.onbh{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.06;text-wrap:balance}
+.onbp{font-size:15px;color:var(--ink2);line-height:1.5;margin-top:12px}
+.feat{display:flex;gap:14px;align-items:flex-start;text-align:left;padding:13px 0}
+.feat .fe{width:46px;height:46px;border-radius:15px;flex:none;display:grid;place-items:center;font-size:21px;background:var(--surf2);box-shadow:4px 4px 10px var(--sd),-3px -3px 8px var(--sl)}
+.feat b{font-size:15.5px;font-weight:800}.feat p{margin:3px 0 0;font-size:12.5px;color:var(--ink2);line-height:1.4}
+.dots{display:flex;gap:7px;justify-content:center;margin:16px 0}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--ink3);opacity:.35}.dots i.on{opacity:1;background:var(--green);width:22px;border-radius:4px}
+.privacy{font-size:11.5px;color:var(--ink3);text-align:center;margin-top:14px;line-height:1.5}
+.privacy b{color:var(--green-d)}
+.facehalo{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;margin-bottom:8px;
+  background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--green) 22%,transparent),transparent 68%)}
+
+/* fields / sheet */
+.dim{position:absolute;inset:0;background:rgba(25,12,18,.42);z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:5;background:var(--surf);border-radius:30px 30px 0 0;padding:8px 20px 26px;box-shadow:0 -24px 60px -22px rgba(0,0,0,.5)}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--ink3);opacity:.4;margin:8px auto 14px}
+.field{margin-bottom:13px}
+.field label{font:800 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:8px}
+.inp{padding:15px 16px;border-radius:14px;background:var(--surf2);box-shadow:inset 4px 4px 10px var(--sd),inset -4px -4px 10px var(--sl);font-size:15px;color:var(--ink);font-weight:700;display:flex;align-items:center;justify-content:space-between}
+.inp.ph{color:var(--ink3);font-weight:600}
+.secnote{display:flex;gap:9px;align-items:flex-start;font-size:11.5px;color:var(--ink2);line-height:1.45;margin-top:6px}
+.secnote .l{color:var(--green-d);font-size:14px}
+
+/* rows: account / subscription */
+.row{display:flex;align-items:center;gap:13px;padding:13px 0}.row+.row{border-top:1px solid var(--line)}
+.row .ic{width:44px;height:44px;border-radius:14px;flex:none;display:grid;place-items:center;font-size:18px;background:var(--surf2);box-shadow:4px 4px 10px var(--sd),-3px -3px 8px var(--sl)}
+.row .nm{flex:1;min-width:0}.row .nm b{display:block;font-size:14.5px;font-weight:800}.row .nm span{font-size:11.5px;color:var(--ink3);font-weight:600}
+.row .rt{text-align:right}.row .rt b{font-size:14.5px;font-weight:800}.row .rt span{display:block;font-size:11px;color:var(--ink3);font-weight:700;margin-top:2px}
+.row .rt b.pos{color:var(--green-d)}.row .rt b.neg{color:var(--over)}
+.sync{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--green-d);font-weight:700}
+.sync .d{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+
+/* transaction detail */
+.txhero{text-align:center;padding:14px 0 6px}
+.txhero .ic{width:58px;height:58px;border-radius:18px;margin:0 auto 14px;display:grid;place-items:center;font-size:26px;background:var(--surf);box-shadow:6px 6px 15px var(--sd),-4px -4px 10px var(--sl)}
+.txhero .a{font-size:44px;font-weight:800;letter-spacing:-.03em}
+.txhero .a.pos{color:var(--green-d)}
+.txhero .m{font-size:17px;font-weight:800;margin-top:8px}
+.txhero .dt{font-size:12.5px;color:var(--ink3);margin-top:5px;font-weight:600}
+.mrow{display:flex;justify-content:space-between;align-items:center;padding:13px 0;font-size:14px}
+.mrow+.mrow{border-top:1px solid var(--line)}
+.mrow .k{color:var(--ink3);font-weight:700}
+.mrow .v{font-weight:800;display:flex;align-items:center;gap:8px}
+.catchip{font-size:12px;font-weight:800;padding:5px 11px;border-radius:999px;background:color-mix(in srgb,var(--green) 15%,var(--surf));color:var(--green-d)}
+.catchip.warm{background:color-mix(in srgb,var(--peach) 18%,var(--surf));color:var(--peach)}
+.splitrow{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:13.5px}
+.splitrow .dotc{width:10px;height:10px;border-radius:3px;flex:none}
+.splitrow .sn{flex:1;font-weight:700}
+.splitrow .sv{font-weight:800}
+
+/* add transaction */
+.amtbig{text-align:center;font-size:56px;font-weight:800;letter-spacing:-.03em;padding:6px 0 2px}
+.amtbig .cur{color:var(--ink3);font-size:32px;vertical-align:top;margin-right:2px}
+.seg{display:flex;gap:6px;background:var(--surf2);border-radius:999px;padding:5px;box-shadow:inset 3px 3px 8px var(--sd),inset -3px -3px 8px var(--sl);margin:6px 0 4px}
+.seg button{flex:1;padding:11px;border-radius:999px;font-weight:800;font-size:13.5px;border:0;background:transparent;color:var(--ink2);cursor:pointer}
+.seg button.exp{color:#fff;background:linear-gradient(145deg,var(--peach),#f2704f);box-shadow:3px 3px 9px var(--sd)}
+.seg button.inc{color:#fff;background:linear-gradient(145deg,var(--green),var(--green-d));box-shadow:3px 3px 9px var(--sd)}
+.catpick{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}.catpick::-webkit-scrollbar{display:none}
+.ct{padding:9px 13px;border-radius:13px;font-size:12.5px;font-weight:800;white-space:nowrap;background:var(--surf);color:var(--ink2);box-shadow:3px 3px 8px var(--sd),-2px -2px 6px var(--sl)}
+.ct.on{background:linear-gradient(145deg,var(--green),var(--green-d));color:#fff}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.key{padding:15px;border-radius:16px;text-align:center;font-size:22px;font-weight:800;background:var(--surf);color:var(--ink);box-shadow:5px 5px 12px var(--sd),-4px -4px 9px var(--sl)}
+.key.mut{color:var(--ink3);font-size:18px}
+
+/* states */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;padding:20px}
+.emptyart{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;font-size:52px;margin-bottom:8px;
+  background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--green) 20%,transparent),transparent 66%);position:relative}
+.emptyart::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px dashed color-mix(in srgb,var(--green) 40%,transparent)}
+.empth{font-size:22px;font-weight:800;letter-spacing:-.01em;margin-top:6px}
+.emptp{font-size:14px;color:var(--ink2);line-height:1.5;max-width:30ch;margin:8px 0 18px}
+.skel{background:linear-gradient(90deg,var(--surf2) 25%,color-mix(in srgb,var(--surf) 75%,var(--sl)) 37%,var(--surf2) 63%);background-size:400% 100%;animation:sk 1.5s ease infinite;border-radius:12px}
+@keyframes sk{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.banner{display:flex;gap:12px;align-items:flex-start;padding:15px;border-radius:16px}
+.banner .bi{font-size:20px;flex:none}
+.banner b{font-size:14px;font-weight:800}.banner p{margin:3px 0 0;font-size:12px;color:var(--ink2);line-height:1.45}
+.banner.err{background:color-mix(in srgb,var(--over) 13%,var(--surf));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--over) 30%,transparent)}
+.banner.err b{color:var(--over)}
+.banner.warnb{background:color-mix(in srgb,var(--amber) 16%,var(--surf));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--amber) 34%,transparent)}
+.bpill{margin-top:11px;display:inline-block;padding:9px 15px;border-radius:12px;font-size:12.5px;font-weight:800;color:#fff;background:linear-gradient(145deg,var(--green),var(--green-d));box-shadow:3px 3px 9px var(--sd)}
+
+@media (max-width:520px){.phone{width:100%;max-width:390px}.rail{flex-direction:column;align-items:center;overflow:visible}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+
+<svg style="display:none" aria-hidden="true"><symbol id="sic" viewBox="0 0 70 13"><g fill="currentColor"><rect x="0" y="7" width="3" height="6" rx="1"/><rect x="5" y="5" width="3" height="8" rx="1"/><rect x="10" y="2.5" width="3" height="10.5" rx="1"/><rect x="15" y="0" width="3" height="13" rx="1"/><path d="M25 4.2c3.3-3 8.4-3 11.7 0l-1.6 1.7c-2.4-2.2-6.1-2.2-8.5 0zM27.7 6.9c1.8-1.6 4.8-1.6 6.6 0l-1.7 1.7c-.9-.8-2.4-.8-3.3 0z"/><rect x="49" y="2" width="17" height="9" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="50.6" y="3.4" width="12" height="6.2" rx="1.2"/><rect x="67" y="5" width="2" height="3" rx="1"/></g></symbol></svg>
+
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="eyebrow"><span class="seed"></span>Ledger · Bloom · iOS</div>
+      <h1>Bloom for iOS — the full flow</h1>
+      <p class="sub">The rest of the app, at iPhone size in the <b>Bloom</b> language with the floating <b>Liquid&nbsp;Glass</b> tab bar: onboarding &amp; Face&nbsp;ID, accounts &amp; subscriptions, transaction detail &amp; add, and empty / loading / error states. Toggle <b>Day / Dusk</b> top-right.</p>
+    </div>
+    <div class="tglr" role="group" aria-label="Theme">
+      <button data-theme-set="light" class="on" title="Day">☀️</button>
+      <button data-theme-set="dark" title="Dusk">🌙</button>
+    </div>
+  </div>
+
+  <!-- ============================================================ ONBOARDING ============================================================ -->
+  <div class="sectitle">Onboarding &amp; Face ID</div>
+  <div class="rail">
+    <!-- Face ID lock -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody center noNav" style="justify-content:center;align-items:center;text-align:center">
+          <div class="grow" style="max-height:60px"></div>
+          <div class="logo" style="margin:0 auto 22px">🌿</div>
+          <div class="onbh">Ledger is locked</div>
+          <div class="onbp" style="max-width:26ch">Your money is private and stays on this iPhone.</div>
+          <div class="grow"></div>
+          <div class="facehalo" style="margin:0 auto">
+            <svg class="fid" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 20V12a6 6 0 0 1 6-6h8M44 6h8a6 6 0 0 1 6 6v8M58 44v8a6 6 0 0 1-6 6h-8M20 58h-8a6 6 0 0 1-6-6v-8"/>
+              <path d="M24 26v5M40 26v5M32 26v9l-3 3"/><path d="M24 43c4 4 12 4 16 0"/>
+            </svg>
+          </div>
+          <div class="onbp" style="font-weight:800;color:var(--ink)">Look to unlock</div>
+          <div class="grow"></div>
+          <button class="btnG">Use passcode instead</button>
+        </div>
+      </div></div>
+      <div class="cap">Face ID lock</div>
+    </div>
+
+    <!-- Welcome -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody center noNav">
+          <div class="grow" style="max-height:34px"></div>
+          <div class="brandc"><div class="logo">🌿</div><div class="nm">Ledger</div></div>
+          <div style="margin-top:26px">
+            <div class="onbh">Your money,<br>tended — not tracked.</div>
+            <div class="onbp">A calm, private budgeting app that shows you one thing: how well you're doing.</div>
+          </div>
+          <div style="margin-top:20px">
+            <div class="feat"><span class="fe">🌿</span><div><b>A wellness score</b><p>One number for how healthy your money is.</p></div></div>
+            <div class="feat"><span class="fe">🔒</span><div><b>Private by design</b><p>Everything stays on your iPhone. No accounts, no cloud.</p></div></div>
+            <div class="feat"><span class="fe">✨</span><div><b>Ask Ledger</b><p>Gentle, on-device nudges — never nagging.</p></div></div>
+          </div>
+          <div class="grow"></div>
+          <div class="dots"><i class="on"></i><i></i><i></i></div>
+          <button class="btnP">Get started</button>
+          <button class="btnG">I already have data to import</button>
+        </div>
+      </div></div>
+      <div class="cap">Welcome</div>
+    </div>
+
+    <!-- Connect account -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody center noNav">
+          <div class="grow" style="max-height:20px"></div>
+          <div class="onbh">Add your money</div>
+          <div class="onbp">Connect an account to start, or add things by hand. You can always add more later.</div>
+          <div style="margin-top:24px">
+            <div class="btnC"><span class="ilogo">🍁</span>Connect Wealthsimple</div>
+            <div class="btnC"><span class="ilogo">📄</span>Import CSV or OFX file</div>
+            <div class="btnC"><span class="ilogo">✍️</span>Add an account manually</div>
+          </div>
+          <div class="grow"></div>
+          <div class="privacy">🔒 Ledger talks to your bank on-device only. Your password is sent <b>only</b> to Wealthsimple — never stored, never to us.</div>
+          <button class="btnG" style="margin-top:14px">Skip for now</button>
+        </div>
+      </div></div>
+      <div class="cap">Connect account</div>
+    </div>
+  </div>
+  <!-- ============================================================ ACCOUNTS & SUBSCRIPTIONS ============================================================ -->
+  <div class="sectitle">Accounts &amp; Subscriptions</div>
+  <div class="rail">
+    <!-- Accounts -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody">
+          <div class="apptop"><span class="back">‹</span><span class="ti">Accounts</span><span class="chip">＋</span></div>
+          <div class="stack">
+            <div class="clay" style="background:linear-gradient(155deg,color-mix(in srgb,var(--green) 12%,var(--surf)),var(--surf))">
+              <div class="lbl">Net worth</div>
+              <div class="big tnum" style="margin-top:8px">$128,940</div>
+              <span class="delta">▲ $2,122 this month</span>
+              <div class="sync" style="margin-top:14px"><span class="d"></span>All synced · 2 min ago</div>
+            </div>
+            <div class="clay">
+              <div class="h5">Cash &amp; savings</div>
+              <div class="row"><span class="ic">🍁</span><div class="nm"><b>Wealthsimple Cash</b><span>Linked · synced 2m ago</span></div><div class="rt"><b class="tnum">$12,480</b></div></div>
+              <div class="row"><span class="ic">🏦</span><div class="nm"><b>Chequing</b><span>RBC · manual</span></div><div class="rt"><b class="tnum">$3,205</b></div></div>
+              <div class="row"><span class="ic">💰</span><div class="nm"><b>Savings</b><span>Emergency fund</span></div><div class="rt"><b class="tnum">$22,900</b></div></div>
+            </div>
+            <div class="clay">
+              <div class="h5">Debt</div>
+              <div class="row"><span class="ic">💳</span><div class="nm"><b>Visa</b><span>19.99% APR · payoff Jan '27</span></div><div class="rt"><b class="neg tnum">−$1,842</b></div></div>
+            </div>
+            <div class="btnC"><span class="ilogo">🍁</span>Connect another institution</div>
+          </div>
+        </div>
+        <div class="navbar">
+          <a class="on"><span class="i">🏠</span>Home</a><a><span class="i">🌿</span>Wellness</a>
+          <a class="fab"><span class="i">＋</span></a><a><span class="i">💰</span>Budgets</a><a><span class="i">📊</span>Activity</a>
+        </div>
+      </div></div>
+      <div class="cap">Accounts</div>
+    </div>
+
+    <!-- Connect Wealthsimple sheet -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody" style="overflow:hidden">
+          <div class="apptop"><span class="back">‹</span><span class="ti">Accounts</span></div>
+          <div class="stack" style="opacity:.5">
+            <div class="clay"><div class="lbl">Net worth</div><div class="big" style="margin-top:8px">$128,940</div></div>
+            <div class="clay"><div class="row"><span class="ic">🏦</span><div class="nm"><b>Chequing</b><span>RBC</span></div><div class="rt"><b>$3,205</b></div></div></div>
+          </div>
+        </div>
+        <div class="dim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:16px">
+            <span class="ilogo" style="width:36px;height:36px;font-size:19px;border-radius:11px">🍁</span>
+            <div><div style="font-size:18px;font-weight:800">Connect Wealthsimple</div><div style="font-size:12px;color:var(--ink3);font-weight:600">Wealthsimple Cash · free, no aggregator</div></div>
+          </div>
+          <div class="field"><label>Email</label><div class="inp">noah@example.com</div></div>
+          <div class="field"><label>Password</label><div class="inp"><span>••••••••••</span><span style="color:var(--ink3)">👁</span></div></div>
+          <div class="field"><label>2-step code</label><div class="inp ph">Sent to your phone · 6 digits</div></div>
+          <button class="btnP" style="margin-top:6px">Verify &amp; connect</button>
+          <div class="secnote"><span class="l">🔒</span><span>Your password is sent <b style="color:var(--green-d)">only</b> to Wealthsimple to sign in, and is never stored. Tokens live in the iOS Keychain.</span></div>
+        </div>
+      </div></div>
+      <div class="cap">Connect Wealthsimple</div>
+    </div>
+
+    <!-- Subscriptions -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody">
+          <div class="apptop"><span class="back">‹</span><span class="ti">Recurring</span><span class="chip">30 days ▾</span></div>
+          <div class="stack">
+            <div class="clay">
+              <div style="display:flex;gap:12px">
+                <div style="flex:1"><div class="lbl">Bills &amp; subs</div><div style="font-size:26px;font-weight:800;margin-top:8px" class="tnum">$178<span style="font-size:14px;color:var(--ink3)">/mo</span></div></div>
+                <div style="flex:1;text-align:right"><div class="lbl">Income</div><div style="font-size:26px;font-weight:800;margin-top:8px;color:var(--green-d)" class="tnum">$6,240</div></div>
+              </div>
+              <div class="chan-lite" style="height:12px;border-radius:999px;margin-top:14px;display:flex;overflow:hidden;box-shadow:inset 3px 3px 7px var(--sd),inset -3px -3px 7px var(--sl);padding:2px;gap:2px">
+                <div style="width:74%;background:linear-gradient(90deg,var(--green),var(--green-d));border-radius:999px"></div>
+                <div style="flex:1;background:linear-gradient(90deg,var(--amber),var(--peach));border-radius:999px"></div>
+              </div>
+            </div>
+            <div class="clay ai" style="background:linear-gradient(150deg,color-mix(in srgb,var(--peri) 15%,var(--surf)),var(--surf))">
+              <div style="display:inline-flex;align-items:center;gap:8px;font:800 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--peri)"><span style="width:20px;height:20px;border-radius:7px;background:linear-gradient(145deg,var(--peri),var(--green))"></span>Heads up</div>
+              <p style="margin:11px 0 0;font-size:14.5px;line-height:1.45">Spotify &amp; Apple Music overlap. Drop one to keep <b style="color:var(--green-d)">$132/yr</b>.</p>
+            </div>
+            <div class="clay">
+              <div class="h5">Bills &amp; subscriptions</div>
+              <div class="row"><span class="ic">🎬</span><div class="nm"><b>Netflix</b><span>Monthly · in 3 days</span></div><div class="rt"><b class="tnum">$20.99</b></div></div>
+              <div class="row"><span class="ic">🎵</span><div class="nm"><b>Spotify</b><span>Monthly · Jul 24</span></div><div class="rt"><b class="tnum">$10.99</b></div></div>
+              <div class="row"><span class="ic">🎵</span><div class="nm"><b>Apple Music</b><span>Monthly · Jul 28 · overlaps</span></div><div class="rt"><b class="tnum">$10.99</b></div></div>
+              <div class="row"><span class="ic">🏋️</span><div class="nm"><b>Gym</b><span>Monthly · Aug 1</span></div><div class="rt"><b class="tnum">$49.00</b></div></div>
+              <div class="row"><span class="ic">☁️</span><div class="nm"><b>iCloud</b><span>Monthly · Aug 3</span></div><div class="rt"><b class="tnum">$3.99</b></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="navbar">
+          <a><span class="i">🏠</span>Home</a><a><span class="i">🌿</span>Wellness</a>
+          <a class="fab"><span class="i">＋</span></a><a class="on"><span class="i">💰</span>Budgets</a><a><span class="i">📊</span>Activity</a>
+        </div>
+      </div></div>
+      <div class="cap">Subscriptions</div>
+    </div>
+  </div>
+
+  <!-- ============================================================ TRANSACTIONS ============================================================ -->
+  <div class="sectitle">Transaction detail &amp; Add</div>
+  <div class="rail">
+    <!-- Transaction detail -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody noNav">
+          <div class="apptop"><span class="back">‹</span><span class="ti">Transaction</span><span class="chip">•••</span></div>
+          <div class="txhero">
+            <div class="ic">🛒</div>
+            <div class="a tnum">−$84.20</div>
+            <div class="m">Loblaws</div>
+            <div class="dt">Saturday, 19 July 2026 · 2:14 PM</div>
+          </div>
+          <div class="stack" style="margin-top:8px">
+            <div class="clay" style="padding:6px 18px">
+              <div class="mrow"><span class="k">Account</span><span class="v">🍁 Wealthsimple Cash</span></div>
+              <div class="mrow"><span class="k">Category</span><span class="v"><span class="catchip">Groceries</span> ›</span></div>
+              <div class="mrow"><span class="k">Status</span><span class="v" style="color:var(--green-d)">✓ Reviewed</span></div>
+            </div>
+            <div class="clay">
+              <div class="h5">Split across 2 categories</div>
+              <div class="splitrow"><span class="dotc" style="background:var(--green)"></span><span class="sn">Groceries</span><span class="sv tnum">$64.20</span></div>
+              <div class="splitrow" style="border-top:1px solid var(--line)"><span class="dotc" style="background:var(--amber)"></span><span class="sn">Household</span><span class="sv tnum">$20.00</span></div>
+            </div>
+            <div class="clay ai" style="background:linear-gradient(150deg,color-mix(in srgb,var(--peri) 15%,var(--surf)),var(--surf));padding:15px 18px">
+              <p style="margin:0;font-size:13.5px;line-height:1.45;color:var(--ink2)">💡 Changing the category here also <b style="color:var(--green-d)">teaches Ledger</b> to auto-file future Loblaws charges.</p>
+            </div>
+            <button class="btnP">Edit transaction</button>
+            <button class="btnG" style="color:var(--over)">Delete</button>
+          </div>
+        </div>
+      </div></div>
+      <div class="cap">Transaction detail</div>
+    </div>
+
+    <!-- Add transaction -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody noNav">
+          <div class="apptop"><span class="chip" style="font-weight:800">Cancel</span><span class="ti" style="text-align:center;font-size:17px">New transaction</span><span class="chip" style="color:var(--green-d);font-weight:800">Save</span></div>
+          <div class="amtbig tnum"><span class="cur">$</span>24.50</div>
+          <div class="seg"><button class="exp">Expense</button><button>Income</button></div>
+          <div style="margin:14px 0 10px">
+            <div class="lbl" style="margin-bottom:9px">Category</div>
+            <div class="catpick"><span class="ct on">🛒 Groceries</span><span class="ct">🍽️ Dining</span><span class="ct">🚗 Transport</span><span class="ct">🎉 Fun</span><span class="ct">🏠 Home</span></div>
+          </div>
+          <div style="display:flex;gap:9px;margin-bottom:14px">
+            <div class="clay" style="flex:1;padding:12px 14px;box-shadow:4px 4px 11px var(--sd),-3px -3px 8px var(--sl)"><div class="lbl">Account</div><div style="font-size:13.5px;font-weight:800;margin-top:6px">🍁 WS Cash</div></div>
+            <div class="clay" style="flex:1;padding:12px 14px;box-shadow:4px 4px 11px var(--sd),-3px -3px 8px var(--sl)"><div class="lbl">Date</div><div style="font-size:13.5px;font-weight:800;margin-top:6px">Today</div></div>
+          </div>
+          <div class="keypad">
+            <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+            <div class="key">4</div><div class="key">5</div><div class="key">6</div>
+            <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+            <div class="key mut">.</div><div class="key">0</div><div class="key mut">⌫</div>
+          </div>
+        </div>
+      </div></div>
+      <div class="cap">Add transaction</div>
+    </div>
+  </div>
+
+  <!-- ============================================================ STATES ============================================================ -->
+  <div class="sectitle">Empty · Loading · Error</div>
+  <div class="rail">
+    <!-- Empty -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody">
+          <div class="apptop"><div class="ti" style="font-size:19px;font-weight:700;color:var(--ink2)">Welcome, <b style="color:var(--ink);font-weight:800">Noah</b> 🌿</div><div class="av" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(145deg,var(--peach),var(--peri));box-shadow:4px 4px 10px var(--sd)"></div></div>
+          <div class="empty">
+            <div class="emptyart">🌱</div>
+            <div class="empth">Let's plant your first goal</div>
+            <div class="emptp">Add an account or a few transactions and your balance, budgets and wellness score will bloom here.</div>
+            <button class="btnP" style="max-width:250px">Add an account</button>
+            <button class="btnG" style="max-width:250px">Add a transaction by hand</button>
+          </div>
+        </div>
+        <div class="navbar">
+          <a class="on"><span class="i">🏠</span>Home</a><a><span class="i">🌿</span>Wellness</a>
+          <a class="fab"><span class="i">＋</span></a><a><span class="i">💰</span>Budgets</a><a><span class="i">📊</span>Activity</a>
+        </div>
+      </div></div>
+      <div class="cap">Empty state</div>
+    </div>
+
+    <!-- Loading -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody">
+          <div class="apptop">
+            <div class="ti" style="font-size:19px;font-weight:700;color:var(--ink2)">Good morning, <b style="color:var(--ink);font-weight:800">Noah</b></div>
+            <div class="chip" style="display:flex;align-items:center;gap:7px"><span style="width:12px;height:12px;border-radius:50%;border:2px solid var(--green);border-top-color:transparent;display:inline-block;animation:spin 1s linear infinite"></span>Syncing…</div>
+          </div>
+          <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+          <div class="stack">
+            <div class="clay hero" style="display:flex;gap:16px;align-items:center">
+              <div class="skel" style="width:104px;height:104px;border-radius:50%;flex:none"></div>
+              <div style="flex:1"><div class="skel" style="width:70%;height:12px;margin-bottom:12px"></div><div class="skel" style="width:90%;height:30px;margin-bottom:12px"></div><div class="skel" style="width:50%;height:14px"></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+              <div class="clay" style="padding:16px"><div class="skel" style="height:10px;margin-bottom:12px"></div><div class="skel" style="height:20px;width:80%"></div></div>
+              <div class="clay" style="padding:16px"><div class="skel" style="height:10px;margin-bottom:12px"></div><div class="skel" style="height:20px;width:80%"></div></div>
+              <div class="clay" style="padding:16px"><div class="skel" style="height:10px;margin-bottom:12px"></div><div class="skel" style="height:20px;width:80%"></div></div>
+            </div>
+            <div class="clay">
+              <div class="skel" style="width:45%;height:14px;margin-bottom:18px"></div>
+              <div class="skel" style="height:12px;margin-bottom:8px"></div><div class="skel" style="height:15px;width:100%;border-radius:999px;margin-bottom:18px"></div>
+              <div class="skel" style="height:12px;margin-bottom:8px;width:60%"></div><div class="skel" style="height:15px;width:100%;border-radius:999px"></div>
+            </div>
+          </div>
+        </div>
+        <div class="navbar">
+          <a class="on"><span class="i">🏠</span>Home</a><a><span class="i">🌿</span>Wellness</a>
+          <a class="fab"><span class="i">＋</span></a><a><span class="i">💰</span>Budgets</a><a><span class="i">📊</span>Activity</a>
+        </div>
+      </div></div>
+      <div class="cap">Loading · skeleton</div>
+    </div>
+
+    <!-- Error / offline -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><svg class="sic"><use href="#sic"/></svg></div>
+        <div class="pbody">
+          <div class="apptop"><div class="ti">Home</div><div class="chip">July</div></div>
+          <div class="stack">
+            <div class="banner warnb"><span class="bi">📡</span><div><b>You're offline</b><p>Showing your last synced numbers from 2 hours ago.</p></div></div>
+            <div class="clay banner err" style="flex-direction:column;align-items:stretch">
+              <div style="display:flex;gap:12px;align-items:flex-start"><span class="bi">🍁</span><div style="flex:1"><b>Wealthsimple needs you to sign in</b><p>Your session expired. Sign in again to resume automatic syncing — your data stays put in the meantime.</p></div></div>
+              <span class="bpill" style="align-self:flex-start">Sign in again</span>
+            </div>
+            <div class="clay" style="opacity:.65">
+              <div class="lbl">Total balance · last synced</div>
+              <div class="big" style="margin-top:8px">$36,742.35</div>
+              <div style="font-size:12px;color:var(--ink3);margin-top:10px;font-weight:600">⏱ Updated 2h ago · will refresh when you're back online</div>
+            </div>
+            <div class="clay ai" style="background:linear-gradient(150deg,color-mix(in srgb,var(--peri) 15%,var(--surf)),var(--surf));padding:15px 18px">
+              <p style="margin:0;font-size:13.5px;line-height:1.45;color:var(--ink2)">Everything you see is stored on your iPhone, so Ledger keeps working offline — it just can't fetch new transactions until you reconnect.</p>
+            </div>
+          </div>
+        </div>
+        <div class="navbar">
+          <a class="on"><span class="i">🏠</span>Home</a><a><span class="i">🌿</span>Wellness</a>
+          <a class="fab"><span class="i">＋</span></a><a><span class="i">💰</span>Budgets</a><a><span class="i">📊</span>Activity</a>
+        </div>
+      </div></div>
+      <div class="cap">Error · offline</div>
+    </div>
+  </div>
+
+<!--MORE-->
+
+  <div class="clay" style="margin-top:34px;padding:20px 22px;font-size:13.5px;line-height:1.55;color:var(--ink2)">
+    <b style="color:var(--ink)">First look, not final UI · iOS only.</b> Bloom (working name) across the full app flow, Day &amp; Dusk. Real Ledger features — Face&nbsp;ID lock, on-device Wealthsimple sync, recurring detection, splits, learned categories — shown with fictional CAD demo data.
+  </div>
+</div>
+
+<script>
+(function(){
+  var t=[].slice.call(document.querySelectorAll('[data-theme-set]'));
+  t.forEach(function(b){b.addEventListener('click',function(){
+    document.documentElement.setAttribute('data-theme',b.dataset.themeSet);
+    t.forEach(function(x){x.classList.toggle('on',x===b)});
+  })});
+})();
+</script>
