@@ -60,6 +60,7 @@ struct CategoryDetailEditView: View {
                 }
             }
             .navigationTitle(category == nil ? "New Category" : "Edit Category")
+            .accent(.categories)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

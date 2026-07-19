@@ -61,6 +61,7 @@ struct SavingsGoalEditView: View {
                 }
             }
             .navigationTitle(goal == nil ? "New Goal" : "Edit Goal")
+            .accent(.goals)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

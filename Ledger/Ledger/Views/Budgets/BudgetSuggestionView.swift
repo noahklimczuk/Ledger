@@ -25,6 +25,7 @@ struct BudgetSuggestionView: View {
                 }
             }
             .navigationTitle("Suggested Budget")
+            .accent(.budgets)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

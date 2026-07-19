@@ -89,6 +89,7 @@ struct TransactionEditView: View {
                 }
             }
             .navigationTitle(transaction == nil ? "New Transaction" : "Edit Transaction")
+            .accent(.transactions)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -36,12 +36,15 @@ struct CategoryEditorView: View {
                             }
                         }
                     }
+                    .scrollContentBackground(.hidden)
                 }
             } else {
                 LoadingView()
             }
         }
         .navigationTitle("Categories")
+        .accentWash(.categories)
+        .accent(.categories)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { isPresentingNew = true } label: {
@@ -68,24 +71,30 @@ private struct CategoryRow: View {
     let category: Category
     let onTap: () -> Void
 
+    private var color: Color { Color(hex: category.colorHex) }
+
     var body: some View {
         Button(action: onTap) {
-            HStack {
+            HStack(spacing: 12) {
                 Image(systemName: category.sfSymbolName)
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 28, height: 28)
-                    .background(Color(hex: category.colorHex), in: Circle())
+                    .frame(width: 34, height: 34)
+                    .background(
+                        LinearGradient(colors: [color, color.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        in: RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    )
                     .accessibilityHidden(true)
                 Text(category.name)
+                    .font(.appBodyMedium)
                     .foregroundStyle(.primary)
                 Spacer()
                 if category.isIncome {
-                    Text("Income")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Chip(text: "Income", color: Palette.income)
                 }
             }
         }
+        .buttonStyle(.pressable)
     }
 }
 

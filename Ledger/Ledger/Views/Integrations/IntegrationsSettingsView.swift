@@ -77,6 +77,7 @@ struct IntegrationsSettingsView: View {
             }
         }
         .navigationTitle("Connect Wealthsimple")
+        .accent(.accounts)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if viewModel == nil { viewModel = IntegrationsViewModel(modelContext: modelContext) }
