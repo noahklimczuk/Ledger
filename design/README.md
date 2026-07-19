@@ -80,10 +80,11 @@ scrolls behind it.
 - **Hosted (mobile):** <https://claude.ai/code/artifact/c77cae19-2918-461f-89b7-b9ecc16eb777>
 
 **The full iOS flow** — [`concepts/bloom-ios.html`](concepts/bloom-ios.html)
-carries Bloom across the rest of the app as iPhone mockups (11 screens): a Face
-ID lock + onboarding, Accounts + a Connect Wealthsimple sheet + Subscriptions,
-Transaction detail + an Add-transaction keypad, and empty / loading / error
-states — all with the floating Liquid Glass tab bar, in Day and Dusk.
+carries Bloom across the rest of the app as iPhone mockups (9 screens): a Face
+ID lock, Accounts + a Connect Wealthsimple sheet + Subscriptions, Transaction
+detail + an Add-transaction keypad, and empty / loading / error states — all
+with the floating Liquid Glass tab bar, in Day and Dusk. (No public onboarding —
+Ledger is a private, single-user app.)
 
 - **Hosted (iOS flow):** <https://claude.ai/code/artifact/6d8baa8e-8204-44eb-ba41-54791d881403>
 
