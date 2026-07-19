@@ -41,6 +41,8 @@
 		<string>Inter-SemiBold.otf</string>
 		<string>Inter-Bold.otf</string>
 	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

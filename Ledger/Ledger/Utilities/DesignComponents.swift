@@ -119,7 +119,7 @@ struct SectionHeadline<Trailing: View>: View {
 
 extension SectionHeadline where Trailing == EmptyView {
     init(_ title: String, subtitle: String? = nil) {
-        self.init(title: title, subtitle: subtitle) { EmptyView() }
+        self.init(title, subtitle: subtitle) { EmptyView() }
     }
 }
 
