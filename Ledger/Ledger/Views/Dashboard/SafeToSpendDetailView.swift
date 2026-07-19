@@ -33,6 +33,7 @@ struct SafeToSpendDetailView: View {
         }
         .navigationTitle("Safe to Spend")
         .navigationBarTitleDisplayMode(.inline)
+        .accent(.dashboard)
         .navigationDestination(item: $drilldown) { drilldown in
             CategoryTransactionsView(category: drilldown.category, month: .now)
         }

@@ -149,6 +149,8 @@ struct TransactionListView: View {
                 }
             }
             .navigationTitle("Transactions")
+            .accentWash(.transactions)
+            .accent(.transactions)
             // Pull-to-refresh runs a real sync (not just a local re-read); the reload triggered off
             // refreshCount then shows whatever the sync inserted.
             .refreshable { await refresh.refresh(container: modelContext.container) }
@@ -308,6 +310,7 @@ struct TransactionListView: View {
                     .foregroundStyle(.secondary)
                 }
             }
+            .scrollContentBackground(.hidden)
         }
     }
 

@@ -64,6 +64,7 @@ struct BudgetListView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
                     // Pull-to-refresh runs a real sync; the refreshCount observer below
                     // then reloads the rows with the new spent amounts.
                     .refreshable { await refresh.refresh(container: modelContext.container) }
@@ -75,6 +76,8 @@ struct BudgetListView: View {
                 }
             }
             .navigationTitle("Budgets")
+            .accentWash(.budgets)
+            .accent(.budgets)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
@@ -158,16 +161,17 @@ struct BudgetListView: View {
 
     private var advisorBubble: some View {
         Button {
+            Haptics.tap()
             activeSheet = .advisor
         } label: {
-            Image(systemName: "bubble.left.and.bubble.right.fill")
-                .font(.system(size: 22, weight: .semibold))
+            Image(systemName: "sparkles")
+                .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(LinearGradient.brand, in: Circle())
-                .shadow(color: Color.brandTeal.opacity(0.4), radius: 8, y: 4)
+                .frame(width: 60, height: 60)
+                .background(Accent.insights.gradient, in: Circle())
+                .shadow(color: Accent.insights.base.opacity(0.5), radius: 12, y: 6)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .padding(.trailing, 20)
         .padding(.bottom, 20)
         .accessibilityLabel("Financial advisor")
@@ -179,13 +183,16 @@ struct BudgetListView: View {
         VStack(spacing: 16) {
             monthPicker(viewModel)
 
-            VStack(spacing: 6) {
-                Text("Left to Assign")
-                    .font(.subheadline)
+            VStack(spacing: 8) {
+                Text("LEFT TO ASSIGN")
+                    .font(.appCaption.weight(.heavy))
+                    .tracking(1.2)
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: viewModel.leftToAssign))
-                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                    .font(.appDisplay)
                     .foregroundStyle(leftToAssignColor(viewModel))
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
                     .contentTransition(.numericText())
                 planStatusChip(viewModel)
             }
@@ -427,14 +434,12 @@ struct BudgetListView: View {
     // MARK: - Empty state
 
     private var emptyPlanCard: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "chart.pie")
-                .font(.system(size: 34))
-                .foregroundStyle(Color.accentColor)
+        VStack(spacing: 14) {
+            IconBadge(systemName: "chart.pie.fill", accent: .budgets, size: 64)
             Text("No Budgets Yet")
-                .font(.headline)
+                .font(.appTitle3.weight(.heavy))
             Text("Assign your income to categories until Left to Assign hits zero. Start from scratch, or build the plan from your recent spending.")
-                .font(.subheadline)
+                .font(.appSubheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             HStack(spacing: 12) {
@@ -466,13 +471,20 @@ private struct BudgetRowView: View {
     let row: BudgetsViewModel.BudgetRow
     var paceMarker: Double?
 
+    private var categoryColor: Color {
+        row.categoryColorHex.map { Color(hex: $0) } ?? Palette.indigo
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: row.categorySymbolName)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(row.categoryColorHex.map { Color(hex: $0) } ?? .gray, in: Circle())
+                .frame(width: 38, height: 38)
+                .background(
+                    LinearGradient(colors: [categoryColor, categoryColor.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                )
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 6) {
@@ -480,7 +492,7 @@ private struct BudgetRowView: View {
                     // A long category name truncates instead of wrapping and pushing the
                     // remaining pill onto a second line.
                     Text(row.categoryName)
-                        .font(.subheadline.weight(.medium))
+                        .font(.appSubheadline.weight(.semibold))
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     remainingPill
@@ -505,11 +517,11 @@ private struct BudgetRowView: View {
         Text(row.isOverBudget
              ? "\(CurrencyFormatter.string(from: -row.remaining)) over"
              : "\(CurrencyFormatter.string(from: row.remaining)) left")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(row.isOverBudget ? Color.red : Color.brandTeal)
-            .padding(.horizontal, 8)
+            .font(.caption.weight(.bold))
+            .foregroundStyle(row.isOverBudget ? Palette.expense : Palette.income)
+            .padding(.horizontal, 9)
             .padding(.vertical, 3)
-            .background((row.isOverBudget ? Color.red : Color.brandEmerald).opacity(0.14), in: Capsule())
+            .background((row.isOverBudget ? Palette.expense : Palette.income).opacity(0.16), in: Capsule())
             .layoutPriority(1)
     }
 
@@ -532,26 +544,29 @@ private struct UnbudgetedRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: symbol)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(color, in: Circle())
+                .frame(width: 38, height: 38)
+                .background(
+                    LinearGradient(colors: [color, color.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                )
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
-                    .font(.subheadline.weight(.medium))
+                    .font(.appSubheadline.weight(.semibold))
                     .lineLimit(1)
                 Text(detail)
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
             Text(CurrencyFormatter.string(from: spent))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.orange)
+                .font(.appBody.weight(.heavy))
+                .foregroundStyle(Palette.amber)
                 .layoutPriority(1)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 5)
     }
 }
 

@@ -77,6 +77,7 @@ struct CategoryTransactionsView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .accent(.transactions)
         .task(id: category?.persistentModelID) { load() }
     }
 

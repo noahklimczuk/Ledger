@@ -58,6 +58,7 @@ struct DebtEditView: View {
                 paidOffSection
             }
             .navigationTitle(isEditing ? "Edit Debt" : "New Debt")
+            .accent(.debt)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

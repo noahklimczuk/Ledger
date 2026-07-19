@@ -36,12 +36,15 @@ struct RecurringView: View {
                             seriesSection(viewModel, title: "Ignored", series: viewModel.ignoredSeries)
                         }
                     }
+                    .scrollContentBackground(.hidden)
                 }
             } else {
                 LoadingView()
             }
         }
         .navigationTitle("Recurring")
+        .accentWash(.recurring)
+        .accent(.recurring)
         .navigationDestination(for: RecurringSeries.self) { series in
             RecurringDetailView(series: series, viewModel: viewModel)
         }
@@ -68,21 +71,22 @@ struct RecurringView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Monthly Recurring")
-                            .font(.subheadline)
+                        Text("MONTHLY RECURRING")
+                            .font(.appCaption.weight(.heavy))
+                            .tracking(1.1)
                             .foregroundStyle(.white.opacity(0.85))
-                        Text(CurrencyFormatter.string(from: viewModel.monthlyRecurringExpense))
-                            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                        CountingCurrency(value: viewModel.monthlyRecurringExpense)
+                            .font(.appDisplay)
                             .foregroundStyle(.white)
-                            .minimumScaleFactor(0.6)
+                            .minimumScaleFactor(0.5)
                             .lineLimit(1)
                         Text("≈ \(CurrencyFormatter.string(from: viewModel.annualRecurringExpense)) / year")
-                            .font(.caption)
+                            .font(.appCaption)
                             .foregroundStyle(.white.opacity(0.85))
                     }
                     Spacer()
                     Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.title2)
+                        .font(.system(size: 26, weight: .bold))
                         .foregroundStyle(.white.opacity(0.9))
                 }
                 Divider().overlay(Color.white.opacity(0.25))
@@ -99,8 +103,8 @@ struct RecurringView: View {
             .padding(6)
             .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
             .listRowBackground(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(LinearGradient.brand)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Accent.recurring.gradient)
                     .padding(4)
             )
         }
@@ -109,7 +113,7 @@ struct RecurringView: View {
     private func summaryStat(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(.headline)
+                .font(.appHeadline.weight(.heavy))
                 .foregroundStyle(.white)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
@@ -287,9 +291,17 @@ private struct RecurringRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: series.isIncome ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
-                .foregroundStyle(series.isIncome ? .green : .orange)
-                .font(.title3)
+            Image(systemName: series.isIncome ? "arrow.down.left" : "arrow.up.right")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 38, height: 38)
+                .background(
+                    LinearGradient(
+                        colors: series.isIncome ? [Palette.emerald, Palette.emeraldDeep] : [Palette.pink, Palette.pinkDeep],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                )
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(series.displayName).fontWeight(.medium)

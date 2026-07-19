@@ -35,6 +35,7 @@ struct CSVImportView: View {
             }
         }
         .navigationTitle("Import")
+        .accent(.transactions)
         .navigationBarTitleDisplayMode(.inline)
         .fileImporter(isPresented: $isPresentingFileImporter, allowedContentTypes: allowedContentTypes) { result in
             switch result {

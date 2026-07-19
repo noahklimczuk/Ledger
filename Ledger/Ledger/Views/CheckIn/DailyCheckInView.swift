@@ -51,6 +51,7 @@ struct DailyCheckInView: View {
             }
             .navigationTitle("Daily Check-In")
             .navigationBarTitleDisplayMode(.inline)
+            .accent(.checkIn)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {

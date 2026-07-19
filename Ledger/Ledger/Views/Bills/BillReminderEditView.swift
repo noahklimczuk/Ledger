@@ -37,6 +37,7 @@ struct BillReminderEditView: View {
                 }
             }
             .navigationTitle(reminder == nil ? "New Bill" : "Edit Bill")
+            .accent(.bills)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -25,6 +25,7 @@ struct AIAdvisorView: View {
                 }
             }
             .navigationTitle("Financial Advisor")
+            .accent(.insights)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

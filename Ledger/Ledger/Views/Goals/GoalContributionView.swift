@@ -64,6 +64,7 @@ struct GoalContributionView: View {
                 .padding()
             }
             .navigationTitle("Add Money")
+            .accent(.goals)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

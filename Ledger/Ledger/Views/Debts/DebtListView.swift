@@ -27,7 +27,7 @@ struct DebtListView: View {
                                 Button { editingDebt = debt } label: {
                                     DebtRow(debt: debt)
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.pressable)
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
                                         UINotificationFeedbackGenerator().notificationOccurred(.warning)
@@ -39,12 +39,15 @@ struct DebtListView: View {
                             }
                         }
                     }
+                    .scrollContentBackground(.hidden)
                 }
             } else {
                 LoadingView()
             }
         }
         .navigationTitle("Debt")
+        .accentWash(.debt)
+        .accent(.debt)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { isPresentingNew = true } label: {
@@ -69,17 +72,18 @@ struct DebtListView: View {
         Section {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Total Owed").font(.caption).foregroundStyle(.secondary)
+                    Text("TOTAL OWED").font(.appCaption.weight(.heavy)).tracking(1).foregroundStyle(.secondary)
                     Text(CurrencyFormatter.string(from: viewModel.totalOwed))
-                        .font(.title2).fontWeight(.semibold)
-                        .minimumScaleFactor(0.6)
+                        .font(.appNumber)
+                        .foregroundStyle(Palette.expense)
+                        .minimumScaleFactor(0.5)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("Monthly Payments").font(.caption).foregroundStyle(.secondary)
+                    Text("Monthly").font(.appCaption).foregroundStyle(.secondary)
                     Text(CurrencyFormatter.string(from: viewModel.totalMonthlyPayment))
-                        .font(.title3).fontWeight(.medium)
+                        .font(.appTitle3.weight(.bold))
                         .minimumScaleFactor(0.6)
                         .lineLimit(1)
                 }
@@ -97,22 +101,21 @@ private struct DebtRow: View {
     }
 
     var body: some View {
-        HStack {
-            Image(systemName: debt.kind.sfSymbolName)
-                .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(.red, in: Circle())
-                .accessibilityHidden(true)
+        HStack(spacing: 14) {
+            IconBadge(systemName: debt.kind.sfSymbolName, accent: .debt, size: 38)
             VStack(alignment: .leading, spacing: 2) {
-                Text(debt.name).fontWeight(.medium)
+                Text(debt.name).font(.appBodyMedium)
                 Text(subtitle)
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.appCaption).foregroundStyle(.secondary)
             }
-            Spacer()
+            Spacer(minLength: 8)
             Text(CurrencyFormatter.string(from: debt.currentBalance))
-                .fontWeight(.medium)
+                .font(.appBody.weight(.heavy))
+                .foregroundStyle(Palette.expense)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 5)
     }
 
     private var subtitle: String {

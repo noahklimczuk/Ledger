@@ -55,6 +55,7 @@ struct BudgetIncomeEditView: View {
                 }
             }
             .navigationTitle("Monthly Income")
+            .accent(.budgets)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

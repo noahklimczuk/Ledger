@@ -71,6 +71,7 @@ struct BudgetEditView: View {
                 }
             }
             .navigationTitle(budgetRow == nil ? "New Budget" : "Edit Budget")
+            .accent(.budgets)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

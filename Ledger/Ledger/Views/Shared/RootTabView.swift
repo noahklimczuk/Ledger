@@ -70,109 +70,80 @@ struct RootTabView: View {
 
 /// A floating, pill-shaped tab bar raised off the bottom edge. It only draws the bar and writes the
 /// selection binding — the enclosing `TabView` still manages the screens — so it carries none of the
-/// custom-pager risk. It's larger than the system bar and lifted up via bottom padding.
+/// custom-pager risk.
 ///
-/// On iOS 26 it re-creates the App Store tab bar's animation as closely as the public glass APIs
-/// allow: the bar's glass and the selected-tab glass are *siblings* in one `GlassEffectContainer`
-/// (so the highlight reads as a real lens floating in the bar, not a flat tint), and a shared
-/// `glassEffectID` makes the container morph that lens between tabs — the liquid "flow" — as the
-/// selection changes. Pre-iOS 26 falls back to a material pill with a soft accent capsule.
+/// The redesign gives it the app's playful, multi-accent character: the selected tab expands into a
+/// label pill filled with that section's signature gradient, the pill springs between tabs with a
+/// `matchedGeometryEffect`, the icon does a symbol bounce as it's chosen, and the whole bar casts a
+/// soft shadow in the current section's color — so the shell itself announces which area you're in.
 private struct FloatingTabBar: View {
     @Binding var selection: Int
-    /// Ties the selected-tab glass to one identity so the container morphs it between tabs.
-    @Namespace private var glassNamespace
+    /// Ties the moving selection pill to one identity so it springs between tabs.
+    @Namespace private var pill
 
-    private let items: [(title: String, icon: String)] = [
-        ("Dashboard", "house.fill"),
-        ("Accounts", "banknote.fill"),
-        ("Transactions", "list.bullet"),
-        ("Budgets", "chart.pie.fill"),
-        ("More", "ellipsis.circle.fill"),
+    private let items: [(title: String, icon: String, accent: Accent)] = [
+        ("Dashboard", "house.fill", .dashboard),
+        ("Accounts", "banknote.fill", .accounts),
+        ("Transactions", "list.bullet", .transactions),
+        ("Budgets", "chart.pie.fill", .budgets),
+        ("More", "square.grid.2x2.fill", .insights),
     ]
 
+    private var selectedAccent: Accent { items[selection].accent }
+
     var body: some View {
-        bar
-            .padding(.horizontal, 20)
-            .padding(.bottom, 14)
+        HStack(spacing: 2) {
+            ForEach(items.indices, id: \.self) { index in
+                tabButton(index)
+            }
+        }
+        .padding(6)
+        .background(
+            Capsule(style: .continuous)
+                .fill(.regularMaterial)
+                .overlay(Capsule(style: .continuous).strokeBorder(Color.appHairline, lineWidth: 1))
+        )
+        .shadow(color: selectedAccent.base.opacity(0.30), radius: 18, y: 8)
+        .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 12)
+        .animation(Motion.bouncy, value: selection)
     }
 
-    /// One tab — icon over label, accent-tinted when selected. Sized larger than the system bar.
+    /// One tab: a plain glyph that grows a gradient label pill in its section color when selected.
     private func tabButton(_ index: Int) -> some View {
         let item = items[index]
+        let isSelected = selection == index
         return Button {
+            Haptics.tap(.soft)
             selection = index
         } label: {
-            VStack(spacing: 4) {
+            HStack(spacing: 7) {
                 Image(systemName: item.icon)
-                    .font(.system(size: 22, weight: .medium))
-                Text(item.title)
-                    .font(.system(size: 11, weight: .medium))
-                    .lineLimit(1)
+                    .font(.system(size: 18, weight: .bold))
+                    .symbolEffect(.bounce, value: isSelected)
+                if isSelected {
+                    Text(item.title)
+                        .font(.system(size: 13, weight: .heavy))
+                        .fixedSize()
+                        .transition(.opacity.combined(with: .scale(scale: 0.6, anchor: .leading)))
+                }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .foregroundStyle(selection == index ? Color.accentColor : Color.secondary)
-            .contentShape(Rectangle())
+            .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(Color.secondary))
+            .padding(.horizontal, isSelected ? 15 : 13)
+            .padding(.vertical, 11)
+            .background {
+                if isSelected {
+                    Capsule(style: .continuous)
+                        .fill(item.accent.gradient)
+                        .matchedGeometryEffect(id: "pill", in: pill)
+                }
+            }
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(item.title)
-        .accessibilityAddTraits(selection == index ? [.isSelected] : [])
-    }
-
-    @ViewBuilder
-    private var bar: some View {
-        if #available(iOS 26.0, *) {
-            GlassEffectContainer(spacing: 16) {
-                ZStack {
-                    // The bar pill — a sibling of the selection glass so the two blend into one surface.
-                    Capsule()
-                        .fill(.clear)
-                        .glassEffect(.regular.interactive(), in: Capsule())
-                    HStack(spacing: 0) {
-                        ForEach(items.indices, id: \.self) { index in
-                            tabButton(index)
-                                .background {
-                                    if selection == index {
-                                        Capsule()
-                                            .fill(.clear)
-                                            .glassEffect(
-                                                .regular.tint(Color.accentColor.opacity(0.5)).interactive(),
-                                                in: Capsule()
-                                            )
-                                            .glassEffectID("selection", in: glassNamespace)
-                                            .padding(5)
-                                    }
-                                }
-                        }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 10)
-                }
-            }
-            // Keep the container at its intrinsic height so it can't expand and inflate the inset.
-            .fixedSize(horizontal: false, vertical: true)
-            .animation(.spring(response: 0.4, dampingFraction: 0.82), value: selection)
-        } else {
-            HStack(spacing: 0) {
-                ForEach(items.indices, id: \.self) { index in
-                    tabButton(index)
-                        .background {
-                            if selection == index {
-                                Capsule().fill(Color.accentColor.opacity(0.15)).padding(.horizontal, 4)
-                            }
-                        }
-                }
-            }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 10)
-            .background(
-                Capsule()
-                    .fill(.regularMaterial)
-                    .overlay(Capsule().strokeBorder(Color.primary.opacity(0.06)))
-                    .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
-            )
-            .animation(.spring(response: 0.35, dampingFraction: 0.82), value: selection)
-        }
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
 
@@ -182,72 +153,65 @@ private struct MoreView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Routine") {
-                    Button {
-                        isPresentingCheckIn = true
-                    } label: {
-                        Label("Daily Check-In", systemImage: "checklist")
+                Section {
+                    Button { isPresentingCheckIn = true } label: {
+                        moreRow("Daily Check-In", "checklist", .checkIn)
                     }
-                }
-                Section("Insights") {
-                    NavigationLink {
-                        InsightsView()
-                    } label: {
-                        Label("Insights", systemImage: "sparkles")
-                    }
-                    NavigationLink {
-                        ReportsView()
-                    } label: {
-                        Label("Reports", systemImage: "chart.bar.xaxis")
-                    }
-                    NavigationLink {
-                        RecurringView()
-                    } label: {
-                        Label("Recurring", systemImage: "arrow.triangle.2.circlepath")
-                    }
-                }
-                Section("Planning") {
-                    NavigationLink {
-                        SavingsGoalsView()
-                    } label: {
-                        Label("Savings Goals", systemImage: "target")
-                    }
-                    NavigationLink {
-                        DebtListView()
-                    } label: {
-                        Label("Debt Tracker", systemImage: "creditcard.trianglebadge.exclamationmark")
-                    }
-                    NavigationLink {
-                        BillRemindersView()
-                    } label: {
-                        Label("Bill Reminders", systemImage: "bell.badge")
-                    }
-                }
-                Section("Organize") {
-                    NavigationLink {
-                        CategoryEditorView()
-                    } label: {
-                        Label("Categories", systemImage: "tag.fill")
-                    }
-                }
-                Section("Data Sources") {
-                    NavigationLink {
-                        IntegrationsSettingsView()
-                    } label: {
-                        Label("Connect Wealthsimple", systemImage: "link")
-                    }
-                    NavigationLink {
-                        CSVImportView()
-                    } label: {
-                        Label("Import CSV / OFX", systemImage: "square.and.arrow.down")
-                    }
-                }
+                    .buttonStyle(.plain)
+                } header: { sectionLabel("Routine") }
+
+                Section {
+                    moreLink("Insights", "sparkles", .insights) { InsightsView() }
+                    moreLink("Reports", "chart.bar.xaxis", .reports) { ReportsView() }
+                    moreLink("Recurring", "arrow.triangle.2.circlepath", .recurring) { RecurringView() }
+                } header: { sectionLabel("Insights") }
+
+                Section {
+                    moreLink("Savings Goals", "target", .goals) { SavingsGoalsView() }
+                    moreLink("Debt Tracker", "creditcard.trianglebadge.exclamationmark", .debt) { DebtListView() }
+                    moreLink("Bill Reminders", "bell.badge", .bills) { BillRemindersView() }
+                } header: { sectionLabel("Planning") }
+
+                Section {
+                    moreLink("Categories", "tag.fill", .categories) { CategoryEditorView() }
+                } header: { sectionLabel("Organize") }
+
+                Section {
+                    moreLink("Connect Wealthsimple", "link", .accounts) { IntegrationsSettingsView() }
+                    moreLink("Import CSV / OFX", "square.and.arrow.down", .transactions) { CSVImportView() }
+                } header: { sectionLabel("Data Sources") }
             }
             .navigationTitle("More")
             .sheet(isPresented: $isPresentingCheckIn) {
                 DailyCheckInView()
             }
         }
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text).font(.appCaption.weight(.bold)).textCase(nil).foregroundStyle(.secondary)
+    }
+
+    private func moreLink<Destination: View>(
+        _ title: String,
+        _ icon: String,
+        _ accent: Accent,
+        @ViewBuilder destination: () -> Destination
+    ) -> some View {
+        let target = destination()
+        return NavigationLink {
+            target
+        } label: {
+            moreRow(title, icon, accent)
+        }
+    }
+
+    private func moreRow(_ title: String, _ icon: String, _ accent: Accent) -> some View {
+        HStack(spacing: 14) {
+            IconBadge(systemName: icon, accent: accent, size: 34)
+            Text(title).font(.appBodyMedium)
+        }
+        .padding(.vertical, 4)
     }
 }
 

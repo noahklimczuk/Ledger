@@ -85,14 +85,15 @@ struct DashboardView: View {
                     } label: {
                         safeToSpendCard(viewModel)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     budgetCard(viewModel)
                     recentTransactionsSection(viewModel)
                 }
                 .padding()
             }
-            .background(Color.appBackground)
+            .accentWash(.dashboard)
         }
+        .accent(.dashboard)
     }
 
     /// First-run guidance: a blank dashboard should say what to do, not just that it's empty.
@@ -172,14 +173,11 @@ struct DashboardView: View {
     /// does the remembering.
     private var checkInCard: some View {
         Button {
+            Haptics.tap()
             isPresentingCheckIn = true
         } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "checklist")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background(LinearGradient.brand, in: Circle())
+            HStack(spacing: 14) {
+                IconBadge(systemName: "checklist", accent: .checkIn, size: 44)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Daily Check-In")
                         .font(.appHeadline)
@@ -190,12 +188,12 @@ struct DashboardView: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(Accent.checkIn.base)
             }
             .card()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     /// The Total Balance card. Tapping it expands a clean per-account breakdown in place, so the
@@ -204,30 +202,35 @@ struct DashboardView: View {
     private func balanceCard(_ viewModel: DashboardViewModel) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) {
-                    isBalanceExpanded.toggle()
-                }
+                Haptics.tap()
+                withAnimation(Motion.smooth) { isBalanceExpanded.toggle() }
             } label: {
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Total Balance")
-                            .font(.appSubheadline)
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("TOTAL BALANCE")
+                            .font(.appCaption.weight(.heavy))
+                            .tracking(1.2)
                             .foregroundStyle(.white.opacity(0.85))
-                        Text(CurrencyFormatter.string(from: viewModel.totalBalance))
-                            .font(.appMoney)
+                        CountingCurrency(value: viewModel.totalBalance)
+                            .font(.appDisplay)
                             .foregroundStyle(.white)
-                            .minimumScaleFactor(0.6)
+                            .minimumScaleFactor(0.5)
                             .lineLimit(1)
+                        Text("Across \(viewModel.accounts.count) account\(viewModel.accounts.count == 1 ? "" : "s")")
+                            .font(.appCaption)
+                            .foregroundStyle(.white.opacity(0.8))
                     }
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.down")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.85))
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(9)
+                        .background(Color.white.opacity(0.2), in: Circle())
                         .rotationEffect(.degrees(isBalanceExpanded ? 180 : 0))
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .accessibilityLabel("Total Balance, \(CurrencyFormatter.string(from: viewModel.totalBalance))")
             .accessibilityHint(isBalanceExpanded ? "Hides accounts" : "Shows all accounts")
             .accessibilityAddTraits(.isButton)
@@ -238,9 +241,9 @@ struct DashboardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Theme.cardPadding + 2)
-        .background(LinearGradient.brand, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
-        .shadow(color: Color.brandTeal.opacity(0.35), radius: 16, y: 8)
+        .padding(Theme.cardPadding + 4)
+        .background(Accent.dashboard.gradient, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .shadow(color: Palette.emeraldDeep.opacity(0.4), radius: 20, y: 10)
     }
 
     /// The per-account rows shown when the balance card is expanded: account icon, name (with its
@@ -289,56 +292,55 @@ struct DashboardView: View {
     // MARK: - This month: income / expenses / net
 
     private func monthSummaryCard(_ viewModel: DashboardViewModel) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("This Month · \(DateFormatting.monthYear(.now))")
-                .font(.appSubheadline)
-                .foregroundStyle(.secondary)
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeadline("This Month", subtitle: DateFormatting.monthYear(.now))
+            HStack(spacing: 10) {
                 // Income and Expenses drill into the month's matching transactions; Net is a
                 // derived figure with no single transaction set behind it, so it stays static.
-                summaryTile("Income", value: viewModel.monthIncome, color: .green) { flowDrilldown = .income }
-                summaryTile("Expenses", value: viewModel.monthSpending, color: .red) { flowDrilldown = .expenses }
-                summaryTile("Net", value: viewModel.monthNet, color: viewModel.monthNet < 0 ? .red : .primary)
+                summaryTile("Income", value: viewModel.monthIncome, color: Palette.income, icon: "arrow.down.right") { flowDrilldown = .income }
+                summaryTile("Expenses", value: viewModel.monthSpending, color: Palette.expense, icon: "arrow.up.right") { flowDrilldown = .expenses }
+                summaryTile("Net", value: viewModel.monthNet, color: viewModel.monthNet < 0 ? Palette.expense : Palette.indigo, icon: "equal")
             }
         }
     }
 
     @ViewBuilder
-    private func summaryTile(_ label: String, value: Decimal, color: Color, action: (() -> Void)? = nil) -> some View {
+    private func summaryTile(_ label: String, value: Decimal, color: Color, icon: String, action: (() -> Void)? = nil) -> some View {
         if let action {
             Button(action: action) {
-                summaryTileBody(label, value: value, color: color, tappable: true)
+                summaryTileBody(label, value: value, color: color, icon: icon, tappable: true)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .accessibilityHint("Shows this month's \(label.lowercased()) transactions")
         } else {
-            summaryTileBody(label, value: value, color: color, tappable: false)
+            summaryTileBody(label, value: value, color: color, icon: icon, tappable: false)
         }
     }
 
-    private func summaryTileBody(_ label: String, value: Decimal, color: Color, tappable: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    private func summaryTileBody(_ label: String, value: Decimal, color: Color, icon: String, tappable: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .black))
+                .foregroundStyle(color)
+                .frame(width: 26, height: 26)
+                .background(color.opacity(0.18), in: Circle())
+            Text(CurrencyFormatter.string(from: value))
+                .font(.appNumber)
+                .foregroundStyle(color)
+                .minimumScaleFactor(0.4)
+                .lineLimit(1)
             HStack(spacing: 3) {
-                Text(label).font(.appCaption).foregroundStyle(.secondary)
+                Text(label).font(.appCaption.weight(.semibold)).foregroundStyle(.secondary)
                 if tappable {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(color.opacity(0.7))
                 }
             }
-            Text(CurrencyFormatter.string(from: value))
-                .font(.appHeadline)
-                .foregroundStyle(color)
-                .minimumScaleFactor(0.6)
-                .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous)
-                .strokeBorder(Color.appHairline, lineWidth: 1)
-        )
+        .padding(14)
+        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
     }
 
     @ViewBuilder
@@ -370,7 +372,7 @@ struct DashboardView: View {
 
     private func card<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.appHeadline)
+            SectionHeadline(title)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -378,14 +380,22 @@ struct DashboardView: View {
     }
 
     private func safeToSpendCard(_ viewModel: DashboardViewModel) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
+        let ok = viewModel.safeToSpend >= 0
+        return HStack(spacing: 14) {
+            IconBadge(
+                systemName: ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
+                accent: ok ? .goals : .debt,
+                size: 44
+            )
+            VStack(alignment: .leading, spacing: 3) {
                 Text("Safe to Spend")
-                    .font(.appSubheadline)
+                    .font(.appSubheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: viewModel.safeToSpend))
-                    .font(.appTitle2)
-                    .foregroundStyle(viewModel.safeToSpend < 0 ? Color.red : Color.primary)
+                    .font(.appNumber)
+                    .foregroundStyle(ok ? Color.primary : Palette.expense)
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
                 if viewModel.reservedForBills > 0 {
                     Text("After reserving \(CurrencyFormatter.string(from: viewModel.reservedForBills)) for upcoming bills")
                         .font(.appCaption)
@@ -393,25 +403,21 @@ struct DashboardView: View {
                 }
             }
             Spacer()
-            Image(systemName: viewModel.safeToSpend < 0 ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                .foregroundStyle(viewModel.safeToSpend < 0 ? .red : .green)
-                .font(.title)
             Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
+                .font(.footnote.weight(.bold))
                 .foregroundStyle(.tertiary)
         }
         .card()
     }
 
     private func budgetCard(_ viewModel: DashboardViewModel) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Spending vs Budget")
-                .font(.appSubheadline)
-                .foregroundStyle(.secondary)
-            HStack {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeadline("Spending vs Budget")
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(CurrencyFormatter.string(from: viewModel.monthSpending))
-                    .font(.appTitle3)
-                Text("of \(CurrencyFormatter.string(from: viewModel.monthBudgetTotal)) budgeted")
+                    .font(.appNumber)
+                    .foregroundStyle(.primary)
+                Text("of \(CurrencyFormatter.string(from: viewModel.monthBudgetTotal))")
                     .font(.appFootnote)
                     .foregroundStyle(.secondary)
             }
@@ -443,9 +449,8 @@ struct DashboardView: View {
     }
 
     private func recentTransactionsSection(_ viewModel: DashboardViewModel) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Recent Transactions")
-                .font(.appHeadline)
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeadline("Recent Transactions")
             if viewModel.recentTransactions.isEmpty {
                 Text("No transactions yet.")
                     .font(.appFootnote)

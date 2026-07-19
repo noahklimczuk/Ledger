@@ -36,6 +36,7 @@ struct TransactionDetailView: View {
         }
         .navigationTitle("Transaction")
         .navigationBarTitleDisplayMode(.inline)
+        .accent(.transactions)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Edit") { isEditing = true }
