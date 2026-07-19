@@ -37,6 +37,7 @@ struct DashboardView: View {
                 }
             }
             .navigationTitle("Dashboard")
+            .accent(.dashboard)
             .navigationDestination(item: $drilldown) { target in
                 switch target {
                 case .category(let category):
@@ -93,7 +94,6 @@ struct DashboardView: View {
             }
             .accentWash(.dashboard)
         }
-        .accent(.dashboard)
     }
 
     /// First-run guidance: a blank dashboard should say what to do, not just that it's empty.
