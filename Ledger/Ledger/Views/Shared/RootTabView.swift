@@ -97,7 +97,7 @@ private struct FloatingTabBar: View {
                 tabButton(index)
             }
         }
-        .padding(6)
+        .padding(7)
         .background(
             Capsule(style: .continuous)
                 .fill(.regularMaterial)
@@ -118,20 +118,20 @@ private struct FloatingTabBar: View {
             Haptics.tap(.soft)
             selection = index
         } label: {
-            HStack(spacing: 7) {
+            HStack(spacing: 8) {
                 Image(systemName: item.icon)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .symbolEffect(.bounce, value: isSelected)
                 if isSelected {
                     Text(item.title)
-                        .font(.system(size: 13, weight: .heavy))
+                        .font(.system(size: 14, weight: .heavy))
                         .fixedSize()
                         .transition(.opacity.combined(with: .scale(scale: 0.6, anchor: .leading)))
                 }
             }
             .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(Color.secondary))
-            .padding(.horizontal, isSelected ? 15 : 13)
-            .padding(.vertical, 11)
+            .padding(.horizontal, isSelected ? 18 : 15)
+            .padding(.vertical, 14)
             .background {
                 if isSelected {
                     Capsule(style: .continuous)
