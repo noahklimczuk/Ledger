@@ -69,7 +69,13 @@ Analytics) in both **Day** (light) and **Dusk** (dark) — toggle top-right.
 Palette: warm ivory ground, green (wellness/growth), peach + amber (spending
 energy), periwinkle (AI), deep plum ink.
 
-- **Hosted:** <https://claude.ai/code/artifact/1ddde5c8-38a1-4a22-a3d0-ae0b0fca4de2>
+- **Hosted (desktop):** <https://claude.ai/code/artifact/1ddde5c8-38a1-4a22-a3d0-ae0b0fca4de2>
+
+**On mobile** — [`concepts/bloom-mobile.html`](concepts/bloom-mobile.html)
+lays the same four screens out as phone mockups (single column, big touch
+targets, a floating clay tab bar with a green FAB), in both Day and Dusk.
+
+- **Hosted (mobile):** <https://claude.ai/code/artifact/c77cae19-2918-461f-89b7-b9ecc16eb777>
 
 Still a first look — next step is higher-fidelity polish plus Subscriptions,
 Accounts, Onboarding, Search and empty/loading/error states.

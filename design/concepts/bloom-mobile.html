@@ -1,0 +1,411 @@
+<title>Ledger — Bloom on mobile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* ============================================================
+   LEDGER · BLOOM — mobile phone mockups
+   The Bloom hybrid direction, laid out for a phone: single
+   column, big touch targets, in Bloom's warm design language.
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+
+:root{
+  --bg:#f1ebe3; --bg2:#e8e0d5; --surf:#fbf7f1; --surf2:#f4eee6;
+  --ink:#2e2731; --ink2:#6f6570; --ink3:#a59aa0; --line:rgba(120,95,80,.14);
+  --green:#3e9e6e; --green-d:#2f7b54; --peach:#ff8f6b; --amber:#ffb15c;
+  --peri:#8e7cf0; --good:#3e9e6e; --warn:#e8952e; --over:#ef5f3d;
+  --sd:rgba(150,120,95,.30); --sl:#ffffff;
+  --page:#efe7dd; --bezel:#191418;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:24px; --r2:18px; --r3:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#201b21; --bg2:#181418; --surf:#2a242c; --surf2:#241f26;
+    --ink:#f4efe8; --ink2:#b8acb3; --ink3:#7d727a; --line:rgba(255,255,255,.09);
+    --green:#5fc98e; --green-d:#46a874; --peach:#ff9e7e; --amber:#ffc07a;
+    --peri:#a896ff; --good:#5fc98e; --warn:#f0a94a; --over:#ff775a;
+    --sd:rgba(0,0,0,.55); --sl:rgba(255,255,255,.045); --page:#15121a; }
+}
+:root[data-theme="light"]{ --bg:#f1ebe3; --bg2:#e8e0d5; --surf:#fbf7f1; --surf2:#f4eee6;
+  --ink:#2e2731; --ink2:#6f6570; --ink3:#a59aa0; --line:rgba(120,95,80,.14);
+  --green:#3e9e6e; --green-d:#2f7b54; --peach:#ff8f6b; --amber:#ffb15c;
+  --peri:#8e7cf0; --good:#3e9e6e; --warn:#e8952e; --over:#ef5f3d;
+  --sd:rgba(150,120,95,.30); --sl:#ffffff; --page:#efe7dd; }
+:root[data-theme="dark"]{ --bg:#201b21; --bg2:#181418; --surf:#2a242c; --surf2:#241f26;
+  --ink:#f4efe8; --ink2:#b8acb3; --ink3:#7d727a; --line:rgba(255,255,255,.09);
+  --green:#5fc98e; --green-d:#46a874; --peach:#ff9e7e; --amber:#ffc07a;
+  --peri:#a896ff; --good:#5fc98e; --warn:#f0a94a; --over:#ff775a;
+  --sd:rgba(0,0,0,.55); --sl:rgba(255,255,255,.045); --page:#15121a; }
+
+body{font-family:var(--ui);color:var(--ink);
+  background:
+   radial-gradient(700px 420px at 88% -6%,color-mix(in srgb,var(--amber) 22%,transparent),transparent 62%),
+   radial-gradient(620px 460px at 2% 108%,color-mix(in srgb,var(--green) 16%,transparent),transparent 58%),
+   var(--page);
+  -webkit-font-smoothing:antialiased;min-height:100vh}
+.tnum{font-variant-numeric:tabular-nums}
+
+.wrap{max-width:1200px;margin:0 auto;padding:26px clamp(14px,3vw,30px) 70px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:8px}
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.26em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.eyebrow .seed{width:18px;height:18px;border-radius:7px;background:conic-gradient(from 40deg,var(--green),var(--amber),var(--peach),var(--peri),var(--green))}
+h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em;font-weight:800;
+  background:linear-gradient(135deg,var(--green-d),var(--peach) 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{margin:12px 0 0;max-width:52ch;color:var(--ink2);font-size:14.5px;line-height:1.55}
+.sub b{color:var(--ink)}
+.tglr{display:flex;gap:4px;background:var(--surf);border-radius:999px;padding:5px;box-shadow:4px 4px 12px var(--sd),-3px -3px 9px var(--sl)}
+.tglr button{border:0;background:transparent;cursor:pointer;font-size:15px;width:38px;height:32px;border-radius:999px;color:var(--ink3)}
+.tglr button.on{background:var(--surf2);color:var(--ink);box-shadow:inset 2px 2px 6px var(--sd),inset -2px -2px 6px var(--sl)}
+
+.rail{display:flex;gap:34px;overflow-x:auto;padding:34px 4px 20px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.rail::-webkit-scrollbar{height:8px}.rail::-webkit-scrollbar-thumb{background:var(--sd);border-radius:8px}
+.col{flex:0 0 auto;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
+.cap{font:700 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+
+/* ---------- phone ---------- */
+.phone{width:392px;border-radius:52px;background:linear-gradient(150deg,#2a262e,var(--bezel));padding:13px;
+  box-shadow:0 50px 90px -40px rgba(0,0,0,.6),inset 0 0 0 2px rgba(255,255,255,.05),0 0 0 1px rgba(0,0,0,.4)}
+.pscreen{border-radius:40px;overflow:hidden;background:var(--bg);height:812px;position:relative;display:flex;flex-direction:column}
+.status{display:flex;justify-content:space-between;align-items:center;padding:14px 26px 4px;font-weight:700;font-size:14px;color:var(--ink);flex:none}
+.status .r{display:flex;gap:6px;align-items:center;font-size:13px}
+.status .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:26px;background:#0d0b0f;border-radius:16px}
+.pbody{flex:1;overflow-y:auto;padding:8px 16px 16px;scrollbar-width:none}
+.pbody::-webkit-scrollbar{display:none}
+
+/* app chrome */
+.apptop{display:flex;align-items:flex-start;gap:10px;margin:8px 2px 16px}
+.hi{font-size:19px;font-weight:700;line-height:1.2;color:var(--ink2);flex:1}
+.hi b{color:var(--ink);font-weight:800}
+.av{width:46px;height:46px;border-radius:50%;flex:none;background:linear-gradient(145deg,var(--peach),var(--peri));box-shadow:4px 4px 11px var(--sd),-2px -2px 7px var(--sl)}
+.pillrow{display:flex;gap:8px;margin:0 2px 16px;flex-wrap:wrap}
+.wpill{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;font-size:12.5px;font-weight:800;color:var(--green-d);
+  background:linear-gradient(145deg,color-mix(in srgb,var(--green) 20%,var(--surf)),var(--surf));box-shadow:3px 3px 9px var(--sd),-3px -3px 8px var(--sl)}
+.wpill .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.chip{padding:9px 14px;border-radius:999px;background:var(--surf);font-size:12.5px;font-weight:700;color:var(--ink2);box-shadow:3px 3px 9px var(--sd),-3px -3px 8px var(--sl)}
+
+.clay{background:var(--surf);border-radius:var(--r);box-shadow:7px 7px 20px var(--sd),-6px -6px 14px var(--sl),inset 0 0 0 1px color-mix(in srgb,var(--sl) 50%,transparent);padding:18px}
+.clay.inset{box-shadow:inset 5px 5px 12px var(--sd),inset -5px -5px 12px var(--sl)}
+.stack{display:flex;flex-direction:column;gap:13px}
+.lbl{font:700 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+.h5{margin:0 0 14px;font-size:17px;font-weight:800;letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:center}
+.h5 a{font-size:12.5px;font-weight:700;color:var(--green-d);text-decoration:none}
+
+/* hero balance */
+.hero{display:flex;gap:18px;align-items:center}
+.blob{width:112px;height:112px;flex:none;border-radius:42% 58% 55% 45%/52% 44% 56% 48%;
+  background:linear-gradient(145deg,var(--peach),var(--amber));
+  box-shadow:8px 8px 20px color-mix(in srgb,var(--peach) 45%,var(--sd)),-6px -6px 14px var(--sl),inset 3px 3px 9px rgba(255,255,255,.5),inset -4px -4px 12px rgba(150,70,40,.25);
+  display:grid;place-items:center;color:#fff;text-align:center;animation:bl 8s ease-in-out infinite}
+@keyframes bl{0%,100%{border-radius:42% 58% 55% 45%/52% 44% 56% 48%}50%{border-radius:56% 44% 42% 58%/46% 56% 44% 54%}}
+.blob b{font-size:20px;font-weight:800;line-height:1.05;text-shadow:0 1px 4px rgba(150,60,30,.4)}
+.blob b small{display:block;font-size:9px;opacity:.9;letter-spacing:.06em;margin-top:3px}
+.heroL{flex:1;min-width:0}.heroL .lbl{margin-bottom:8px}
+.big{font-size:34px;line-height:.94;font-weight:800;letter-spacing:-.03em;color:var(--ink)}
+.delta{display:inline-flex;gap:5px;margin-top:11px;font-size:12.5px;font-weight:800;color:var(--green-d);background:color-mix(in srgb,var(--green) 16%,transparent);padding:6px 11px;border-radius:999px}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tiles .t{padding:14px 12px;border-radius:var(--r2)}
+.tiles .t .lbl{margin-bottom:0;line-height:1.3}
+.tiles .t .v{font-size:19px;font-weight:800;margin-top:9px;letter-spacing:-.02em}
+.tiles .t .v.pos{color:var(--green-d)}.tiles .t .v.warm{color:var(--peach)}
+.tiles .t .s{font-size:10.5px;color:var(--ink3);margin-top:4px;font-weight:600}
+
+/* wellness strip */
+.wstrip{display:flex;align-items:center;gap:15px}
+.wmini{width:66px;height:66px;flex:none;border-radius:50%;position:relative;display:grid;place-items:center;
+  background:conic-gradient(var(--green) 0 295deg,color-mix(in srgb,var(--ink3) 26%,transparent) 295deg);box-shadow:5px 5px 13px var(--sd),-4px -4px 10px var(--sl)}
+.wmini::before{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--surf);box-shadow:inset 3px 3px 8px var(--sd),inset -3px -3px 8px var(--sl)}
+.wmini b{position:relative;font-size:22px;font-weight:800;color:var(--green-d)}
+.wtxt{flex:1}.wtxt .s1{font-size:16px;font-weight:800;color:var(--green-d)}
+.wtxt .s2{font-size:12px;color:var(--ink2);margin-top:3px;font-weight:600;line-height:1.4}
+.chev{color:var(--ink3);font-size:20px;font-weight:800}
+
+/* channels */
+.brow{margin-bottom:15px}.brow:last-child{margin-bottom:0}
+.brow .t{display:flex;justify-content:space-between;font-size:14.5px;font-weight:800;margin-bottom:9px}
+.brow .t span{color:var(--ink3);font-weight:700;font-size:13.5px}
+.chan{height:15px;border-radius:999px;padding:3px;box-shadow:inset 3px 3px 7px var(--sd),inset -3px -3px 7px var(--sl)}
+.cfill{height:100%;border-radius:999px;box-shadow:1px 1px 3px rgba(0,0,0,.12)}
+.cfill.green{background:linear-gradient(90deg,var(--green),var(--green-d))}
+.cfill.amber{background:linear-gradient(90deg,var(--amber),var(--peach))}
+.cfill.peri{background:linear-gradient(90deg,#a99bff,var(--peri))}
+.cfill.over{background:linear-gradient(90deg,var(--peach),var(--over))}
+
+/* burn */
+.heat{height:14px;border-radius:999px;position:relative;background:linear-gradient(90deg,color-mix(in srgb,var(--green) 40%,var(--surf)),var(--amber) 55%,var(--peach) 82%,var(--over));box-shadow:inset 2px 2px 6px var(--sd),inset -2px -2px 6px var(--sl)}
+.heat .mk{position:absolute;top:-5px;width:5px;height:24px;background:var(--ink);border-radius:3px;box-shadow:0 0 0 3px var(--surf)}
+.heatcap{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink3);font-weight:700;margin-top:9px}
+
+/* ai */
+.ai{background:linear-gradient(150deg,color-mix(in srgb,var(--peri) 15%,var(--surf)),var(--surf))}
+.ai .k{display:inline-flex;align-items:center;gap:8px;font:800 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--peri)}
+.ai .k .s{width:22px;height:22px;border-radius:8px;background:linear-gradient(145deg,var(--peri),var(--green));box-shadow:3px 3px 8px var(--sd)}
+.ai p{margin:12px 0 0;font-size:15px;line-height:1.5}.ai p b{color:var(--green-d)}
+.ai .cta{margin-top:13px;display:inline-block;padding:11px 16px;border-radius:13px;font-size:13px;font-weight:800;color:#fff;background:linear-gradient(145deg,var(--peri),#6f5ce0);box-shadow:5px 5px 13px var(--sd)}
+
+/* factor mini */
+.fac .top{display:flex;justify-content:space-between;align-items:baseline}
+.fac .fv{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.fac .imp{font:800 11px/1 var(--mono)}.fac .imp.up{color:var(--green-d)}.fac .imp.dn{color:var(--peach)}
+.fac .mtr{height:8px;border-radius:999px;margin-top:12px;box-shadow:inset 2px 2px 6px var(--sd),inset -2px -2px 6px var(--sl);padding:2px}
+.fac .mtr i{display:block;height:100%;border-radius:999px}
+.fac .mtr i.g{background:linear-gradient(90deg,var(--green),var(--green-d))}
+.fac .mtr i.a{background:linear-gradient(90deg,var(--amber),var(--peach))}
+.fac .ft{font-size:11px;color:var(--ink3);margin-top:9px;font-weight:600}
+.bring{width:150px;height:150px;margin:2px auto 0;border-radius:50%;position:relative;display:grid;place-items:center;
+  background:conic-gradient(var(--green) 0 295deg,color-mix(in srgb,var(--ink3) 26%,transparent) 295deg);box-shadow:6px 6px 16px var(--sd),-5px -5px 12px var(--sl)}
+.bring::before{content:"";position:absolute;inset:14px;border-radius:50%;background:var(--surf);box-shadow:inset 4px 4px 12px var(--sd),inset -4px -4px 12px var(--sl)}
+.bring .n{position:relative;text-align:center}.bring .n b{font-size:46px;font-weight:800;color:var(--green-d);letter-spacing:-.03em}
+.bring .n span{display:block;font:700 9px/1 var(--mono);letter-spacing:.16em;color:var(--ink3);text-transform:uppercase;margin-top:2px}
+.wstate{text-align:center;margin-top:12px;font-size:18px;font-weight:800;color:var(--green-d)}
+.wsub{text-align:center;margin-top:7px;font-size:12.5px;color:var(--ink2);line-height:1.45}
+.tend{display:flex;gap:12px;align-items:flex-start;padding:12px 0}.tend+.tend{border-top:1px solid var(--line)}
+.tend .e{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;font-size:17px;background:var(--surf2);box-shadow:3px 3px 8px var(--sd),-2px -2px 6px var(--sl)}
+.tend .tb{flex:1}.tend .tb b{font-size:13.5px;font-weight:800}.tend .tb p{margin:3px 0 0;font-size:11.5px;color:var(--ink2);line-height:1.4}
+
+/* goals */
+.goal{display:flex;align-items:center;gap:13px;padding:13px 0}.goal+.goal{border-top:1px solid var(--line)}
+.pot{width:54px;height:54px;flex:none;border-radius:50%;background:conic-gradient(var(--green) var(--p,0deg),color-mix(in srgb,var(--ink3) 26%,transparent) 0);box-shadow:5px 5px 13px var(--sd),-4px -4px 10px var(--sl);display:grid;place-items:center;position:relative}
+.pot::before{content:"";position:absolute;inset:8px;border-radius:50%;background:var(--surf)}
+.pot span{position:relative;font-size:20px}
+.goal .gi{flex:1}.goal .gi b{font-size:14px;font-weight:800}.goal .gi .gm{font-size:12px;color:var(--ink2);font-weight:700;margin-top:3px}
+.goal .gi .gp{font-size:11px;color:var(--ink3);margin-top:2px;font-weight:600}
+
+/* tx + charts */
+.search{display:flex;align-items:center;gap:9px;padding:12px 15px;border-radius:13px;color:var(--ink3);font-size:13.5px;font-weight:600;margin-bottom:12px;box-shadow:inset 4px 4px 10px var(--sd),inset -4px -4px 10px var(--sl);background:var(--surf2)}
+.fchips{display:flex;gap:7px;overflow-x:auto;margin-bottom:4px;scrollbar-width:none}.fchips::-webkit-scrollbar{display:none}
+.fc{padding:8px 13px;border-radius:999px;font-size:12px;font-weight:800;color:var(--ink2);background:var(--surf);box-shadow:3px 3px 8px var(--sd),-2px -2px 6px var(--sl);white-space:nowrap}
+.fc.on{color:#fff;background:linear-gradient(145deg,var(--green),var(--green-d))}
+.daygrp{font:800 10.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin:18px 0 6px}
+.tx{display:flex;align-items:center;gap:12px;padding:11px 0}.tx+.tx{border-top:1px solid var(--line)}
+.tx .ic{width:42px;height:42px;border-radius:13px;background:var(--surf);box-shadow:4px 4px 10px var(--sd),-3px -3px 8px var(--sl);display:grid;place-items:center;font-size:17px;flex:none}
+.tx .nm{flex:1;min-width:0}.tx .nm b{display:block;font-size:14px;font-weight:800}
+.tx .cat{font-size:11px;font-weight:800;color:var(--ink3);margin-top:3px;display:inline-block}
+.tx .amt{font-size:14.5px;font-weight:800;white-space:nowrap}.tx .amt.pos{color:var(--green-d)}
+.donut{width:140px;height:140px;border-radius:50%;margin:2px auto 4px;position:relative;
+  background:conic-gradient(var(--green-d) 0 144deg,var(--green) 144deg 190deg,var(--peach) 190deg 219deg,var(--amber) 219deg 238deg,var(--peri) 238deg 260deg,color-mix(in srgb,var(--ink3) 45%,var(--surf)) 260deg 360deg);
+  box-shadow:6px 6px 15px var(--sd),-5px -5px 12px var(--sl)}
+.donut::before{content:"";position:absolute;inset:32px;border-radius:50%;background:var(--surf);box-shadow:inset 3px 3px 9px var(--sd),inset -3px -3px 9px var(--sl)}
+.donut .c{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.donut .c b{font-size:19px;font-weight:800}.donut .c span{display:block;font:700 8px/1 var(--mono);letter-spacing:.12em;color:var(--ink3);text-transform:uppercase;margin-top:3px}
+.legend{display:flex;flex-wrap:wrap;gap:9px 14px;margin-top:14px}
+.legend span{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink2);font-weight:700}
+.legend i{width:10px;height:10px;border-radius:4px}
+
+/* bottom nav */
+.navbar{flex:none;display:flex;justify-content:space-around;align-items:center;padding:10px 8px 22px;background:var(--surf);box-shadow:0 -6px 20px -10px var(--sd),inset 0 1px 0 var(--line)}
+.navbar a{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:9.5px;font-weight:800;color:var(--ink3);text-decoration:none}
+.navbar a .i{font-size:20px;filter:grayscale(.3);opacity:.65}
+.navbar a.on{color:var(--green-d)}.navbar a.on .i{filter:none;opacity:1}
+.navbar a.fab .i{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;color:#fff;font-size:24px;background:linear-gradient(145deg,var(--green),var(--green-d));box-shadow:5px 5px 13px var(--sd);margin-top:-14px}
+
+@media (max-width:520px){
+  .phone{width:100%;max-width:392px}
+  .rail{flex-direction:column;align-items:center;overflow:visible}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="eyebrow"><span class="seed"></span>Ledger · Bloom · Mobile</div>
+      <h1>Bloom, on your phone</h1>
+      <p class="sub">The <b>Bloom</b> direction laid out for mobile — single column, big touch targets, a floating clay tab bar — in the same warm design language. Swipe the phones; toggle <b>Day / Dusk</b> top-right.</p>
+    </div>
+    <div class="tglr" role="group" aria-label="Theme">
+      <button data-theme-set="light" class="on" title="Day">☀️</button>
+      <button data-theme-set="dark" title="Dusk">🌙</button>
+    </div>
+  </div>
+
+  <div class="rail">
+    <!-- ============ PHONE 1 · DASHBOARD ============ -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><span class="r"><svg width="70" height="13" viewBox="0 0 70 13" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="6" rx="1"/><rect x="5" y="5" width="3" height="8" rx="1"/><rect x="10" y="2.5" width="3" height="10.5" rx="1"/><rect x="15" y="0" width="3" height="13" rx="1"/><path d="M25 4.2c3.3-3 8.4-3 11.7 0l-1.6 1.7c-2.4-2.2-6.1-2.2-8.5 0zM27.7 6.9c1.8-1.6 4.8-1.6 6.6 0l-1.7 1.7c-.9-.8-2.4-.8-3.3 0z"/><rect x="49" y="2" width="17" height="9" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="50.6" y="3.4" width="12" height="6.2" rx="1.2"/><rect x="67" y="5" width="2" height="3" rx="1"/></svg></span></div>
+        <div class="pbody">
+          <div class="apptop">
+            <div class="hi">Good morning,<br><b>Noah</b> 🌿 you're blooming</div>
+            <div class="av"></div>
+          </div>
+          <div class="pillrow"><span class="wpill"><span class="dot"></span>Thriving · 82</span><span class="chip">All accounts · July</span></div>
+
+          <div class="stack">
+            <div class="clay hero">
+              <div class="blob"><b>63%<small>OF BUDGET</small></b></div>
+              <div class="heroL">
+                <div class="lbl">Total balance</div>
+                <div class="big tnum" data-count="36742.35" data-pre="$" data-dec="2">$36,742.35</div>
+                <span class="delta">▲ $2,122 this month</span>
+              </div>
+            </div>
+
+            <div class="tiles">
+              <div class="clay t"><div class="lbl">Safe to spend</div><div class="v tnum">$1,284</div><div class="s">11 days</div></div>
+              <div class="clay t"><div class="lbl">Income</div><div class="v pos tnum">$6,240</div><div class="s">July</div></div>
+              <div class="clay t"><div class="lbl">Spent</div><div class="v warm tnum">$4,118</div><div class="s">July</div></div>
+            </div>
+
+            <div class="clay wstrip">
+              <div class="wmini"><b class="tnum">82</b></div>
+              <div class="wtxt"><div class="s1">Thriving 🌿</div><div class="s2">Strong savings — just tend dining this month.</div></div>
+              <span class="chev">›</span>
+            </div>
+
+            <div class="clay">
+              <div class="h5" style="font-size:16px">Burn rate <span class="lbl" style="color:var(--peach)">$137/day</span></div>
+              <div class="heat"><span class="mk" style="left:60%"></span></div>
+              <div class="heatcap"><span>Cool</span><span>you · steady</span><span>Hot</span></div>
+            </div>
+
+            <div class="clay">
+              <div class="h5">This month's budgets <a href="#">All</a></div>
+              <div class="brow"><div class="t">Groceries <span class="tnum">$520 / 600</span></div><div class="chan inset"><div class="cfill green" style="width:86%"></div></div></div>
+              <div class="brow"><div class="t">Dining <span class="tnum" style="color:var(--over)">$312 / 300</span></div><div class="chan inset"><div class="cfill over" style="width:100%"></div></div></div>
+              <div class="brow"><div class="t">Transport <span class="tnum">$148 / 220</span></div><div class="chan inset"><div class="cfill amber" style="width:67%"></div></div></div>
+              <div class="brow"><div class="t">Fun money <span class="tnum">$90 / 150</span></div><div class="chan inset"><div class="cfill peri" style="width:60%"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="navbar">
+          <a class="on"><span class="i">🏠</span>Home</a>
+          <a><span class="i">🌿</span>Wellness</a>
+          <a class="fab"><span class="i">＋</span></a>
+          <a><span class="i">💰</span>Budgets</a>
+          <a><span class="i">📊</span>Activity</a>
+        </div>
+      </div></div>
+      <div class="cap">Dashboard</div>
+    </div>
+
+    <!-- ============ PHONE 2 · WELLNESS ============ -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><span class="r"><svg width="70" height="13" viewBox="0 0 70 13" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="6" rx="1"/><rect x="5" y="5" width="3" height="8" rx="1"/><rect x="10" y="2.5" width="3" height="10.5" rx="1"/><rect x="15" y="0" width="3" height="13" rx="1"/><path d="M25 4.2c3.3-3 8.4-3 11.7 0l-1.6 1.7c-2.4-2.2-6.1-2.2-8.5 0zM27.7 6.9c1.8-1.6 4.8-1.6 6.6 0l-1.7 1.7c-.9-.8-2.4-.8-3.3 0z"/><rect x="49" y="2" width="17" height="9" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="50.6" y="3.4" width="12" height="6.2" rx="1.2"/><rect x="67" y="5" width="2" height="3" rx="1"/></svg></span></div>
+        <div class="pbody">
+          <div class="apptop"><div class="hi"><b>Financial wellness</b></div><span class="chip">Today</span></div>
+          <div class="stack">
+            <div class="clay" style="background:linear-gradient(155deg,color-mix(in srgb,var(--green) 12%,var(--surf)),var(--surf))">
+              <div class="bring"><div class="n"><b class="tnum" data-count="82">82</b><span>/ 100</span></div></div>
+              <div class="wstate">Thriving 🌿</div>
+              <div class="wsub">You save more than you spend and your emergency fund is nearly full. One thing to tend: <b style="color:var(--peach)">dining</b>.</div>
+            </div>
+            <div class="clay fac"><div class="lbl">Savings rate</div><div class="top"><div class="fv tnum">34%</div><div class="imp up">+22 pts</div></div><div class="mtr"><i class="g" style="width:88%"></i></div><div class="ft">Helping most · well above the 20% target</div></div>
+            <div class="clay fac"><div class="lbl">Emergency fund</div><div class="top"><div class="fv tnum">68%</div><div class="imp up">+16 pts</div></div><div class="mtr"><i class="g" style="width:68%"></i></div><div class="ft">Helping · 4.1 months saved</div></div>
+            <div class="clay fac"><div class="lbl">Spending pace</div><div class="top"><div class="fv tnum" style="color:var(--peach)">+24%</div><div class="imp dn">−7 pts</div></div><div class="mtr"><i class="a" style="width:42%"></i></div><div class="ft">To tend · dining above your 3-month average</div></div>
+            <div class="clay">
+              <div class="h5">What to tend</div>
+              <div class="tend"><span class="e">🍽️</span><div class="tb"><b>Cool the dining burn</b><p>Cap at $30/day to recover ~5 points.</p></div></div>
+              <div class="tend"><span class="e">🔁</span><div class="tb"><b>Two music subs overlap</b><p>Drop one · frees $132/yr for savings.</p></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="navbar">
+          <a><span class="i">🏠</span>Home</a>
+          <a class="on"><span class="i">🌿</span>Wellness</a>
+          <a class="fab"><span class="i">＋</span></a>
+          <a><span class="i">💰</span>Budgets</a>
+          <a><span class="i">📊</span>Activity</a>
+        </div>
+      </div></div>
+      <div class="cap">Financial Wellness</div>
+    </div>
+
+    <!-- ============ PHONE 3 · BUDGETS & GOALS ============ -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><span class="r"><svg width="70" height="13" viewBox="0 0 70 13" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="6" rx="1"/><rect x="5" y="5" width="3" height="8" rx="1"/><rect x="10" y="2.5" width="3" height="10.5" rx="1"/><rect x="15" y="0" width="3" height="13" rx="1"/><path d="M25 4.2c3.3-3 8.4-3 11.7 0l-1.6 1.7c-2.4-2.2-6.1-2.2-8.5 0zM27.7 6.9c1.8-1.6 4.8-1.6 6.6 0l-1.7 1.7c-.9-.8-2.4-.8-3.3 0z"/><rect x="49" y="2" width="17" height="9" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="50.6" y="3.4" width="12" height="6.2" rx="1.2"/><rect x="67" y="5" width="2" height="3" rx="1"/></svg></span></div>
+        <div class="pbody">
+          <div class="apptop"><div class="hi"><b>Budgets &amp; goals</b></div><span class="chip">July ▾</span></div>
+          <div class="stack">
+            <div class="clay">
+              <div class="h5">Categories <a href="#">Auto</a></div>
+              <div class="brow"><div class="t">🏠 Housing <span class="tnum">$1,650 / 1,650</span></div><div class="chan inset"><div class="cfill green" style="width:100%"></div></div></div>
+              <div class="brow"><div class="t">🛒 Groceries <span class="tnum">$520 / 600</span></div><div class="chan inset"><div class="cfill green" style="width:86%"></div></div></div>
+              <div class="brow"><div class="t">🍽️ Dining <span class="tnum" style="color:var(--over)">$312 / 300</span></div><div class="chan inset"><div class="cfill over" style="width:100%"></div></div></div>
+              <div class="brow"><div class="t">🚗 Transport <span class="tnum">$148 / 220</span></div><div class="chan inset"><div class="cfill amber" style="width:67%"></div></div></div>
+              <div class="brow"><div class="t">🔁 Subscriptions <span class="tnum">$178 / 190</span></div><div class="chan inset"><div class="cfill green" style="width:94%"></div></div></div>
+            </div>
+            <div class="clay">
+              <div class="h5">Savings goals</div>
+              <div class="goal"><div class="pot" style="--p:245deg"><span>🌳</span></div><div class="gi"><b>Emergency fund</b><div class="gm tnum">$6,800 / $10,000 · 68%</div><div class="gp">$400/mo · grown by Nov 2026</div></div></div>
+              <div class="goal"><div class="pot" style="--p:144deg"><span>🌿</span></div><div class="gi"><b>Japan '26</b><div class="gm tnum">$2,400 / $6,000 · 40%</div><div class="gp">$300/mo · on track for April</div></div></div>
+              <div class="goal"><div class="pot" style="--p:90deg"><span>🌱</span></div><div class="gi"><b>New laptop</b><div class="gm tnum">$450 / $1,800 · 25%</div><div class="gp">$150/mo · needs a little water</div></div></div>
+            </div>
+            <div class="clay ai">
+              <div class="k"><span class="s"></span>Ask Ledger</div>
+              <p>Dining is <b>$12 over</b>. Pull it from Fun money so nothing turns red?</p>
+              <span class="cta">Rebalance</span>
+            </div>
+          </div>
+        </div>
+        <div class="navbar">
+          <a><span class="i">🏠</span>Home</a>
+          <a><span class="i">🌿</span>Wellness</a>
+          <a class="fab"><span class="i">＋</span></a>
+          <a class="on"><span class="i">💰</span>Budgets</a>
+          <a><span class="i">📊</span>Activity</a>
+        </div>
+      </div></div>
+      <div class="cap">Budgets &amp; Goals</div>
+    </div>
+
+    <!-- ============ PHONE 4 · TRANSACTIONS & ANALYTICS ============ -->
+    <div class="col">
+      <div class="phone"><div class="pscreen">
+        <div class="status"><span>9:41</span><div class="notch"></div><span class="r"><svg width="70" height="13" viewBox="0 0 70 13" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="6" rx="1"/><rect x="5" y="5" width="3" height="8" rx="1"/><rect x="10" y="2.5" width="3" height="10.5" rx="1"/><rect x="15" y="0" width="3" height="13" rx="1"/><path d="M25 4.2c3.3-3 8.4-3 11.7 0l-1.6 1.7c-2.4-2.2-6.1-2.2-8.5 0zM27.7 6.9c1.8-1.6 4.8-1.6 6.6 0l-1.7 1.7c-.9-.8-2.4-.8-3.3 0z"/><rect x="49" y="2" width="17" height="9" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.1"/><rect x="50.6" y="3.4" width="12" height="6.2" rx="1.2"/><rect x="67" y="5" width="2" height="3" rx="1"/></svg></span></div>
+        <div class="pbody">
+          <div class="apptop"><div class="hi"><b>Activity</b> · July</div><span class="chip">＋ Add</span></div>
+          <div class="stack">
+            <div class="clay">
+              <div class="search">🔍 Search transactions…</div>
+              <div class="fchips"><span class="fc on">All</span><span class="fc">Dining</span><span class="fc">This week</span><span class="fc">Income</span></div>
+              <div class="daygrp">Today · Jul 19</div>
+              <div class="tx"><span class="ic">🛒</span><div class="nm"><b>Loblaws</b><span class="cat">Groceries</span></div><span class="amt tnum">−$84.20</span></div>
+              <div class="tx"><span class="ic">☕</span><div class="nm"><b>Tim Hortons</b><span class="cat" style="color:var(--peach)">Dining</span></div><span class="amt tnum">−$4.15</span></div>
+              <div class="tx"><span class="ic">🚗</span><div class="nm"><b>Uber</b><span class="cat">Transport</span></div><span class="amt tnum">−$18.40</span></div>
+              <div class="daygrp">Jul 15</div>
+              <div class="tx"><span class="ic">💸</span><div class="nm"><b>Payroll</b><span class="cat" style="color:var(--green-d)">Income</span></div><span class="amt pos tnum">+$3,120</span></div>
+            </div>
+            <div class="clay">
+              <div class="h5">Where July went</div>
+              <div class="donut"><div class="c"><b class="tnum">$4,118</b><span>spent</span></div></div>
+              <div class="legend"><span><i style="background:var(--green-d)"></i>Housing $1,650</span><span><i style="background:var(--green)"></i>Groceries $520</span><span><i style="background:var(--peach)"></i>Dining $312</span><span><i style="background:var(--amber)"></i>Transport $148</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="navbar">
+          <a><span class="i">🏠</span>Home</a>
+          <a><span class="i">🌿</span>Wellness</a>
+          <a class="fab"><span class="i">＋</span></a>
+          <a><span class="i">💰</span>Budgets</a>
+          <a class="on"><span class="i">📊</span>Activity</a>
+        </div>
+      </div></div>
+      <div class="cap">Transactions &amp; Analytics</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var tbtns=[].slice.call(document.querySelectorAll('[data-theme-set]'));
+  tbtns.forEach(function(b){b.addEventListener('click',function(){
+    document.documentElement.setAttribute('data-theme',b.dataset.themeSet);
+    tbtns.forEach(function(x){x.classList.toggle('on',x===b)});
+  })});
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  document.querySelectorAll('[data-count]').forEach(function(el){
+    if(reduce)return;
+    var target=parseFloat(el.dataset.count),pre=el.dataset.pre||'',dec=parseInt(el.dataset.dec||'0',10),t0=null;
+    function step(t){if(!t0)t0=t;var p=Math.min(1,(t-t0)/1000),e=1-Math.pow(1-p,3);
+      el.textContent=pre+(target*e).toLocaleString('en-CA',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+      if(p<1)requestAnimationFrame(step);}
+    requestAnimationFrame(step);
+  });
+})();
+</script>
