@@ -83,9 +83,9 @@ struct SearchBar: View {
 
 extension View {
     /// Reveals a `SearchBar` above `self` when `isPresented` is true. Rather than dropping in as a
-    /// full-width block, the bar unfurls sideways out of its top-trailing corner — right under the
-    /// toolbar's search button — so it reads as stretching *out of the button* and folding back into
-    /// it. Every search menu opens and closes identically off this one helper.
+    /// full-width block, the bar unrolls straight sideways from its trailing edge — right under the
+    /// toolbar's search button — so it reads as stretching *out of the button itself* and rolling back
+    /// into it. Every search menu opens and closes identically off this one helper.
     func searchBarRow(
         isPresented: Bool,
         text: Binding<String>,
@@ -104,9 +104,9 @@ extension View {
                 .padding(.horizontal)
                 .padding(.top, 4)
                 .padding(.bottom, 8)
-                // Unfurl out of the top-trailing corner (under the search button) — widening sideways
-                // rather than dropping straight down — so the bar looks like it grows out of the
-                // button and folds back into it on cancel.
+                // Unroll straight out of the trailing edge (under the search button) — widening
+                // leftward at full height — so the bar looks like it grows out of the button itself
+                // and rolls back into it on cancel.
                 .transition(.searchExpand)
             }
             self
@@ -115,11 +115,12 @@ extension View {
     }
 }
 
-/// Drives the search bar's open/close. It grows out of (and collapses back into) the toolbar's
-/// search button by unfurling horizontally from the top-trailing corner, with only a slight vertical
-/// grow — so it reads as coming *from the button* instead of a separate block sliding in underneath.
+/// Drives the search bar's open/close as a purely sideways unroll: the trailing edge (where the
+/// button sits) stays pinned and full-height while the bar stretches out to the left, so it reads as
+/// the button *expanding out into itself* — and rolls back into the button on cancel. Width only, no
+/// vertical grow, so it never looks like a block dropping in.
 private struct SearchExpandModifier: ViewModifier, Animatable {
-    /// 0 = collapsed into the button's corner, 1 = fully open.
+    /// 0 = collapsed to a button-width nub at the trailing edge, 1 = fully unrolled.
     var progress: Double
 
     var animatableData: Double {
@@ -129,18 +130,20 @@ private struct SearchExpandModifier: ViewModifier, Animatable {
 
     func body(content: Content) -> some View {
         content
+            // Horizontal only, pinned at the right edge: the bar starts about a button-width wide and
+            // unrolls leftward to full width, keeping its full height the whole time.
             .scaleEffect(
-                x: 0.08 + 0.92 * progress,
-                y: 0.6 + 0.4 * progress,
-                anchor: .topTrailing
+                x: 0.12 + 0.88 * progress,
+                y: 1,
+                anchor: .trailing
             )
             .opacity(progress)
     }
 }
 
 extension AnyTransition {
-    /// Grows the search bar out of the toolbar's search button (its top-trailing corner), unfurling
-    /// mostly sideways instead of appearing as a block underneath it.
+    /// Grows the search bar out of the toolbar's search button by unrolling it sideways from the
+    /// trailing edge, instead of appearing as a block underneath it.
     static var searchExpand: AnyTransition {
         .modifier(active: SearchExpandModifier(progress: 0), identity: SearchExpandModifier(progress: 1))
     }
