@@ -50,6 +50,32 @@ debt, on-device insights + AI budget suggestions):
 
 ---
 
+## Follow-up: Bloom — a hybrid direction (first look)
+
+After the exploration, the favourites were **Clay**, **Verdant**'s Financial
+Wellness tile, and **Ember**. [`concepts/bloom.html`](concepts/bloom.html)
+converges them into one product, **Bloom** (working name):
+
+- **Clay → form** — soft, tactile pastel surfaces, the morphing balance blob,
+  inset "channel" budget bars.
+- **Verdant → soul** — the **Financial Wellness score** is the centrepiece: a
+  co-hero on the dashboard *and* a full screen (contributing factors, trend,
+  "what to tend this month").
+- **Ember → warmth** — spending shows a live **burn-rate** heat meter; goals
+  grow as plants (🌱→🌿→🌳).
+
+Four screens (Dashboard, Financial Wellness, Budgets & Goals, Transactions &
+Analytics) in both **Day** (light) and **Dusk** (dark) — toggle top-right.
+Palette: warm ivory ground, green (wellness/growth), peach + amber (spending
+energy), periwinkle (AI), deep plum ink.
+
+- **Hosted:** <https://claude.ai/code/artifact/1ddde5c8-38a1-4a22-a3d0-ae0b0fca4de2>
+
+Still a first look — next step is higher-fidelity polish plus Subscriptions,
+Accounts, Onboarding, Search and empty/loading/error states.
+
+---
+
 ## Design principles applied to all 18
 
 - **Money is the hero.** Oversized balances, strong hierarchy, magazine-editorial
