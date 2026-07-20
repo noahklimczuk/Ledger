@@ -207,7 +207,7 @@ struct DailyCheckInView: View {
             Button { selectedTransaction = transaction } label: {
                 Text(CurrencyFormatter.string(from: transaction.amount))
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(transaction.amount < 0 ? Color.primary : Color.green)
+                    .foregroundStyle(transaction.amount < 0 ? Color.primary : Palette.income)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -301,7 +301,7 @@ struct DailyCheckInView: View {
                     budgetIssueCard(
                         title: "Over budget",
                         rows: viewModel.overBudget,
-                        color: .red
+                        color: Palette.expense
                     ) { row in
                         "\(CurrencyFormatter.string(from: -row.remaining)) over"
                     }
@@ -310,7 +310,7 @@ struct DailyCheckInView: View {
                     budgetIssueCard(
                         title: "Ahead of pace",
                         rows: viewModel.aheadOfPace,
-                        color: .orange
+                        color: Palette.amber
                     ) { row in
                         "\(row.percentUsed.map { "\($0)%" } ?? "—") used · \(Int(viewModel.monthProgress * 100))% of month gone"
                     }
@@ -369,7 +369,7 @@ struct DailyCheckInView: View {
                                     .font(.subheadline.weight(.medium))
                                 Text(bill.isOverdue ? "Overdue · was due \(DateFormatting.medium(bill.dueDate))" : "Due \(DateFormatting.relativeDay(bill.dueDate))")
                                     .font(.caption)
-                                    .foregroundStyle(bill.isOverdue ? Color.red : Color.secondary)
+                                    .foregroundStyle(bill.isOverdue ? Palette.expense : Color.secondary)
                             }
                             Spacer()
                             Text(CurrencyFormatter.string(from: bill.amount))
@@ -424,7 +424,7 @@ struct DailyCheckInView: View {
     }
 
     private func planColor(_ viewModel: DailyCheckInViewModel) -> Color {
-        if viewModel.leftToAssign < 0 { return .red }
+        if viewModel.leftToAssign < 0 { return Palette.expense }
         if viewModel.leftToAssign == 0 && viewModel.incomeToAssign > 0 { return .brandEmerald }
         return .primary
     }

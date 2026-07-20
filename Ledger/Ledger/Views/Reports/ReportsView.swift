@@ -175,7 +175,7 @@ struct ReportsView: View {
                     .foregroundStyle(by: .value("Type", bar.type))
                     .position(by: .value("Type", bar.type))
                 }
-                .chartForegroundStyleScale(["Income": Color.green, "Expense": Color.red])
+                .chartForegroundStyleScale(["Income": Palette.income, "Expense": Palette.expense])
                 .frame(height: 220)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Monthly income versus expenses")
@@ -202,12 +202,12 @@ struct ReportsView: View {
                             .font(.subheadline).foregroundStyle(.secondary)
                         Text(CurrencyFormatter.string(from: abs(delta)))
                             .font(.title3.bold())
-                            .foregroundStyle(isUp ? .red : .green)
+                            .foregroundStyle(isUp ? Palette.expense : Palette.income)
                     }
                     Spacer()
                     Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
                         .font(.title)
-                        .foregroundStyle(isUp ? .red : .green)
+                        .foregroundStyle(isUp ? Palette.expense : Palette.income)
                 }
             }
         }

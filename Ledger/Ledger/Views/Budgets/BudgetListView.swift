@@ -204,13 +204,13 @@ struct BudgetListView: View {
                     planTile(
                         label: viewModel.incomeOverride == nil ? "Income · actual" : "Income · planned",
                         value: viewModel.incomeToAssign,
-                        color: .green,
+                        color: Palette.income,
                         showsChevron: true
                     )
                 }
                 .buttonStyle(.plain)
                 planTile(label: "Assigned", value: viewModel.totalAllocated, color: .primary)
-                planTile(label: "Spent", value: viewModel.totalSpent + viewModel.totalUnbudgetedSpent, color: .red)
+                planTile(label: "Spent", value: viewModel.totalSpent + viewModel.totalUnbudgetedSpent, color: Palette.expense)
             }
 
             if viewModel.totalAvailable > 0 || viewModel.totalSpent > 0 {
@@ -240,7 +240,7 @@ struct BudgetListView: View {
     }
 
     private func leftToAssignColor(_ viewModel: BudgetsViewModel) -> Color {
-        if viewModel.leftToAssign < 0 { return .red }
+        if viewModel.leftToAssign < 0 { return Palette.expense }
         if viewModel.leftToAssign == 0 && viewModel.incomeToAssign > 0 { return .brandEmerald }
         return .primary
     }
@@ -252,12 +252,12 @@ struct BudgetListView: View {
                 return ("Set your income to start the plan", "info.circle.fill", .secondary)
             }
             if viewModel.leftToAssign < 0 {
-                return ("Over-assigned by \(CurrencyFormatter.string(from: -viewModel.leftToAssign))", "exclamationmark.triangle.fill", .red)
+                return ("Over-assigned by \(CurrencyFormatter.string(from: -viewModel.leftToAssign))", "exclamationmark.triangle.fill", Palette.expense)
             }
             if viewModel.leftToAssign == 0 {
                 return ("Every dollar has a job", "checkmark.seal.fill", .brandEmerald)
             }
-            return ("Assign \(CurrencyFormatter.string(from: viewModel.leftToAssign)) to finish the plan", "arrow.down.circle.fill", .orange)
+            return ("Assign \(CurrencyFormatter.string(from: viewModel.leftToAssign)) to finish the plan", "arrow.down.circle.fill", Palette.amber)
         }()
 
         Label(text, systemImage: symbol)
@@ -369,7 +369,7 @@ struct BudgetListView: View {
                 Spacer()
                 if viewModel.overBudgetCount > 0 {
                     Text("\(viewModel.overBudgetCount) over")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Palette.expense)
                 }
             }
         } footer: {
@@ -503,7 +503,7 @@ private struct BudgetRowView: View {
                     Spacer()
                     if let percentUsed = row.percentUsed {
                         Text("\(percentUsed)%")
-                            .foregroundStyle(row.isOverBudget ? .red : .secondary)
+                            .foregroundStyle(row.isOverBudget ? Palette.expense : .secondary)
                     }
                 }
                 .font(.caption)

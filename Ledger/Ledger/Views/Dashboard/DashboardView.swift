@@ -79,15 +79,22 @@ struct DashboardView: View {
                         checkInCard
                     }
                     balanceCard(viewModel)
+                    wellnessCard(viewModel)
+                    askLedgerCard(viewModel)
                     monthSummaryCard(viewModel)
-                    categoryChartCard(viewModel)
+                    burnCard(viewModel)
                     NavigationLink {
                         SafeToSpendDetailView()
                     } label: {
                         safeToSpendCard(viewModel)
                     }
                     .buttonStyle(.pressable)
-                    budgetCard(viewModel)
+                    if viewModel.budgetRows.isEmpty {
+                        budgetCard(viewModel)
+                    } else {
+                        budgetChannelsCard(viewModel)
+                    }
+                    categoryChartCard(viewModel)
                     recentTransactionsSection(viewModel)
                 }
                 .padding()
@@ -196,6 +203,79 @@ struct DashboardView: View {
         .buttonStyle(.pressable)
     }
 
+    /// Bloom's signature dashboard tile: the Financial Wellness score at a glance, tapping through to
+    /// the full breakdown. One number for "how am I doing?".
+    private func wellnessCard(_ viewModel: DashboardViewModel) -> some View {
+        NavigationLink {
+            FinancialWellnessView()
+        } label: {
+            HStack(spacing: 16) {
+                WellnessRing(score: viewModel.wellness.score, size: 76, lineWidth: 9)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("FINANCIAL WELLNESS")
+                        .font(.appCaption2.weight(.bold))
+                        .tracking(0.8)
+                        .foregroundStyle(.secondary)
+                    Text("\(viewModel.wellness.state) \(viewModel.wellness.stateEmoji)")
+                        .font(.appTitle3.weight(.heavy))
+                        .foregroundStyle(Accent.wellness.deep)
+                    Text(viewModel.wellness.summary)
+                        .font(.appCaption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(.tertiary)
+            }
+            .card()
+        }
+        .buttonStyle(.pressable)
+    }
+
+    /// The "Ask Ledger" briefing — the single most important on-device insight (or a warm all-clear),
+    /// tapping through to the full Ask Ledger screen.
+    private func askLedgerCard(_ viewModel: DashboardViewModel) -> some View {
+        NavigationLink {
+            InsightsView()
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    IconBadge(systemName: "sparkles", accent: .insights, size: 30)
+                    Text("Ask Ledger")
+                        .font(.appHeadline)
+                        .foregroundStyle(Color.primary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(Accent.insights.base)
+                }
+                Text(askLedgerMessage(viewModel))
+                    .font(.appBody)
+                    .foregroundStyle(Color.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(Theme.cardPadding)
+            .background(Accent.insights.faintGradient, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .strokeBorder(Accent.insights.base.opacity(0.22), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.pressable)
+    }
+
+    private func askLedgerMessage(_ viewModel: DashboardViewModel) -> String {
+        if let insight = viewModel.topInsight { return insight.message }
+        if let tend = viewModel.wellness.toTend.first {
+            return "You're doing well. The one thing worth tending this month is \(tend.name.lowercased())."
+        }
+        return "You're on track this month — nothing needs your attention right now. 🌿"
+    }
+
     /// The Total Balance card. Tapping it expands a clean per-account breakdown in place, so the
     /// single headline number can be unfolded into the accounts that make it up without leaving the
     /// dashboard.
@@ -205,27 +285,26 @@ struct DashboardView: View {
                 Haptics.tap()
                 withAnimation(Motion.smooth) { isBalanceExpanded.toggle() }
             } label: {
-                HStack(alignment: .top) {
+                HStack(spacing: 18) {
+                    BalanceBlob(percent: viewModel.budgetUsedPercent)
                     VStack(alignment: .leading, spacing: 6) {
                         Text("TOTAL BALANCE")
                             .font(.appCaption.weight(.heavy))
                             .tracking(1.2)
-                            .foregroundStyle(.white.opacity(0.85))
+                            .foregroundStyle(.secondary)
                         CountingCurrency(value: viewModel.totalBalance)
                             .font(.appDisplay)
-                            .foregroundStyle(.white)
-                            .minimumScaleFactor(0.5)
+                            .foregroundStyle(Color.primary)
+                            .minimumScaleFactor(0.4)
                             .lineLimit(1)
-                        Text("Across \(viewModel.accounts.count) account\(viewModel.accounts.count == 1 ? "" : "s")")
-                            .font(.appCaption)
-                            .foregroundStyle(.white.opacity(0.8))
+                        deltaPill(viewModel)
                     }
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 0)
                     Image(systemName: "chevron.down")
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Accent.dashboard.deep)
                         .padding(9)
-                        .background(Color.white.opacity(0.2), in: Circle())
+                        .background(Accent.dashboard.soft, in: Circle())
                         .rotationEffect(.degrees(isBalanceExpanded ? 180 : 0))
                 }
                 .contentShape(Rectangle())
@@ -241,9 +320,19 @@ struct DashboardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Theme.cardPadding + 4)
-        .background(Accent.dashboard.gradient, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
-        .shadow(color: Palette.emeraldDeep.opacity(0.4), radius: 20, y: 10)
+        .card()
+    }
+
+    /// The month's net change, as a green/coral pill under the balance figure.
+    private func deltaPill(_ viewModel: DashboardViewModel) -> some View {
+        let up = viewModel.monthNet >= 0
+        let color = up ? Palette.green : Palette.coral
+        return Text("\(up ? "▲" : "▼") \(CurrencyFormatter.string(from: abs(viewModel.monthNet))) this month")
+            .font(.appCaption.weight(.bold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
+            .background(color.opacity(0.16), in: Capsule())
     }
 
     /// The per-account rows shown when the balance card is expanded: account icon, name (with its
@@ -251,36 +340,25 @@ struct DashboardView: View {
     /// gradient, separated by hairline dividers.
     private func accountBreakdown(_ accounts: [Account]) -> some View {
         VStack(spacing: 0) {
-            Divider()
-                .overlay(Color.white.opacity(0.25))
-                .padding(.vertical, 12)
+            Divider().padding(.vertical, 12)
             ForEach(Array(accounts.enumerated()), id: \.element.persistentModelID) { index, account in
                 if index > 0 {
-                    Divider()
-                        .overlay(Color.white.opacity(0.15))
-                        .padding(.vertical, 10)
+                    Divider().padding(.vertical, 10)
                 }
                 HStack(spacing: 12) {
-                    Image(systemName: account.type.sfSymbolName)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 30, height: 30)
-                        .background(Color.white.opacity(0.18), in: Circle())
-                        .accessibilityHidden(true)
+                    IconBadge(systemName: account.type.sfSymbolName, accent: .accounts, size: 30, filled: false)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(account.name)
                             .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.white)
                         if let institution = account.institutionName, !institution.isEmpty {
                             Text(institution)
                                 .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.7))
+                                .foregroundStyle(.secondary)
                         }
                     }
                     Spacer(minLength: 8)
                     Text(CurrencyFormatter.string(from: account.currentBalance, currencyCode: account.currencyCode))
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
                         .minimumScaleFactor(0.6)
                         .lineLimit(1)
                 }
@@ -438,7 +516,7 @@ struct DashboardView: View {
         let percent = Int((spent.doubleValue / budget.doubleValue * 100).rounded())
         return InteractiveDonutChart(
             segments: [
-                DonutSegment(id: "spent", label: "Spent", value: spentPortion, color: isOver ? .red : .accentColor, isSelectable: false),
+                DonutSegment(id: "spent", label: "Spent", value: spentPortion, color: isOver ? Palette.expense : .accentColor, isSelectable: false),
                 DonutSegment(id: "remaining", label: "Remaining", value: remaining, color: Color(.systemGray4), isSelectable: false)
             ],
             centerCaption: isOver ? "over budget" : "of budget spent",
@@ -446,6 +524,60 @@ struct DashboardView: View {
             showLegend: false,
             isInteractive: false
         )
+    }
+
+    /// Ember's burn-rate idea, in Bloom: a cool→hot meter with the month's average daily spend.
+    private func burnCard(_ viewModel: DashboardViewModel) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("SPENDING BURN RATE")
+                    .font(.appCaption2.weight(.bold))
+                    .tracking(0.8)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(viewModel.dailyBurnText)
+                    .font(.appCaption.weight(.bold))
+                    .foregroundStyle(Palette.peachDeep)
+            }
+            BurnMeter(position: viewModel.burnPosition)
+            HStack {
+                Text("Cool · saving").font(.appCaption2).foregroundStyle(.secondary)
+                Spacer()
+                Text("Hot · overspending").font(.appCaption2).foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+    }
+
+    /// The month's budgets as Bloom clay channels — the dashboard's headline budget view when
+    /// per-category budgets exist.
+    private func budgetChannelsCard(_ viewModel: DashboardViewModel) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionHeadline("This Month's Budgets")
+            ForEach(Array(viewModel.budgetRows.enumerated()), id: \.element.id) { index, row in
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(row.name)
+                            .font(.appSubheadline.weight(.semibold))
+                        Spacer(minLength: 8)
+                        Text("\(CurrencyFormatter.string(from: row.spent)) / \(CurrencyFormatter.string(from: row.allocated))")
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundStyle(row.isOver ? Palette.coral : .secondary)
+                            .monospacedDigit()
+                    }
+                    ClayChannel(progress: row.progress, isOver: row.isOver, fillAccent: channelAccent(index))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+    }
+
+    /// Rotates the clay channels through a few Bloom accents so a list of budgets reads as a set.
+    private func channelAccent(_ index: Int) -> Accent {
+        let accents: [Accent] = [.dashboard, .budgets, .transactions, .accounts]
+        return accents[index % accents.count]
     }
 
     private func recentTransactionsSection(_ viewModel: DashboardViewModel) -> some View {
@@ -492,7 +624,7 @@ private struct MonthFlowTransactionsView: View {
         transactions.reduce(Decimal(0)) { $0 + abs($1.amount) }
     }
 
-    private var accentColor: Color { flow == .income ? .green : .red }
+    private var accentColor: Color { flow == .income ? Palette.income : Palette.expense }
 
     var body: some View {
         Group {
@@ -534,7 +666,7 @@ private struct MonthFlowTransactionsView: View {
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: total))
                     .font(.title2.bold())
-                    .foregroundStyle(flow == .income ? Color.green : Color.primary)
+                    .foregroundStyle(flow == .income ? Palette.income : Color.primary)
             }
             Spacer()
         }

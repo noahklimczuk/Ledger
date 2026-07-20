@@ -215,7 +215,7 @@ struct RecurringView: View {
                     }
                     Spacer()
                     Text(CurrencyFormatter.string(from: charge.amount))
-                        .foregroundStyle(charge.amount > 0 ? Color.green : Color.primary)
+                        .foregroundStyle(charge.amount > 0 ? Palette.income : Color.primary)
                 }
             }
         } header: {
@@ -246,21 +246,21 @@ struct RecurringView: View {
         switch series.status {
         case .active:
             Button { viewModel.pause(series) } label: { Label("Pause", systemImage: "pause.circle") }
-                .tint(.orange)
+                .tint(Palette.amber)
             Button(role: .destructive) { viewModel.ignore(series) } label: { Label("Ignore", systemImage: "bell.slash") }
         case .paused:
             Button { viewModel.resume(series) } label: { Label("Resume", systemImage: "play.circle") }
-                .tint(.green)
+                .tint(Palette.income)
         case .ended:
             Button { viewModel.reactivate(series) } label: { Label("Reactivate", systemImage: "arrow.clockwise") }
-                .tint(.green)
+                .tint(Palette.income)
             Button(role: .destructive) { viewModel.ignore(series) } label: { Label("Ignore", systemImage: "bell.slash") }
         case .ignored:
             Button { viewModel.restore(series) } label: { Label("Restore", systemImage: "bell") }
-                .tint(.blue)
+                .tint(Palette.peri)
         case .suggested:
             Button { viewModel.confirm(series) } label: { Label("Confirm", systemImage: "checkmark") }
-                .tint(.green)
+                .tint(Palette.income)
         }
     }
 
@@ -312,7 +312,7 @@ private struct RecurringRow: View {
             Spacer(minLength: 6)
             Text(CurrencyFormatter.string(from: series.averageAmount))
                 .fontWeight(.semibold)
-                .foregroundStyle(series.isIncome ? Color.green : Color.primary)
+                .foregroundStyle(series.isIncome ? Palette.income : Color.primary)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
         }
@@ -335,11 +335,11 @@ private struct RecurringRow: View {
             if let change = series.priceChange {
                 chip(
                     text: "\(change.isIncrease ? "↑" : "↓") \(CurrencyFormatter.string(from: change.current))",
-                    color: change.isIncrease ? .red : .green
+                    color: change.isIncrease ? Palette.expense : Palette.income
                 )
             }
             if series.status == .suggested {
-                chip(text: "\(Int((series.detectionConfidence * 100).rounded()))% match", color: .blue)
+                chip(text: "\(Int((series.detectionConfidence * 100).rounded()))% match", color: Palette.peri)
             }
             if series.status == .ended {
                 chip(text: "Likely cancelled", color: .secondary)
@@ -370,11 +370,11 @@ extension RecurringViewModel.Insight {
 
     var tint: Color {
         switch kind {
-        case .needsReview: .blue
+        case .needsReview: Palette.peri
         case .likelyCancelled: .gray
-        case .priceIncrease: .red
-        case .priceDecrease: .green
-        case .dueThisWeek: .orange
+        case .priceIncrease: Palette.expense
+        case .priceDecrease: Palette.income
+        case .dueThisWeek: Palette.amber
         }
     }
 }

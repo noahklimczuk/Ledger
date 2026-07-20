@@ -76,7 +76,7 @@ struct CSVImportView: View {
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
                         .font(.footnote)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Palette.expense)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -212,10 +212,10 @@ struct CSVImportView: View {
 
     private func summaryBar(_ viewModel: CSVImportViewModel) -> some View {
         HStack(spacing: 16) {
-            summaryChip(count: viewModel.newCount, label: "New", color: .green)
+            summaryChip(count: viewModel.newCount, label: "New", color: Palette.income)
             summaryChip(count: viewModel.duplicateCount, label: "Duplicate", color: .secondary)
             if viewModel.errorCount > 0 {
-                summaryChip(count: viewModel.errorCount, label: "Skipped", color: .orange)
+                summaryChip(count: viewModel.errorCount, label: "Skipped", color: Palette.amber)
             }
         }
         .padding()
@@ -242,7 +242,7 @@ struct CSVImportView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.currencyCode))
-                        .foregroundStyle(transaction.amount < 0 ? Color.primary : Color.green)
+                        .foregroundStyle(transaction.amount < 0 ? Color.primary : Palette.income)
                     if row.isDuplicate {
                         Text("Duplicate").font(.caption2).foregroundStyle(.secondary)
                     }
@@ -252,7 +252,7 @@ struct CSVImportView: View {
         } else {
             Label(row.error ?? "Skipped row", systemImage: "exclamationmark.triangle")
                 .font(.footnote)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Palette.amber)
         }
     }
 

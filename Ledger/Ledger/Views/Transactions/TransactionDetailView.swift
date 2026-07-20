@@ -68,7 +68,7 @@ struct TransactionDetailView: View {
                     .font(.title3.bold())
                 Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.account?.currencyCode ?? "CAD"))
                     .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                    .foregroundStyle(transaction.amount < 0 ? Color.primary : Color.green)
+                    .foregroundStyle(transaction.amount < 0 ? Color.primary : Palette.income)
                 Text(DateFormatting.medium(transaction.date))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)

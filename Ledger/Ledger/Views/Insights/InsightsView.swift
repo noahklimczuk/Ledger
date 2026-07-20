@@ -37,7 +37,7 @@ struct InsightsView: View {
                 LoadingView()
             }
         }
-        .navigationTitle("Insights")
+        .navigationTitle("Ask Ledger")
         .accentWash(.insights)
         .accent(.insights)
         .task {
@@ -84,7 +84,7 @@ private struct InsightCard: View {
             Button(action: onSnooze) {
                 Label("Snooze", systemImage: "clock")
             }
-            .tint(.orange)
+            .tint(Palette.amber)
         }
     }
 }

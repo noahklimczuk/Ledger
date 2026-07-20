@@ -104,7 +104,7 @@ struct AIAdvisorView: View {
                         if let errorText = viewModel.errorText {
                             Label(errorText, systemImage: "exclamationmark.triangle")
                                 .font(.footnote)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Palette.amber)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }

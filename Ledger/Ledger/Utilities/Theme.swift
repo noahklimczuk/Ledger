@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Typography
 
@@ -44,9 +47,10 @@ extension Font {
 // MARK: - Surfaces & spacing
 
 enum Theme {
-    /// Corner radii — one card radius everywhere so surfaces feel like one system.
-    static let cardRadius: CGFloat = 22
-    static let controlRadius: CGFloat = 14
+    /// Corner radii — one card radius everywhere so surfaces feel like one system. Bloom leans on
+    /// large, soft radii for its tactile "clay" character.
+    static let cardRadius: CGFloat = 24
+    static let controlRadius: CGFloat = 15
     static let smallRadius: CGFloat = 10
 
     /// Vertical rhythm between stacked cards on a screen.
@@ -56,12 +60,35 @@ enum Theme {
 }
 
 extension Color {
-    /// The app's base background — a soft neutral so cards read as raised surfaces above it.
-    static let appBackground = Color(uiColor: .systemGroupedBackground)
-    /// A raised card/surface color, adaptive for light and dark.
-    static let appSurface = Color(uiColor: .secondarySystemGroupedBackground)
+    /// Bloom's ground — a warm ivory in Day, a warm plum-charcoal in Dusk — so clay cards read as
+    /// raised, tactile surfaces above it.
+    static let appBackground = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.126, green: 0.106, blue: 0.130, alpha: 1)   // #201B21
+            : UIColor(red: 0.945, green: 0.922, blue: 0.890, alpha: 1)   // #F1EBE3
+    })
+    /// A raised card/surface — warm off-white in Day, a lifted plum in Dusk.
+    static let appSurface = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.165, green: 0.141, blue: 0.173, alpha: 1)   // #2A242C
+            : UIColor(red: 0.984, green: 0.969, blue: 0.945, alpha: 1)   // #FBF7F1
+    })
     /// Hairline separators/borders tuned to be barely-there in both appearances.
     static let appHairline = Color.primary.opacity(0.06)
+    /// Bloom's soft clay drop shadow — a warm brown in Day, a deep shade in Dusk — the dark side of
+    /// the two-shadow "clay" extrusion (cast down-right).
+    static let bloomShadow = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor.black.withAlphaComponent(0.55)
+            : UIColor(red: 0.55, green: 0.44, blue: 0.35, alpha: 0.20)
+    })
+    /// The light side of the clay extrusion — a soft highlight cast up-left, so surfaces read as
+    /// gently raised clay rather than flat cards. Barely-there in Dusk.
+    static let bloomHighlight = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor.white.withAlphaComponent(0.05)
+            : UIColor.white.withAlphaComponent(0.9)
+    })
 }
 
 extension View {
@@ -75,6 +102,9 @@ extension View {
                 RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                     .strokeBorder(Color.appHairline, lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.05), radius: 14, y: 6)
+            // Two shadows make the "clay" extrusion: a warm dark cast down-right and a soft light
+            // highlight up-left, so every surface reads as gently raised on the ivory ground.
+            .shadow(color: Color.bloomShadow, radius: 18, y: 11)
+            .shadow(color: Color.bloomHighlight, radius: 12, x: -7, y: -7)
     }
 }
