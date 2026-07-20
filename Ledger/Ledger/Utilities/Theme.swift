@@ -75,12 +75,19 @@ extension Color {
     })
     /// Hairline separators/borders tuned to be barely-there in both appearances.
     static let appHairline = Color.primary.opacity(0.06)
-    /// Bloom's soft clay drop shadow — a warm brown in Day, a deep shade in Dusk — so cards feel
-    /// gently extruded rather than floating on a hard black shadow.
+    /// Bloom's soft clay drop shadow — a warm brown in Day, a deep shade in Dusk — the dark side of
+    /// the two-shadow "clay" extrusion (cast down-right).
     static let bloomShadow = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
             ? UIColor.black.withAlphaComponent(0.55)
-            : UIColor(red: 0.55, green: 0.44, blue: 0.35, alpha: 0.18)
+            : UIColor(red: 0.55, green: 0.44, blue: 0.35, alpha: 0.20)
+    })
+    /// The light side of the clay extrusion — a soft highlight cast up-left, so surfaces read as
+    /// gently raised clay rather than flat cards. Barely-there in Dusk.
+    static let bloomHighlight = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor.white.withAlphaComponent(0.05)
+            : UIColor.white.withAlphaComponent(0.9)
     })
 }
 
@@ -95,6 +102,9 @@ extension View {
                 RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                     .strokeBorder(Color.appHairline, lineWidth: 1)
             )
-            .shadow(color: Color.bloomShadow, radius: 16, y: 9)
+            // Two shadows make the "clay" extrusion: a warm dark cast down-right and a soft light
+            // highlight up-left, so every surface reads as gently raised on the ivory ground.
+            .shadow(color: Color.bloomShadow, radius: 18, y: 11)
+            .shadow(color: Color.bloomHighlight, radius: 12, x: -7, y: -7)
     }
 }

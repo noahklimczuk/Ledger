@@ -274,3 +274,95 @@ struct WellnessRing: View {
         .accessibilityValue("\(score) out of 100")
     }
 }
+
+// MARK: - Balance blob
+
+/// The dashboard's soft "clay" budget blob — a warm peach→amber squircle showing how much of the
+/// month's budget is used, sitting beside the balance. Bloom's most recognizable hero element.
+struct BalanceBlob: View {
+    let percent: Int
+    var size: CGFloat = 104
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.46, style: .continuous)
+                .fill(LinearGradient(colors: [Palette.peach, Palette.amber], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .overlay(
+                    RoundedRectangle(cornerRadius: size * 0.46, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+                )
+                .shadow(color: Palette.peach.opacity(0.5), radius: 16, y: 10)
+            VStack(spacing: 2) {
+                Text("\(percent)%")
+                    .font(.system(size: size * 0.22, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+                    .minimumScaleFactor(0.6)
+                Text("OF BUDGET")
+                    .font(.system(size: size * 0.082, weight: .heavy, design: .rounded))
+                    .tracking(0.5)
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityElement()
+        .accessibilityLabel("Budget used")
+        .accessibilityValue("\(percent) percent")
+    }
+}
+
+// MARK: - Clay channel (budget bar)
+
+/// A budget bar in Bloom's clay style: a debossed track with a rounded gradient fill, red when over.
+/// Used for the dashboard's per-category budget list.
+struct ClayChannel: View {
+    let progress: Double
+    var isOver: Bool = false
+    var fillAccent: Accent = .dashboard
+    var height: CGFloat = 14
+
+    var body: some View {
+        GeometryReader { geo in
+            let clamped = min(max(progress, 0), 1)
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.primary.opacity(0.08))
+                Capsule()
+                    .fill(isOver
+                          ? AnyShapeStyle(LinearGradient(colors: [Palette.peach, Palette.coral], startPoint: .leading, endPoint: .trailing))
+                          : AnyShapeStyle(fillAccent.gradient))
+                    .frame(width: max(geo.size.width * clamped, clamped > 0 ? height : 0))
+                    .padding(.vertical, 2)
+            }
+        }
+        .frame(height: height)
+        .animation(Motion.snappy, value: progress)
+        .accessibilityHidden(true)
+    }
+}
+
+// MARK: - Burn-rate meter
+
+/// A cool→hot heat bar with a "you are here" marker — Ember's spending-pace idea, in Bloom. The
+/// marker slides toward the hot end as the month's projected spend runs past plan.
+struct BurnMeter: View {
+    let position: Double
+    var height: CGFloat = 14
+
+    var body: some View {
+        GeometryReader { geo in
+            let x = min(max(position, 0), 1)
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(LinearGradient(
+                        colors: [Palette.green.opacity(0.55), Palette.amber, Palette.peach, Palette.coral],
+                        startPoint: .leading, endPoint: .trailing))
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(Color.primary)
+                    .frame(width: 4, height: height + 8)
+                    .shadow(color: .black.opacity(0.2), radius: 2)
+                    .offset(x: geo.size.width * x - 2)
+            }
+        }
+        .frame(height: height)
+        .accessibilityHidden(true)
+    }
+}

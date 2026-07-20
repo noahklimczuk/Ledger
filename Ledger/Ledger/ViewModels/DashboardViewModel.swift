@@ -15,6 +15,21 @@ final class DashboardViewModel {
         let category: Category?
     }
 
+    /// One category's budget vs. spending, for the dashboard's clay channel list.
+    struct DashBudgetRow: Identifiable {
+        let name: String
+        let symbol: String
+        let spent: Decimal
+        let allocated: Decimal
+
+        var id: String { name }
+        var progress: Double {
+            guard allocated > 0 else { return spent > 0 ? 1 : 0 }
+            return min((spent as NSDecimalNumber).doubleValue / (allocated as NSDecimalNumber).doubleValue, 1.5)
+        }
+        var isOver: Bool { spent > allocated && allocated > 0 }
+    }
+
     private(set) var accounts: [Account] = []
     private(set) var recentTransactions: [Transaction] = []
     private(set) var monthSpending: Decimal = 0
@@ -28,6 +43,14 @@ final class DashboardViewModel {
     private(set) var wellness: WellnessResult = .empty
     /// The single most important on-device insight, surfaced as the "Ask Ledger" briefing.
     private(set) var topInsight: Insight?
+    /// Per-category budget progress for the dashboard's clay channel list.
+    private(set) var budgetRows: [DashBudgetRow] = []
+    /// Whole-percent of the month's total budget used, shown inside the balance blob.
+    private(set) var budgetUsedPercent: Int = 0
+    /// Average spend per elapsed day this month, e.g. "$137/day".
+    private(set) var dailyBurnText: String = ""
+    /// 0…1 position of the burn-rate marker along the cool→hot meter.
+    private(set) var burnPosition: Double = 0.5
 
     /// Income minus spending for the current month.
     var monthNet: Decimal { monthIncome - monthSpending }
@@ -68,6 +91,18 @@ final class DashboardViewModel {
         let budgetDescriptor = FetchDescriptor<Budget>(predicate: #Predicate { $0.month == monthStart })
         let budgets = (try? modelContext.fetch(budgetDescriptor)) ?? []
         monthBudgetTotal = budgets.reduce(Decimal(0)) { $0 + $1.allocatedAmount }
+
+        // Per-category budget channels, the balance blob's percent, and the burn-rate meter.
+        budgetRows = computeBudgetRows(budgets: budgets, monthTransactions: nonTransfer)
+        let budgetDouble = (monthBudgetTotal as NSDecimalNumber).doubleValue
+        let spentDouble = (monthSpending as NSDecimalNumber).doubleValue
+        budgetUsedPercent = budgetDouble > 0 ? Int((spentDouble / budgetDouble * 100).rounded()) : 0
+
+        let daysInMonth = Double(calendar.range(of: .day, in: .month, for: .now)?.count ?? 30)
+        let elapsed = Double(min(max(calendar.component(.day, from: .now), 1), Int(daysInMonth)))
+        let perDay = elapsed > 0 ? spentDouble / elapsed : spentDouble
+        dailyBurnText = CurrencyFormatter.string(from: Decimal(perDay.rounded())) + "/day"
+        burnPosition = budgetDouble > 0 ? min(max((perDay * daysInMonth / budgetDouble) / 1.5, 0.06), 0.96) : 0.5
 
         // Reserve money that's already spoken for — upcoming bills and detected recurring
         // charges — so Safe to Spend never shows rent money as spendable.
@@ -137,6 +172,40 @@ final class DashboardViewModel {
         return totals
             .map { CategorySlice(name: $0.key, colorHex: $0.value.colorHex, amount: $0.value.amount, category: $0.value.category) }
             .sorted { $0.amount > $1.amount }
+            .prefix(5)
+            .map { $0 }
+    }
+
+    /// Per-category budget vs. spending for the month (split-aware), over-budget first then by
+    /// allocation, capped at five rows for the dashboard's channel card.
+    private func computeBudgetRows(budgets: [Budget], monthTransactions: [Transaction]) -> [DashBudgetRow] {
+        var spentByID: [PersistentIdentifier: Decimal] = [:]
+        for transaction in monthTransactions {
+            if transaction.isSplit {
+                for split in transaction.splits {
+                    guard let category = split.category, split.amount < 0 else { continue }
+                    spentByID[category.persistentModelID, default: 0] += -split.amount
+                }
+            } else {
+                guard let category = transaction.category, transaction.amount < 0 else { continue }
+                spentByID[category.persistentModelID, default: 0] += -transaction.amount
+            }
+        }
+
+        return budgets
+            .compactMap { budget -> DashBudgetRow? in
+                guard let category = budget.category, budget.allocatedAmount > 0 else { return nil }
+                let spent = spentByID[category.persistentModelID] ?? 0
+                return DashBudgetRow(
+                    name: category.name,
+                    symbol: category.sfSymbolName,
+                    spent: spent,
+                    allocated: budget.allocatedAmount
+                )
+            }
+            .sorted { lhs, rhs in
+                lhs.isOver != rhs.isOver ? lhs.isOver : lhs.allocated > rhs.allocated
+            }
             .prefix(5)
             .map { $0 }
     }
