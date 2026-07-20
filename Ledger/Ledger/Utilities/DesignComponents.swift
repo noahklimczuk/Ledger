@@ -233,3 +233,44 @@ extension View {
         card(padding: padding)
     }
 }
+
+// MARK: - Wellness ring
+
+/// A circular 0–100 gauge for the Financial Wellness score — Bloom's signature widget. The arc fills
+/// in the accent gradient with the score (and an optional "/ 100") in the centre, and animates when
+/// the score changes. Used large on the Wellness screen and small on the dashboard tile.
+struct WellnessRing: View {
+    let score: Int
+    var accent: Accent = .wellness
+    var size: CGFloat = 132
+    var lineWidth: CGFloat = 12
+    var showLabel: Bool = true
+
+    var body: some View {
+        let fraction = min(max(Double(score) / 100, 0), 1)
+        ZStack {
+            Circle()
+                .stroke(Color.primary.opacity(0.08), lineWidth: lineWidth)
+            Circle()
+                .trim(from: 0, to: fraction)
+                .stroke(accent.gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            if showLabel {
+                VStack(spacing: 1) {
+                    Text("\(score)")
+                        .font(.system(size: size * 0.34, weight: .heavy, design: .rounded))
+                        .foregroundStyle(accent.deep)
+                        .minimumScaleFactor(0.6)
+                    Text("/ 100")
+                        .font(.system(size: size * 0.09, weight: .bold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .frame(width: size, height: size)
+        .animation(Motion.smooth, value: score)
+        .accessibilityElement()
+        .accessibilityLabel("Financial wellness score")
+        .accessibilityValue("\(score) out of 100")
+    }
+}

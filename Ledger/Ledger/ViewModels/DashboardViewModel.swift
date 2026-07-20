@@ -24,6 +24,10 @@ final class DashboardViewModel {
     /// Upcoming bills + detected recurring charges reserved out of Safe to Spend this month.
     private(set) var reservedForBills: Decimal = 0
     private(set) var topCategories: [CategorySlice] = []
+    /// The Financial Wellness score + factors, for the dashboard's Wellness card.
+    private(set) var wellness: WellnessResult = .empty
+    /// The single most important on-device insight, surfaced as the "Ask Ledger" briefing.
+    private(set) var topInsight: Insight?
 
     /// Income minus spending for the current month.
     var monthNet: Decimal { monthIncome - monthSpending }
@@ -76,6 +80,37 @@ final class DashboardViewModel {
             budgetAllocations: monthBudgetTotal,
             committedBills: reservedForBills
         )
+
+        // Financial Wellness + the day's "Ask Ledger" briefing, both computed on-device.
+        wellness = WellnessScore.evaluate(modelContext: modelContext)
+        topInsight = computeTopInsight()
+    }
+
+    /// The single highest-priority insight for the Ask Ledger card. Read-only: it generates from
+    /// current data and respects dismiss/snooze state, but doesn't re-run recurring detection (that
+    /// happens on the Ask Ledger screen), so the dashboard stays cheap to load.
+    private func computeTopInsight() -> Insight? {
+        let now = Date()
+        let transactions = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
+            .filter(\.countsTowardTotals)
+        let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
+        let recurring = (try? modelContext.fetch(FetchDescriptor<RecurringSeries>())) ?? []
+        let monthStart = Budget.normalize(now)
+        let budgets = (try? modelContext.fetch(FetchDescriptor<Budget>(predicate: #Predicate { $0.month == monthStart }))) ?? []
+
+        let engine = InsightsEngine(
+            now: now,
+            transactions: transactions,
+            categories: categories,
+            currentMonthBudgets: budgets,
+            recurringSeries: recurring
+        )
+        let states = (try? modelContext.fetch(FetchDescriptor<InsightState>())) ?? []
+        let hidden = Dictionary(states.map { ($0.insightId, $0) }, uniquingKeysWith: { first, _ in first })
+        return engine.generate()
+            .filter { !(hidden[$0.id]?.isHidden(asOf: now) ?? false) }
+            .sorted { $0.severity != $1.severity ? $0.severity > $1.severity : $0.rankValue > $1.rankValue }
+            .first
     }
 
     /// The month's biggest spending categories (split-aware), for the dashboard breakdown chart.

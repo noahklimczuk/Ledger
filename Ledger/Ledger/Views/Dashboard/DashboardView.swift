@@ -79,6 +79,8 @@ struct DashboardView: View {
                         checkInCard
                     }
                     balanceCard(viewModel)
+                    wellnessCard(viewModel)
+                    askLedgerCard(viewModel)
                     monthSummaryCard(viewModel)
                     categoryChartCard(viewModel)
                     NavigationLink {
@@ -194,6 +196,79 @@ struct DashboardView: View {
             .card()
         }
         .buttonStyle(.pressable)
+    }
+
+    /// Bloom's signature dashboard tile: the Financial Wellness score at a glance, tapping through to
+    /// the full breakdown. One number for "how am I doing?".
+    private func wellnessCard(_ viewModel: DashboardViewModel) -> some View {
+        NavigationLink {
+            FinancialWellnessView()
+        } label: {
+            HStack(spacing: 16) {
+                WellnessRing(score: viewModel.wellness.score, size: 76, lineWidth: 9)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("FINANCIAL WELLNESS")
+                        .font(.appCaption2.weight(.bold))
+                        .tracking(0.8)
+                        .foregroundStyle(.secondary)
+                    Text("\(viewModel.wellness.state) \(viewModel.wellness.stateEmoji)")
+                        .font(.appTitle3.weight(.heavy))
+                        .foregroundStyle(Accent.wellness.deep)
+                    Text(viewModel.wellness.summary)
+                        .font(.appCaption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(.tertiary)
+            }
+            .card()
+        }
+        .buttonStyle(.pressable)
+    }
+
+    /// The "Ask Ledger" briefing — the single most important on-device insight (or a warm all-clear),
+    /// tapping through to the full Ask Ledger screen.
+    private func askLedgerCard(_ viewModel: DashboardViewModel) -> some View {
+        NavigationLink {
+            InsightsView()
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    IconBadge(systemName: "sparkles", accent: .insights, size: 30)
+                    Text("Ask Ledger")
+                        .font(.appHeadline)
+                        .foregroundStyle(Color.primary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(Accent.insights.base)
+                }
+                Text(askLedgerMessage(viewModel))
+                    .font(.appBody)
+                    .foregroundStyle(Color.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(Theme.cardPadding)
+            .background(Accent.insights.faintGradient, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .strokeBorder(Accent.insights.base.opacity(0.22), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.pressable)
+    }
+
+    private func askLedgerMessage(_ viewModel: DashboardViewModel) -> String {
+        if let insight = viewModel.topInsight { return insight.message }
+        if let tend = viewModel.wellness.toTend.first {
+            return "You're doing well. The one thing worth tending this month is \(tend.name.lowercased())."
+        }
+        return "You're on track this month — nothing needs your attention right now. 🌿"
     }
 
     /// The Total Balance card. Tapping it expands a clean per-account breakdown in place, so the

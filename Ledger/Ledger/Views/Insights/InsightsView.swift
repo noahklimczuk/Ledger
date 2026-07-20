@@ -37,7 +37,7 @@ struct InsightsView: View {
                 LoadingView()
             }
         }
-        .navigationTitle("Insights")
+        .navigationTitle("Ask Ledger")
         .accentWash(.insights)
         .accent(.insights)
         .task {
