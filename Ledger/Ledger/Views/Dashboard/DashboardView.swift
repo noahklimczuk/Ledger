@@ -239,7 +239,7 @@ struct DashboardView: View {
     /// tapping through to the full Ask Ledger screen.
     private func askLedgerCard(_ viewModel: DashboardViewModel) -> some View {
         NavigationLink {
-            InsightsView()
+            AskLedgerView()
         } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {
