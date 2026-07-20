@@ -516,7 +516,7 @@ struct DashboardView: View {
         let percent = Int((spent.doubleValue / budget.doubleValue * 100).rounded())
         return InteractiveDonutChart(
             segments: [
-                DonutSegment(id: "spent", label: "Spent", value: spentPortion, color: isOver ? .red : .accentColor, isSelectable: false),
+                DonutSegment(id: "spent", label: "Spent", value: spentPortion, color: isOver ? Palette.expense : .accentColor, isSelectable: false),
                 DonutSegment(id: "remaining", label: "Remaining", value: remaining, color: Color(.systemGray4), isSelectable: false)
             ],
             centerCaption: isOver ? "over budget" : "of budget spent",
@@ -624,7 +624,7 @@ private struct MonthFlowTransactionsView: View {
         transactions.reduce(Decimal(0)) { $0 + abs($1.amount) }
     }
 
-    private var accentColor: Color { flow == .income ? .green : .red }
+    private var accentColor: Color { flow == .income ? Palette.income : Palette.expense }
 
     var body: some View {
         Group {
@@ -666,7 +666,7 @@ private struct MonthFlowTransactionsView: View {
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: total))
                     .font(.title2.bold())
-                    .foregroundStyle(flow == .income ? Color.green : Color.primary)
+                    .foregroundStyle(flow == .income ? Palette.income : Color.primary)
             }
             Spacer()
         }

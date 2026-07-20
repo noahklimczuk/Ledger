@@ -84,7 +84,7 @@ private struct InsightCard: View {
             Button(action: onSnooze) {
                 Label("Snooze", systemImage: "clock")
             }
-            .tint(.orange)
+            .tint(Palette.amber)
         }
     }
 }

@@ -277,7 +277,7 @@ struct TransactionListView: View {
                                 systemImage: transaction.isReviewed ? "circle" : "checkmark.circle.fill"
                             )
                         }
-                        .tint(.green)
+                        .tint(Palette.income)
                     }
                     // Long-press menu so delete/review stay reachable where the paged tab
                     // swipe competes with row swipes.

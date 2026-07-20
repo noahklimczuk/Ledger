@@ -33,7 +33,7 @@ struct IntegrationsSettingsView: View {
                         if viewModel.needsReauth {
                             Label("Wealthsimple needs you to sign in again to keep syncing.", systemImage: "exclamationmark.triangle.fill")
                                 .font(.footnote)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Palette.amber)
                         }
 
                         if viewModel.connectionState == .connected {
@@ -67,7 +67,7 @@ struct IntegrationsSettingsView: View {
                     if let lastError = viewModel.lastError {
                         Section {
                             Text(lastError)
-                                .foregroundStyle(.red)
+                                .foregroundStyle(Palette.expense)
                                 .font(.footnote)
                         }
                     }
@@ -120,9 +120,9 @@ struct IntegrationsSettingsView: View {
             Spacer()
             switch viewModel.connectionState {
             case .notConnected:
-                Label("Not Connected", systemImage: "circle").foregroundStyle(.orange)
+                Label("Not Connected", systemImage: "circle").foregroundStyle(Palette.amber)
             case .connected:
-                Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(Palette.income)
             }
         }
     }

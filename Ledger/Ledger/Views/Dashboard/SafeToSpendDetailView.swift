@@ -50,7 +50,7 @@ struct SafeToSpendDetailView: View {
                 .foregroundStyle(.secondary)
             Text(CurrencyFormatter.string(from: viewModel.safeToSpend))
                 .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .foregroundStyle(viewModel.safeToSpend < 0 ? Color.red : Color.primary)
+                .foregroundStyle(viewModel.safeToSpend < 0 ? Palette.expense : Color.primary)
             Text("What's left of your income after money you've budgeted to categories and reserved for upcoming bills.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -72,7 +72,7 @@ struct SafeToSpendDetailView: View {
                 if viewModel.safeToSpend < 0 {
                     Text("Your budgets and reserved bills add up to more than your income this month.")
                         .font(.caption2)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Palette.amber)
                 }
             }
         }
@@ -108,10 +108,10 @@ struct SafeToSpendDetailView: View {
             segments.append(DonutSegment(id: "budgeted", label: "Budgeted to categories", value: viewModel.monthBudgetTotal, color: .accentColor, isSelectable: false))
         }
         if viewModel.reservedForBills > 0 {
-            segments.append(DonutSegment(id: "reserved", label: "Reserved for bills", value: viewModel.reservedForBills, color: .orange, isSelectable: false))
+            segments.append(DonutSegment(id: "reserved", label: "Reserved for bills", value: viewModel.reservedForBills, color: Palette.amber, isSelectable: false))
         }
         if viewModel.safeToSpend > 0 {
-            segments.append(DonutSegment(id: "safe", label: "Safe to spend", value: viewModel.safeToSpend, color: .green, isSelectable: false))
+            segments.append(DonutSegment(id: "safe", label: "Safe to spend", value: viewModel.safeToSpend, color: Palette.income, isSelectable: false))
         }
         return segments
     }

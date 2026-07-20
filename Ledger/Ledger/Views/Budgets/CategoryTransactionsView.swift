@@ -100,7 +100,7 @@ struct CategoryTransactionsView: View {
                     Text("Income").font(.caption).foregroundStyle(.secondary)
                     Text(CurrencyFormatter.string(from: income))
                         .fontWeight(.medium)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Palette.income)
                 }
             }
         }

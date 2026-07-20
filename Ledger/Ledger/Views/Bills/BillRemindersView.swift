@@ -25,7 +25,7 @@ struct BillRemindersView: View {
                             Section {
                                 Label("Notifications are turned off. Enable them in Settings to get reminders.", systemImage: "exclamationmark.triangle")
                                     .font(.footnote)
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(Palette.amber)
                             }
                         }
                         ForEach(viewModel.reminders) { reminder in
@@ -49,7 +49,7 @@ struct BillRemindersView: View {
                                     } label: {
                                         Label("Paid", systemImage: "checkmark")
                                     }
-                                    .tint(.green)
+                                    .tint(Palette.income)
                                 }
                             }
                         }

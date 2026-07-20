@@ -36,12 +36,12 @@ struct RecurringDetailView: View {
             HStack(spacing: 14) {
                 Image(systemName: series.isIncome ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
                     .font(.system(size: 34))
-                    .foregroundStyle(series.isIncome ? .green : .orange)
+                    .foregroundStyle(series.isIncome ? Palette.income : Palette.amber)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(CurrencyFormatter.string(from: series.averageAmount))
                         .font(.title2.bold())
-                        .foregroundStyle(series.isIncome ? Color.green : Color.primary)
+                        .foregroundStyle(series.isIncome ? Palette.income : Color.primary)
                     Text("\(series.cadence.displayName) · \(series.status.displayName)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -69,9 +69,9 @@ struct RecurringDetailView: View {
 
     private var confidenceColor: Color {
         switch series.detectionConfidence {
-        case ..<0.5: .red
-        case ..<0.72: .orange
-        default: .green
+        case ..<0.5: Palette.expense
+        case ..<0.72: Palette.amber
+        default: Palette.income
         }
     }
 
@@ -82,7 +82,7 @@ struct RecurringDetailView: View {
             HStack(spacing: 12) {
                 Image(systemName: change.isIncrease ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(change.isIncrease ? .red : .green)
+                    .foregroundStyle(change.isIncrease ? Palette.expense : Palette.income)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(CurrencyFormatter.string(from: change.previous)) → \(CurrencyFormatter.string(from: change.current))")
                         .fontWeight(.medium)
@@ -156,20 +156,20 @@ struct RecurringDetailView: View {
         Section {
             switch series.status {
             case .suggested:
-                actionButton("Confirm as Recurring", systemImage: "checkmark.circle.fill", tint: .green) { viewModel?.confirm(series) }
-                actionButton("Not Recurring", systemImage: "xmark.circle", tint: .red) { viewModel?.ignore(series) }
+                actionButton("Confirm as Recurring", systemImage: "checkmark.circle.fill", tint: Palette.income) { viewModel?.confirm(series) }
+                actionButton("Not Recurring", systemImage: "xmark.circle", tint: Palette.expense) { viewModel?.ignore(series) }
             case .active:
-                actionButton("Pause", systemImage: "pause.circle", tint: .orange) { viewModel?.pause(series) }
+                actionButton("Pause", systemImage: "pause.circle", tint: Palette.amber) { viewModel?.pause(series) }
                 actionButton("Mark as Ended", systemImage: "xmark.circle", tint: .secondary) { viewModel?.markEnded(series) }
-                actionButton("Ignore", systemImage: "bell.slash", tint: .red) { viewModel?.ignore(series) }
+                actionButton("Ignore", systemImage: "bell.slash", tint: Palette.expense) { viewModel?.ignore(series) }
             case .paused:
-                actionButton("Resume", systemImage: "play.circle", tint: .green) { viewModel?.resume(series) }
-                actionButton("Ignore", systemImage: "bell.slash", tint: .red) { viewModel?.ignore(series) }
+                actionButton("Resume", systemImage: "play.circle", tint: Palette.income) { viewModel?.resume(series) }
+                actionButton("Ignore", systemImage: "bell.slash", tint: Palette.expense) { viewModel?.ignore(series) }
             case .ended:
-                actionButton("Reactivate", systemImage: "arrow.clockwise", tint: .green) { viewModel?.reactivate(series) }
-                actionButton("Ignore", systemImage: "bell.slash", tint: .red) { viewModel?.ignore(series) }
+                actionButton("Reactivate", systemImage: "arrow.clockwise", tint: Palette.income) { viewModel?.reactivate(series) }
+                actionButton("Ignore", systemImage: "bell.slash", tint: Palette.expense) { viewModel?.ignore(series) }
             case .ignored:
-                actionButton("Restore", systemImage: "bell", tint: .blue) { viewModel?.restore(series) }
+                actionButton("Restore", systemImage: "bell", tint: Palette.peri) { viewModel?.restore(series) }
             }
         }
     }
