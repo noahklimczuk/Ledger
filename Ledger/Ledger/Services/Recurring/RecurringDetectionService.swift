@@ -238,9 +238,9 @@ nonisolated final class RecurringDetectionService {
         let stableWindowDays = max(7.0, Double(cadence.approximateDays))
 
         func isClose(_ a: Decimal, _ b: Decimal) -> Bool {
-            let diff = abs((a - b) as NSDecimalNumber).doubleValue
+            let diff = NSDecimalNumber(decimal: abs(a - b)).doubleValue
             if diff <= 0.01 { return true }
-            let avg = ((abs(a) + abs(b)) / 2 as NSDecimalNumber).doubleValue
+            let avg = NSDecimalNumber(decimal: (abs(a) + abs(b)) / 2).doubleValue
             guard avg > 0 else { return diff <= 0.01 }
             return diff / avg <= 0.02
         }
