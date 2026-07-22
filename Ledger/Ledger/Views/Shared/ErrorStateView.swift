@@ -16,7 +16,7 @@ struct ErrorStateView: View {
                     .frame(width: 110, height: 110)
 
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 42, weight: .bold))
+                    .font(.appMoney)
                     .foregroundStyle(Palette.coral)
             }
 

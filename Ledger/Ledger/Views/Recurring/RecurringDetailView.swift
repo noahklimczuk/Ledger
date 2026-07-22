@@ -37,15 +37,15 @@ struct RecurringDetailView: View {
         Section {
             HStack(spacing: 14) {
                 Image(systemName: series.isIncome ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
-                    .font(.system(size: 34))
+                    .font(AppFont.scaled(34, relativeTo: .title))
                     .foregroundStyle(series.isIncome ? Palette.income : Palette.amber)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(CurrencyFormatter.string(from: series.averageAmount))
-                        .font(.title2.bold())
+                        .font(.appTitle2.weight(.heavy))
                         .foregroundStyle(series.isIncome ? Palette.income : Color.primary)
                     Text("\(series.cadence.displayName) · \(series.status.displayName)")
-                        .font(.subheadline)
+                        .font(.appSubheadline)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -58,10 +58,10 @@ struct RecurringDetailView: View {
     private var confidenceRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Detection confidence").font(.caption).foregroundStyle(.secondary)
+                Text("Detection confidence").font(.appCaption).foregroundStyle(.secondary)
                 Spacer()
                 Text("\(Int((series.detectionConfidence * 100).rounded()))%")
-                    .font(.caption.weight(.semibold))
+                    .font(.appCaption.weight(.semibold))
             }
             ProgressView(value: min(max(series.detectionConfidence, 0), 1))
                 .tint(confidenceColor)
@@ -83,13 +83,13 @@ struct RecurringDetailView: View {
         Section("Price Change") {
             HStack(spacing: 12) {
                 Image(systemName: change.isIncrease ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
-                    .font(.title2)
+                    .font(.appTitle2)
                     .foregroundStyle(change.isIncrease ? Palette.expense : Palette.income)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(CurrencyFormatter.string(from: change.previous)) → \(CurrencyFormatter.string(from: change.current))")
-                        .fontWeight(.medium)
+                        .font(.appSubheadline.weight(.medium))
                     Text("\(change.isIncrease ? "Up" : "Down") \(Int((abs(change.fraction) * 100).rounded()))% from its usual amount")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.appCaption).foregroundStyle(.secondary)
                 }
             }
             .padding(.vertical, 2)
@@ -127,7 +127,7 @@ struct RecurringDetailView: View {
         HStack {
             Text(label).foregroundStyle(.secondary)
             Spacer()
-            Text(value).fontWeight(.medium).multilineTextAlignment(.trailing)
+            Text(value).font(.appSubheadline.weight(.medium)).multilineTextAlignment(.trailing)
         }
     }
 
@@ -144,9 +144,9 @@ struct RecurringDetailView: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.account?.currencyCode ?? "CAD"))
-                        .fontWeight(.medium)
+                        .font(.appSubheadline.weight(.medium))
                 }
-                .font(.subheadline)
+                .font(.appSubheadline)
             }
         }
     }

@@ -86,7 +86,7 @@ struct TransactionDetailView: View {
                     .shadow(color: Color.bloomHighlight, radius: 10, x: -4, y: -4)
 
                 Image(systemName: transaction.category?.sfSymbolName ?? "questionmark.circle.fill")
-                    .font(.system(size: 26, weight: .bold))
+                    .font(AppFont.scaled(26, relativeTo: .title, weight: .bold))
                     .foregroundStyle(heroIconColor)
             }
 
@@ -102,7 +102,7 @@ struct TransactionDetailView: View {
 
             HStack(spacing: 6) {
                 Image(systemName: "clock")
-                    .font(.caption2)
+                    .font(.appCaption2)
                 Text(DateFormatting.medium(transaction.date))
                     .font(.appCaption)
             }
@@ -226,7 +226,7 @@ struct TransactionDetailView: View {
                     ForEach(relatedInsights, id: \.self) { insight in
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "lightbulb.fill")
-                                .font(.system(size: 11))
+                                .font(.appCaption2)
                                 .foregroundStyle(Palette.peri)
                                 .padding(.top, 4)
                             Text(insight)
@@ -341,7 +341,7 @@ private struct DetailCategoryChip: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: systemImage)
-                    .font(.caption2.weight(.bold))
+                    .font(.appCaption2.weight(.bold))
                     .foregroundStyle(isSelected ? .white : color)
                 Text(name)
                     .font(.appCaption.weight(.bold))
@@ -367,7 +367,7 @@ private struct DetailMetaRow: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: icon)
-                .font(.system(size: 15, weight: .bold))
+                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
                 .foregroundStyle(Color.secondary)
                 .frame(width: 24, height: 24)
 

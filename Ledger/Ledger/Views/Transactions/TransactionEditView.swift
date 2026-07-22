@@ -332,7 +332,7 @@ private struct CategoryChip: View {
         Button(action: action) {
             HStack(spacing: isSelected ? 8 : 6) {
                 Image(systemName: systemImage)
-                    .font(.system(size: isSelected ? 24 : 20, weight: .bold))
+                    .font(AppFont.scaled(isSelected ? 24 : 20, relativeTo: .headline, weight: .bold))
                     .symbolEffect(.bounce, value: isSelected)
                     .foregroundStyle(isSelected ? .white : color)
                 Text(name)
@@ -364,7 +364,7 @@ private struct ValueCard: View {
                 IconBadge(systemName: icon, accent: accent, size: 32, filled: false)
                 Spacer()
                 Image(systemName: "chevron.down")
-                    .font(.caption2.weight(.bold))
+                    .font(.appCaption2.weight(.bold))
                     .foregroundStyle(.tertiary)
             }
             VStack(alignment: .leading, spacing: 4) {

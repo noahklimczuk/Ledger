@@ -47,13 +47,13 @@ struct SafeToSpendDetailView: View {
     private func headline(_ viewModel: DashboardViewModel) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Safe to spend this month")
-                .font(.subheadline)
+                .font(.appSubheadline)
                 .foregroundStyle(.secondary)
             Text(CurrencyFormatter.string(from: viewModel.safeToSpend))
-                .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                .font(.appMoney)
                 .foregroundStyle(viewModel.safeToSpend < 0 ? Palette.expense : Color.primary)
             Text("What's left of your income after money you've budgeted to categories and reserved for upcoming bills.")
-                .font(.footnote)
+                .font(.appFootnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -72,7 +72,7 @@ struct SafeToSpendDetailView: View {
                 )
                 if viewModel.safeToSpend < 0 {
                     Text("Your budgets and reserved bills add up to more than your income this month.")
-                        .font(.caption2)
+                        .font(.appCaption2)
                         .foregroundStyle(Palette.amber)
                 }
             }
@@ -134,11 +134,15 @@ struct SafeToSpendDetailView: View {
 
     private func card<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.headline)
+            Text(title).font(.appHeadline)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.appHairline, lineWidth: 1)
+        )
     }
 }

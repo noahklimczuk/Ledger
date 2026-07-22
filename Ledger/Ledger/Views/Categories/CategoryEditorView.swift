@@ -77,7 +77,7 @@ private struct CategoryRow: View {
         Button(action: onTap) {
             HStack(spacing: 12) {
                 Image(systemName: category.sfSymbolName)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(AppFont.scaled(14, relativeTo: .subheadline, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 34, height: 34)
                     .background(

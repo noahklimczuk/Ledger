@@ -232,13 +232,12 @@ struct BudgetListView: View {
                             Text("Month complete")
                         }
                     }
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
                 }
             }
         }
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .card()
         .padding(.top, 4)
     }
 
@@ -264,7 +263,7 @@ struct BudgetListView: View {
         }()
 
         Label(text, systemImage: symbol)
-            .font(.caption.weight(.semibold))
+            .font(.appCaption.weight(.semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
@@ -279,16 +278,16 @@ struct BudgetListView: View {
                     Image(systemName: "pencil")
                 }
             }
-            .font(.caption2)
+            .font(.appCaption2)
             .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(periodMoney(value))
-                    .font(.subheadline.weight(.semibold))
+                    .font(.appSubheadline.weight(.semibold))
                     .foregroundStyle(color)
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
                 Text(periodSuffix)
-                    .font(.caption2)
+                    .font(.appCaption2)
                     .foregroundStyle(.secondary)
             }
         }
@@ -306,7 +305,7 @@ struct BudgetListView: View {
             monthChevron("chevron.left") { shiftMonth(viewModel, by: -1) }
             Spacer()
             Text(DateFormatting.monthYear(viewModel.selectedMonth))
-                .font(.headline)
+                .font(.appHeadline)
             Spacer()
             monthChevron("chevron.right") { shiftMonth(viewModel, by: 1) }
         }
@@ -316,7 +315,7 @@ struct BudgetListView: View {
     private func monthChevron(_ systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.body.weight(.semibold))
+                .font(.appBody.weight(.semibold))
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
@@ -469,9 +468,7 @@ struct BudgetListView: View {
             .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
-        .padding(.horizontal)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .card()
     }
 }
 
@@ -497,7 +494,7 @@ private struct BudgetRowView: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: row.categorySymbolName)
-                .font(.system(size: 15, weight: .bold))
+                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
                 .background(
@@ -525,7 +522,7 @@ private struct BudgetRowView: View {
                             .foregroundStyle(row.isOverBudget ? Palette.expense : .secondary)
                     }
                 }
-                .font(.caption)
+                .font(.appCaption)
                 .foregroundStyle(.secondary)
             }
         }
@@ -536,7 +533,7 @@ private struct BudgetRowView: View {
         Text(row.isOverBudget
              ? "\(periodMoney(0 - row.remaining))\(periodSuffix) over"
              : "\(periodMoney(row.remaining))\(periodSuffix) left")
-            .font(.caption.weight(.bold))
+            .font(.appCaption.weight(.bold))
             .foregroundStyle(row.isOverBudget ? Palette.expense : Palette.income)
             .padding(.horizontal, 9)
             .padding(.vertical, 3)
@@ -572,7 +569,7 @@ private struct UnbudgetedRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: symbol)
-                .font(.system(size: 15, weight: .bold))
+                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
                 .background(
@@ -595,7 +592,7 @@ private struct UnbudgetedRowView: View {
                     .foregroundStyle(Palette.amber)
                     .layoutPriority(1)
                 Text(periodSuffix)
-                    .font(.caption2)
+                    .font(.appCaption2)
                     .foregroundStyle(.secondary)
             }
         }

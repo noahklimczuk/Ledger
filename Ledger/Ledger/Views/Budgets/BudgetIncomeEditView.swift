@@ -31,7 +31,7 @@ struct BudgetIncomeEditView: View {
                 Section {
                     TextField("0.00", text: $amountText)
                         .keyboardType(.decimalPad)
-                        .font(.title2.weight(.semibold))
+                        .font(.appTitle2.weight(.semibold))
                 } header: {
                     Text("Planned Income · \(DateFormatting.monthYear(month))")
                 } footer: {
@@ -46,7 +46,7 @@ struct BudgetIncomeEditView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Use Actual Income")
                             Text("\(CurrencyFormatter.string(from: actualIncome)) received so far this month")
-                                .font(.caption)
+                                .font(.appCaption)
                                 .foregroundStyle(.secondary)
                         }
                     }

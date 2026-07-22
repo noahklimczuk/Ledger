@@ -29,7 +29,7 @@ struct SplashView: View {
                     .opacity(appeared ? 1 : 0)
 
                 Text("Ledger")
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .font(AppFont.scaled(40, relativeTo: .largeTitle, weight: .bold))
                     .foregroundStyle(.white)
                     .opacity(appeared ? 1 : 0)
 

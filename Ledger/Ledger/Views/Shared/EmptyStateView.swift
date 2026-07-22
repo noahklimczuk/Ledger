@@ -31,7 +31,7 @@ struct EmptyStateView: View {
                     .frame(width: 110, height: 110)
 
                 Image(systemName: systemImage)
-                    .font(.system(size: 48, weight: .bold))
+                    .font(.appMoney)
                     .foregroundStyle(Palette.greenDeep)
             }
 

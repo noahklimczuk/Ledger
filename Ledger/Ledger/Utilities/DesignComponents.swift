@@ -258,11 +258,11 @@ struct WellnessRing: View {
             if showLabel {
                 VStack(spacing: 1) {
                     Text("\(score)")
-                        .font(.system(size: size * 0.34, weight: .heavy, design: .rounded))
+                        .font(AppFont.scaled(size * 0.34, relativeTo: .largeTitle, weight: .heavy))
                         .foregroundStyle(accent.deep)
                         .minimumScaleFactor(0.6)
                     Text("/ 100")
-                        .font(.system(size: size * 0.09, weight: .bold, design: .rounded))
+                        .font(AppFont.scaled(size * 0.09, relativeTo: .caption2, weight: .bold))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -294,11 +294,11 @@ struct BalanceBlob: View {
                 .shadow(color: Palette.peach.opacity(0.5), radius: 16, y: 10)
             VStack(spacing: 2) {
                 Text("\(percent)%")
-                    .font(.system(size: size * 0.22, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(size * 0.22, relativeTo: .largeTitle, weight: .heavy))
                     .foregroundStyle(.white)
                     .minimumScaleFactor(0.6)
                 Text("OF BUDGET")
-                    .font(.system(size: size * 0.082, weight: .heavy, design: .rounded))
+                    .font(AppFont.scaled(size * 0.082, relativeTo: .caption2, weight: .heavy))
                     .tracking(0.5)
                     .foregroundStyle(.white.opacity(0.85))
             }

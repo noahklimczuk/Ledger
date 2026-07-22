@@ -129,13 +129,13 @@ struct DailyCheckInView: View {
             }
         } label: {
             Text(step < stepCount - 1 ? "Continue" : "Done for Today")
-                .font(.headline)
+                .font(.appHeadline)
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
         .padding()
-        .background(.bar)
+        .background(Color.appSurface)
     }
 
     // MARK: - Steps
@@ -172,7 +172,7 @@ struct DailyCheckInView: View {
                         }
                     }
                 }
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 Button {
                     withAnimation { viewModel.markAllReviewed() }
                 } label: {
@@ -191,7 +191,7 @@ struct DailyCheckInView: View {
                 // stays its own control so the quick-set dropdown still works.
                 Button { selectedTransaction = transaction } label: {
                     Text(transaction.merchant)
-                        .font(.subheadline.weight(.medium))
+                        .font(.appSubheadline.weight(.medium))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
@@ -199,7 +199,7 @@ struct DailyCheckInView: View {
                 .buttonStyle(.plain)
                 HStack(spacing: 6) {
                     Text(DateFormatting.relativeDay(transaction.date))
-                        .font(.caption)
+                        .font(.appCaption)
                         .foregroundStyle(.secondary)
                     categoryMenu(transaction, viewModel: viewModel)
                 }
@@ -207,7 +207,7 @@ struct DailyCheckInView: View {
             Spacer(minLength: 8)
             Button { selectedTransaction = transaction } label: {
                 Text(CurrencyFormatter.string(from: transaction.amount))
-                    .font(.subheadline.weight(.semibold))
+                    .font(.appSubheadline.weight(.semibold))
                     .foregroundStyle(transaction.amount < 0 ? Color.primary : Palette.income)
                     .contentShape(Rectangle())
             }
@@ -216,7 +216,7 @@ struct DailyCheckInView: View {
                 withAnimation { viewModel.markReviewed(transaction) }
             } label: {
                 Image(systemName: "checkmark.circle")
-                    .font(.title3)
+                    .font(.appTitle3)
                     .foregroundStyle(Color.accentColor)
                     // Expand the hit area to the 44pt minimum without changing the glyph size.
                     .frame(width: 44, height: 44)
@@ -257,10 +257,10 @@ struct DailyCheckInView: View {
                     .fill(transaction.category.map { Color(hex: $0.colorHex) } ?? Color(.systemGray3))
                     .frame(width: 7, height: 7)
                 Text(transaction.category?.name ?? "Set category")
-                    .font(.caption.weight(.medium))
+                    .font(.appCaption.weight(.medium))
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 8, weight: .semibold))
+                    .font(AppFont.scaled(8, relativeTo: .caption2, weight: .semibold))
             }
             .foregroundStyle(transaction.category == nil ? Color.accentColor : Color.secondary)
             .padding(.horizontal, 8)
@@ -328,28 +328,28 @@ struct DailyCheckInView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.subheadline.weight(.semibold))
+                .font(.appSubheadline.weight(.semibold))
                 .foregroundStyle(color)
             ForEach(rows) { row in
                 HStack(spacing: 10) {
                     Image(systemName: row.categorySymbolName)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.scaled(12, relativeTo: .caption, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 26, height: 26)
                         .background(row.categoryColorHex.map { Color(hex: $0) } ?? .gray, in: Circle())
                     Text(row.categoryName)
-                        .font(.subheadline)
+                        .font(.appSubheadline)
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     Text(detail(row))
-                        .font(.caption.weight(.semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundStyle(color)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func billsStep(_ viewModel: DailyCheckInViewModel) -> some View {
@@ -367,14 +367,14 @@ struct DailyCheckInView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(bill.name)
-                                    .font(.subheadline.weight(.medium))
+                                    .font(.appSubheadline.weight(.medium))
                                 Text(bill.isOverdue ? "Overdue · was due \(DateFormatting.medium(bill.dueDate))" : "Due \(DateFormatting.relativeDay(bill.dueDate))")
-                                    .font(.caption)
+                                    .font(.appCaption)
                                     .foregroundStyle(bill.isOverdue ? Palette.expense : Color.secondary)
                             }
                             Spacer()
                             Text(CurrencyFormatter.string(from: bill.amount))
-                                .font(.subheadline.weight(.semibold))
+                                .font(.appSubheadline.weight(.semibold))
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 10)
@@ -385,15 +385,15 @@ struct DailyCheckInView: View {
                     Divider()
                     HStack {
                         Text("Total")
-                            .font(.subheadline.weight(.semibold))
+                            .font(.appSubheadline.weight(.semibold))
                         Spacer()
                         Text(CurrencyFormatter.string(from: viewModel.upcomingBillsTotal))
-                            .font(.subheadline.weight(.bold))
+                            .font(.appSubheadline.weight(.bold))
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 10)
                 }
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
         }
     }
@@ -407,20 +407,20 @@ struct DailyCheckInView: View {
             )
             VStack(spacing: 8) {
                 Text("Left to Assign")
-                    .font(.subheadline)
+                    .font(.appSubheadline)
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: viewModel.leftToAssign))
-                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                    .font(.appLargeTitle)
                     .foregroundStyle(planColor(viewModel))
                 Text(planMessage(viewModel))
-                    .font(.subheadline)
+                    .font(.appSubheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 24)
             .padding(.horizontal)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 
@@ -446,11 +446,11 @@ struct DailyCheckInView: View {
     private func doneStep(_ viewModel: DailyCheckInViewModel) -> some View {
         VStack(spacing: 20) {
             Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 56))
+                .font(AppFont.scaled(56, relativeTo: .largeTitle))
                 .foregroundStyle(LinearGradient.brand)
                 .padding(.top, 12)
             Text("You're Set for Today")
-                .font(.title2.bold())
+                .font(.appTitle2.weight(.bold))
             HStack(spacing: 12) {
                 doneTile(value: "\(viewModel.reviewedThisSession)", label: "reviewed")
                 doneTile(value: "\(viewModel.overBudget.count)", label: "over budget")
@@ -459,30 +459,30 @@ struct DailyCheckInView: View {
             Toggle(isOn: $dailyReminderOn) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Remind me daily")
-                        .font(.subheadline.weight(.medium))
+                        .font(.appSubheadline.weight(.medium))
                     Text("Every night at 10 PM")
-                        .font(.caption)
+                        .font(.appCaption)
                         .foregroundStyle(.secondary)
                 }
             }
             .padding()
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 
     private func doneTile(value: String, label: String) -> some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.headline)
+                .font(.appHeadline)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
             Text(label)
-                .font(.caption2)
+                .font(.appCaption2)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     // MARK: - Shared pieces
@@ -490,12 +490,12 @@ struct DailyCheckInView: View {
     private func stepHeader(symbol: String, title: String, subtitle: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: symbol)
-                .font(.system(size: 30))
+                .font(AppFont.scaled(30, relativeTo: .title))
                 .foregroundStyle(Color.accentColor)
             Text(title)
-                .font(.title3.bold())
+                .font(.appTitle3.weight(.bold))
             Text(subtitle)
-                .font(.subheadline)
+                .font(.appSubheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
@@ -506,18 +506,18 @@ struct DailyCheckInView: View {
     private func allClear(_ title: String, detail: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 34))
+                .font(AppFont.scaled(34, relativeTo: .largeTitle))
                 .foregroundStyle(Color.brandEmerald)
             Text(title)
-                .font(.headline)
+                .font(.appHeadline)
             Text(detail)
-                .font(.subheadline)
+                .font(.appSubheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 28)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 

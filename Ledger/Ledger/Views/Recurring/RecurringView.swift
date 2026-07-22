@@ -183,7 +183,7 @@ struct RecurringView: View {
                     .frame(width: 20, height: 20)
 
                 Text("Heads up")
-                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .font(.appCaption2.weight(.black))
                     .foregroundStyle(Palette.peri)
             }
 
@@ -244,7 +244,7 @@ struct RecurringView: View {
     private func reviewButton(_ title: String, systemImage: String, prominent: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
-                .font(.subheadline.weight(.semibold))
+                .font(.appSubheadline.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity)
@@ -263,9 +263,9 @@ struct RecurringView: View {
             ForEach(viewModel.upcoming.prefix(8)) { charge in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(charge.series.displayName).fontWeight(.medium)
+                        Text(charge.series.displayName).font(.appSubheadline.weight(.medium))
                         Text(DateFormatting.relativeUpcoming(charge.date))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.appCaption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     Text(CurrencyFormatter.string(from: charge.amount))
@@ -346,7 +346,7 @@ private struct RecurringRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: series.isIncome ? "arrow.down.left" : "arrow.up.right")
-                .font(.system(size: 16, weight: .bold))
+                .font(AppFont.scaled(16, relativeTo: .body, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
                 .background(
@@ -405,7 +405,7 @@ private struct RecurringRow: View {
 
     private func chip(text: String, color: Color) -> some View {
         Text(text)
-            .font(.caption2.weight(.semibold))
+            .font(.appCaption2.weight(.semibold))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(color.opacity(0.15), in: Capsule())

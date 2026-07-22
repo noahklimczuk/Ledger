@@ -108,19 +108,19 @@ struct InteractiveDonutChart: View {
         VStack(spacing: 2) {
             if let segment = selectedSegment {
                 Text(segment.label)
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Text(CurrencyFormatter.string(from: segment.value))
-                    .font(.headline)
+                    .font(.appHeadline)
             } else {
                 if let centerCaption {
                     Text(centerCaption)
-                        .font(.caption)
+                        .font(.appCaption)
                         .foregroundStyle(.secondary)
                 }
                 Text(centerValueText ?? CurrencyFormatter.string(from: total))
-                    .font(.title3.bold())
+                    .font(.appTitle3.bold())
             }
         }
         .padding(.horizontal, 12)
@@ -157,16 +157,16 @@ struct InteractiveDonutChart: View {
         HStack(spacing: 10) {
             Circle().fill(segment.color).frame(width: 10, height: 10)
             Text(segment.label)
-                .font(.subheadline.weight(.medium))
+                .font(.appSubheadline.weight(.medium))
                 .foregroundStyle(Color.primary)
                 .lineLimit(1)
             Spacer(minLength: 8)
             Text(CurrencyFormatter.string(from: segment.value))
-                .font(.subheadline.weight(.semibold))
+                .font(.appSubheadline.weight(.semibold))
                 .foregroundStyle(Color.primary)
             if showChevron {
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
         }

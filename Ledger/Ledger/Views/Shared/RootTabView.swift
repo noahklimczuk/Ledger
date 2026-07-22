@@ -110,7 +110,7 @@ private struct FloatingTabBar: View {
         .padding(.vertical, 8)
         .background(
             Capsule(style: .continuous)
-                .fill(.regularMaterial)
+                .fill(Color.appSurface)
                 .overlay(Capsule(style: .continuous).strokeBorder(Color.appHairline, lineWidth: 1))
         )
         .shadow(color: selectedAccent.base.opacity(0.30), radius: 18, y: 8)
@@ -132,10 +132,10 @@ private struct FloatingTabBar: View {
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: item.icon)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(AppFont.scaled(20, relativeTo: .headline, weight: .bold))
                     .symbolEffect(.bounce, value: isSelected)
                 Text(item.title)
-                    .font(.system(size: 10, weight: .heavy))
+                    .font(.appCaption2.weight(.heavy))
             }
             .foregroundStyle(isSelected ? AnyShapeStyle(item.accent.base) : AnyShapeStyle(Color.secondary))
             .frame(maxWidth: .infinity, minHeight: 44)
@@ -259,13 +259,13 @@ private struct AskLedgerButton: View {
         HStack(spacing: 0) {
             if showLabel {
                 Text("Ask Ledger")
-                    .font(.system(size: 10, weight: .black))
+                    .font(.appCaption2.weight(.black))
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(
                         Capsule(style: .continuous)
-                            .fill(.regularMaterial)
+                            .fill(Color.appSurface)
                             .overlay(
                                 Capsule(style: .continuous)
                                     .strokeBorder(Color.appHairline, lineWidth: 1)
@@ -285,7 +285,7 @@ private struct AskLedgerButton: View {
                         .fill(Accent.insights.gradient)
                         .frame(width: 40, height: 40)
                     Image(systemName: "sparkles")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(AppFont.scaled(18, relativeTo: .body, weight: .bold))
                         .foregroundStyle(.white)
                         .symbolEffect(.pulse, options: .repeating)
                 }

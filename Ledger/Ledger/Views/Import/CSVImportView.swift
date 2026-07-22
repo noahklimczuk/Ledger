@@ -72,7 +72,7 @@ struct CSVImportView: View {
                     )
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
-                            .font(.footnote)
+                            .font(.appFootnote)
                             .foregroundStyle(Palette.expense)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
@@ -107,7 +107,7 @@ struct CSVImportView: View {
             } else {
                 Section {
                     Text("This OFX file includes structured transaction data, so no column mapping is needed.")
-                        .font(.footnote)
+                        .font(.appFootnote)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -205,10 +205,10 @@ struct CSVImportView: View {
                 .disabled(viewModel.newCount == 0)
 
                 Button("Back to Mapping") { viewModel.backToConfigure() }
-                    .font(.footnote)
+                    .font(.appFootnote)
             }
             .padding()
-            .background(.bar)
+            .background(Color.appSurface)
         }
     }
 
@@ -222,13 +222,13 @@ struct CSVImportView: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(.thinMaterial)
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
     }
 
     private func summaryChip(count: Int, label: String, color: Color) -> some View {
         VStack {
-            Text("\(count)").font(.title3.bold()).foregroundStyle(color)
-            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text("\(count)").font(.appTitle3.weight(.heavy)).foregroundStyle(color)
+            Text(label).font(.appCaption).foregroundStyle(.secondary)
         }
     }
 
@@ -237,23 +237,23 @@ struct CSVImportView: View {
         if let transaction = row.transaction {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(transaction.merchant).fontWeight(.medium)
+                    Text(transaction.merchant).font(.appSubheadline.weight(.medium))
                     Text(DateFormatting.medium(transaction.date))
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.appCaption).foregroundStyle(.secondary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.currencyCode))
                         .foregroundStyle(transaction.amount < 0 ? Color.primary : Palette.income)
                     if row.isDuplicate {
-                        Text("Duplicate").font(.caption2).foregroundStyle(.secondary)
+                        Text("Duplicate").font(.appCaption2).foregroundStyle(.secondary)
                     }
                 }
             }
             .opacity(row.isDuplicate ? 0.5 : 1)
         } else {
             Label(row.error ?? "Skipped row", systemImage: "exclamationmark.triangle")
-                .font(.footnote)
+                .font(.appFootnote)
                 .foregroundStyle(Palette.amber)
         }
     }
@@ -268,7 +268,7 @@ struct CSVImportView: View {
                     .fill(Palette.income.opacity(0.15))
                     .frame(width: 120, height: 120)
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 52, weight: .bold))
+                    .font(.appDisplay)
                     .foregroundStyle(Palette.income)
             }
             Text("Import Complete")

@@ -52,7 +52,7 @@ private struct KeyButton: View {
                     .shadow(color: Color.bloomHighlight, radius: 3, x: -1, y: -1)
 
                 Text(key)
-                    .font(isMut ? .system(size: 20, weight: .bold) : .system(size: 22, weight: .heavy))
+                    .font(AppFont.scaled(isMut ? 20 : 22, relativeTo: .headline, weight: isMut ? .bold : .heavy))
                     .foregroundStyle(Color.primary)
             }
             .frame(maxWidth: .infinity, minHeight: 56)

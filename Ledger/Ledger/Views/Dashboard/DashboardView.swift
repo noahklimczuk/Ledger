@@ -130,7 +130,7 @@ struct DashboardView: View {
                             )
                             .frame(width: 130, height: 130)
                         Text("🌱")
-                            .font(.system(size: 54))
+                            .font(AppFont.scaled(54, relativeTo: .largeTitle))
                     }
                     .padding(.top, 40)
 
@@ -188,7 +188,7 @@ struct DashboardView: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.bold))
+                    .font(.appFootnote.weight(.bold))
                     .foregroundStyle(Accent.checkIn.base)
             }
             .card()
@@ -220,7 +220,7 @@ struct DashboardView: View {
                 }
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.bold))
+                    .font(.appFootnote.weight(.bold))
                     .foregroundStyle(.tertiary)
             }
             .card()
@@ -242,7 +242,7 @@ struct DashboardView: View {
                         .foregroundStyle(Color.primary)
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.bold))
+                        .font(.appFootnote.weight(.bold))
                         .foregroundStyle(Accent.insights.base)
                 }
                 Text(askLedgerMessage(viewModel, tick: askLedgerTick))
@@ -320,7 +320,7 @@ struct DashboardView: View {
                     }
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.down")
-                        .font(.subheadline.weight(.bold))
+                        .font(.appSubheadline.weight(.bold))
                         .foregroundStyle(Accent.dashboard.deep)
                         .padding(9)
                         .background(Accent.dashboard.soft, in: Circle())
@@ -368,16 +368,16 @@ struct DashboardView: View {
                     IconBadge(systemName: account.type.sfSymbolName, accent: .accounts, size: 30, filled: false)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(account.name)
-                            .font(.subheadline.weight(.medium))
+                            .font(.appSubheadline.weight(.medium))
                         if let institution = account.institutionName, !institution.isEmpty {
                             Text(institution)
-                                .font(.caption2)
+                                .font(.appCaption2)
                                 .foregroundStyle(.secondary)
                         }
                     }
                     Spacer(minLength: 8)
                     Text(CurrencyFormatter.string(from: account.currentBalance, currencyCode: account.currencyCode))
-                        .font(.subheadline.weight(.semibold))
+                        .font(.appSubheadline.weight(.semibold))
                         .minimumScaleFactor(0.6)
                         .lineLimit(1)
                 }
@@ -386,10 +386,10 @@ struct DashboardView: View {
             NavigationLink { AccountListView() } label: {
                 HStack {
                     Text("All accounts")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.appSubheadline.weight(.semibold))
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.bold))
+                        .font(.appCaption2.weight(.bold))
                         .foregroundStyle(.tertiary)
                 }
                 .padding(.top, 14)
@@ -429,7 +429,7 @@ struct DashboardView: View {
     private func summaryTileBody(_ label: String, value: Decimal, color: Color, icon: String, tappable: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .black))
+                .font(AppFont.scaled(12, relativeTo: .caption, weight: .black))
                 .foregroundStyle(color)
                 .frame(width: 26, height: 26)
                 .background(color.opacity(0.26), in: Circle())
@@ -444,7 +444,7 @@ struct DashboardView: View {
                 Text(label).font(.appCaption.weight(.semibold)).foregroundStyle(.secondary)
                 if tappable {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(AppFont.scaled(9, relativeTo: .caption2, weight: .bold))
                         .foregroundStyle(color.opacity(0.7))
                 }
             }
@@ -514,7 +514,7 @@ struct DashboardView: View {
             }
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.footnote.weight(.bold))
+                .font(.appFootnote.weight(.bold))
                 .foregroundStyle(.tertiary)
         }
         .card()
@@ -702,10 +702,10 @@ private struct MonthFlowTransactionsView: View {
                 .background(accentColor, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(DateFormatting.monthYear(month))
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: total))
-                    .font(.title2.bold())
+                    .font(.appTitle2.weight(.bold))
                     .foregroundStyle(flow == .income ? Palette.income : Color.primary)
             }
             Spacer()

@@ -25,7 +25,7 @@ struct SplitEditorView: View {
                                 .font(.appBody.weight(.semibold))
                                 .foregroundStyle(Color.primary)
                             Image(systemName: "chevron.down")
-                                .font(.caption2.weight(.bold))
+                                .font(.appCaption2.weight(.bold))
                                 .foregroundStyle(.tertiary)
                         }
                         .padding(.horizontal, 12)
@@ -47,7 +47,7 @@ struct SplitEditorView: View {
                     } label: {
                         Image(systemName: "minus.circle.fill")
                             .foregroundStyle(Palette.coral)
-                            .font(.title3)
+                            .font(.appTitle3)
                     }
                     .buttonStyle(.plain)
                 }

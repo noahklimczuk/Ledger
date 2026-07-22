@@ -81,7 +81,7 @@ struct BudgetSuggestionView: View {
                         .fill(Palette.income.opacity(0.15))
                         .frame(width: 120, height: 120)
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 52, weight: .bold))
+                        .font(.appDisplay)
                         .foregroundStyle(Palette.income)
                 }
                 Text("Budget Applied")
@@ -133,7 +133,7 @@ struct BudgetSuggestionView: View {
                         isEditingKey = true
                     } label: {
                         Label(aiStatus, systemImage: viewModel.hasAPIKey ? "exclamationmark.triangle" : "sparkles")
-                            .font(.footnote)
+                            .font(.appFootnote)
                             .multilineTextAlignment(.leading)
                     }
                 }
@@ -151,7 +151,7 @@ struct BudgetSuggestionView: View {
                 Image(systemName: "sparkles")
                     .foregroundStyle(LinearGradient.brand)
                 Text("Plan for \(DateFormatting.monthYear(viewModel.month))")
-                    .font(.headline)
+                    .font(.appHeadline)
                 Spacer()
                 if viewModel.isRefining {
                     ProgressView()
@@ -160,7 +160,7 @@ struct BudgetSuggestionView: View {
                 }
             }
             Text(viewModel.planSummary)
-                .font(.subheadline)
+                .font(.appSubheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Divider()
@@ -176,9 +176,9 @@ struct BudgetSuggestionView: View {
 
     private func statTile(_ label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(label).font(.appCaption2).foregroundStyle(.secondary)
             Text(value)
-                .font(.subheadline.weight(.semibold))
+                .font(.appSubheadline.weight(.semibold))
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
         }
@@ -189,13 +189,13 @@ struct BudgetSuggestionView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 Image(systemName: row.category.sfSymbolName)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, relativeTo: .caption, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 30, height: 30)
                     .background(Color(hex: row.category.colorHex), in: Circle())
                     .opacity(row.isIncluded ? 1 : 0.4)
                 Text(row.category.name)
-                    .font(.subheadline.weight(.medium))
+                    .font(.appSubheadline.weight(.medium))
                     .lineLimit(1)
                     .foregroundStyle(row.isIncluded ? Color.primary : Color.secondary)
                 Spacer(minLength: 8)
@@ -217,7 +217,7 @@ struct BudgetSuggestionView: View {
             }
             if row.isIncluded {
                 Text(row.rationale)
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -229,13 +229,13 @@ struct BudgetSuggestionView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 Image(systemName: "banknote.fill")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.scaled(13, relativeTo: .caption, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 30, height: 30)
                     .background(Color(hex: "#00C7BE"), in: Circle())
                     .opacity(viewModel.savingsIncluded ? 1 : 0.4)
                 Text("Savings")
-                    .font(.subheadline.weight(.medium))
+                    .font(.appSubheadline.weight(.medium))
                     .lineLimit(1)
                     .foregroundStyle(viewModel.savingsIncluded ? Color.primary : Color.secondary)
                 Spacer(minLength: 8)
@@ -257,7 +257,7 @@ struct BudgetSuggestionView: View {
             }
             if viewModel.savingsIncluded, !viewModel.savingsRationale.isEmpty {
                 Text(viewModel.savingsRationale)
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
