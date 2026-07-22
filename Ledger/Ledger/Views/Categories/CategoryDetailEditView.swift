@@ -39,10 +39,6 @@ struct CategoryDetailEditView: View {
                     }
                 } header: {
                     Text("Name")
-                } footer: {
-                    if kind == .transfer {
-                        Text("Transfers move money between your own accounts, so they don't count as income or spending.")
-                    }
                 }
                 Section("Parent") {
                     Picker("Parent Category", selection: $parent) {
@@ -61,6 +57,8 @@ struct CategoryDetailEditView: View {
             }
             .navigationTitle(category == nil ? "New Category" : "Edit Category")
             .accent(.categories)
+            .accentWash(.categories)
+            .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -6,6 +6,9 @@ import SwiftData
 @Observable
 final class AccountsViewModel {
     private(set) var accounts: [Account] = []
+    private(set) var netWorth: Decimal = 0
+    private(set) var netWorthDeltaThisMonth: Decimal = 0
+    private(set) var lastSyncedAt: Date?
     private let modelContext: ModelContext
 
     init(modelContext: ModelContext) {
@@ -20,6 +23,21 @@ final class AccountsViewModel {
             sortBy: [SortDescriptor(\.name)]
         )
         accounts = (try? modelContext.fetch(descriptor)) ?? []
+        netWorth = accounts.reduce(Decimal(0)) { $0 + $1.currentBalance }
+        lastSyncedAt = WealthsimpleSyncStatusStore().lastSyncedAt
+        netWorthDeltaThisMonth = computeNetWorthDeltaThisMonth()
+    }
+
+    /// Net worth change from the start of the current month to now.
+    private func computeNetWorthDeltaThisMonth() -> Decimal {
+        let calendar = Calendar.current
+        let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: .now)) ?? .now
+        let allTx = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
+            .filter { !$0.isTransfer }
+        let monthTx = allTx.filter { $0.date >= monthStart }
+        let income = monthTx.filter { $0.amount > 0 }.reduce(Decimal(0)) { $0 + $1.amount }
+        let spending = monthTx.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
+        return income - spending
     }
 
     // Add/update persist but deliberately do NOT reload here: they're driven from the edit sheet,

@@ -58,20 +58,12 @@ struct BudgetEditView: View {
                     Toggle("Roll Over Unused Amount", isOn: $rolloverEnabled)
                 } header: {
                     Text("Amount")
-                } footer: {
-                    if let leftToAssign {
-                        if leftToAssign > 0 {
-                            Text("\(CurrencyFormatter.string(from: leftToAssign)) of your income is still unassigned. Assigning all of it zeroes out the plan.")
-                        } else if leftToAssign == 0 {
-                            Text("Every dollar of your income is already assigned — anything added here over-assigns the plan.")
-                        } else {
-                            Text("The plan is over-assigned by \(CurrencyFormatter.string(from: -leftToAssign)).")
-                        }
-                    }
                 }
             }
             .navigationTitle(budgetRow == nil ? "New Budget" : "Edit Budget")
             .accent(.budgets)
+            .accentWash(.budgets)
+            .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

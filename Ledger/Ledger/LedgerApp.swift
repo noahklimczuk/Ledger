@@ -4,10 +4,15 @@ import UserNotifications
 
 @main
 struct LedgerApp: App {
+    @AppStorage("ledgerColorScheme") private var colorSchemeRaw = AppColorScheme.system.rawValue
     @State private var lockService = AppLockService()
     @State private var refreshCoordinator = AppRefreshCoordinator()
     @State private var showSplash = true
     @Environment(\.scenePhase) private var scenePhase
+
+    private var colorScheme: AppColorScheme {
+        AppColorScheme(rawValue: colorSchemeRaw) ?? .system
+    }
 
     init() {
         // Budget guardrail alerts fire while the app is foregrounded (the sync loop only runs
@@ -41,6 +46,7 @@ struct LedgerApp: App {
             }
             .font(.appBody)
             .tint(.accentColor)
+            .preferredColorScheme(colorScheme.colorScheme)
             .environment(refreshCoordinator)
             .animation(.default, value: lockService.isUnlocked)
             .animation(.easeOut(duration: 0.4), value: showSplash)

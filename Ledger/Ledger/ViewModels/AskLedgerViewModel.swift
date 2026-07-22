@@ -2,10 +2,10 @@ import Foundation
 import Observation
 import SwiftData
 
-/// Drives the floating "Financial Advisor" chat on the Budgets screen. It builds a snapshot of
+/// Drives the floating Ask Ledger chat. It builds a snapshot of
 /// the current month's plan, recent spending averages, and recent transactions once when the chat
 /// starts, hands that to Gemini as the system instruction, and then relays a normal back-and-
-/// forth conversation. The advisor can also *act*: when asked to build a budget it calls the
+/// forth conversation. Ask Ledger can also *act*: when asked to build a budget it calls the
 /// `create_budget` tool and this view model writes the month's budgets — including a savings
 /// set-aside proportional to the gap between income and spending.
 ///
@@ -14,7 +14,7 @@ import SwiftData
 /// The advisor is conversational guidance, not licensed financial advice.
 @MainActor
 @Observable
-final class AIAdvisorViewModel {
+final class AskLedgerViewModel {
     struct Message: Identifiable {
         enum Role { case user, assistant }
         enum Kind { case text, actionNote }
@@ -329,7 +329,7 @@ final class AIAdvisorViewModel {
         let history = BudgetSuggestionService(modelContext: modelContext).summarize(before: month)
 
         var lines: [String] = []
-        lines.append("You are a friendly, practical personal financial advisor built into a Canadian budgeting app called Ledger. All amounts are Canadian dollars (CAD).")
+        lines.append("You are Ask Ledger, a friendly, practical personal finance assistant built into a Canadian budgeting app called Ledger. All amounts are Canadian dollars (CAD).")
         lines.append("")
         lines.append("Guidelines: Give specific, actionable advice grounded in the numbers below. Be concise — short paragraphs and tight bullet lists, not essays. Reference the user's actual categories, amounts, and transactions. You are not a licensed financial professional: avoid firm tax, legal, or investment guarantees, and suggest a professional for major decisions. If a question needs data you don't have, say what you'd need.")
         lines.append("")

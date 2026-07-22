@@ -18,7 +18,6 @@ struct BudgetListView: View {
     /// same runloop tick could drop a presentation or leave a flag stuck true.
     private enum ActiveSheet: Identifiable {
         case suggestion
-        case advisor
         case newBudget
         case editRow(BudgetsViewModel.BudgetRow)
         case quickBudget(Category)
@@ -27,7 +26,6 @@ struct BudgetListView: View {
         var id: String {
             switch self {
             case .suggestion: "suggestion"
-            case .advisor: "advisor"
             case .newBudget: "newBudget"
             case .editRow(let row): "editRow-\(row.id.hashValue)"
             case .quickBudget(let category): "quickBudget-\(category.persistentModelID.hashValue)"
@@ -68,9 +66,7 @@ struct BudgetListView: View {
                     // Pull-to-refresh runs a real sync; the refreshCount observer below
                     // then reloads the rows with the new spent amounts.
                     .refreshable { await refresh.refresh(container: modelContext.container) }
-                    // Floating AI financial-advisor bubble, tucked in the bottom-trailing corner
-                    // above the tab bar.
-                    .overlay(alignment: .bottomTrailing) { advisorBubble }
+
                 } else {
                     LoadingView()
                 }
@@ -128,8 +124,6 @@ struct BudgetListView: View {
                     switch sheet {
                     case .suggestion:
                         BudgetSuggestionView(month: viewModel.selectedMonth)
-                    case .advisor:
-                        AIAdvisorView(month: viewModel.selectedMonth)
                     case .newBudget:
                         BudgetEditView(month: viewModel.selectedMonth, budgetRow: nil)
                     case .editRow(let row):
@@ -155,26 +149,6 @@ struct BudgetListView: View {
             // reflect freshly imported transactions without re-opening the tab.
             .onChange(of: refresh.refreshCount) { _, _ in viewModel?.load() }
         }
-    }
-
-    // MARK: - Advisor
-
-    private var advisorBubble: some View {
-        Button {
-            Haptics.tap()
-            activeSheet = .advisor
-        } label: {
-            Image(systemName: "sparkles")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 60, height: 60)
-                .background(Accent.insights.gradient, in: Circle())
-                .shadow(color: Accent.insights.base.opacity(0.5), radius: 12, y: 6)
-        }
-        .buttonStyle(.pressable)
-        .padding(.trailing, 20)
-        .padding(.bottom, 20)
-        .accessibilityLabel("Financial advisor")
     }
 
     // MARK: - Plan card

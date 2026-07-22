@@ -36,10 +36,6 @@ struct SavingsGoalEditView: View {
                     }
                 } header: {
                     Text("Progress Source")
-                } footer: {
-                    Text(trackedAccount == nil
-                         ? "Track progress by hand with Add Money, or link an account so the goal follows its real balance."
-                         : "The goal follows this account's balance automatically — money you move into it counts toward the goal, no manual updates needed.")
                 }
                 Section("Amounts") {
                     TextField("Target amount", text: $targetAmountText).keyboardType(.decimalPad)
@@ -62,6 +58,8 @@ struct SavingsGoalEditView: View {
             }
             .navigationTitle(goal == nil ? "New Goal" : "Edit Goal")
             .accent(.goals)
+            .accentWash(.goals)
+            .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

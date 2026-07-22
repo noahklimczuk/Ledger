@@ -3,6 +3,30 @@ import SwiftUI
 import UIKit
 #endif
 
+// MARK: - Appearance
+
+/// The app's explicit appearance override. Stored in `UserDefaults` via `@AppStorage` and applied at
+/// the root with `.preferredColorScheme`. Defaults to `system` so the device setting wins until the
+/// user flips the Day/Dusk toggle.
+enum AppColorScheme: String, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .system: return "System"
+        case .light:  return "Day"
+        case .dark:   return "Dusk"
+        }
+    }
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light:  return .light
+        case .dark:   return .dark
+        }
+    }
+}
+
 // MARK: - Typography
 
 /// The app's typeface, bundled as a custom font. Swap `family` (and add the matching files — see

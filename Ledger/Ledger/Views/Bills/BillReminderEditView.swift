@@ -38,6 +38,8 @@ struct BillReminderEditView: View {
             }
             .navigationTitle(reminder == nil ? "New Bill" : "Edit Bill")
             .accent(.bills)
+            .accentWash(.bills)
+            .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
