@@ -48,6 +48,22 @@ private struct KeyButton: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color.appSurface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(stops: [
+                                        .init(color: Color.white.opacity(0.18), location: 0),
+                                        .init(color: Color.clear, location: 0.3),
+                                        .init(color: Color.clear, location: 0.7),
+                                        .init(color: Color.black.opacity(0.06), location: 1)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .blendMode(.overlay)
+                    )
                     .shadow(color: Color.bloomShadow, radius: 4, x: 2, y: 3)
                     .shadow(color: Color.bloomHighlight, radius: 3, x: -1, y: -1)
 
