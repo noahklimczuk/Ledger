@@ -75,7 +75,7 @@ struct RootTabView: View {
     }
 }
 
-/// A floating, pill-shaped tab bar raised off the bottom edge. It only draws the bar and writes the
+/// A floating Liquid Glass tab bar raised off the bottom edge. It only draws the bar and writes the
 /// selection binding — the enclosing `TabView` still manages the screens — so it carries none of the
 /// custom-pager risk.
 ///
@@ -107,18 +107,40 @@ private struct FloatingTabBar: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(
-            Capsule(style: .continuous)
-                .fill(Color.appSurface)
-                .overlay(Capsule(style: .continuous).strokeBorder(Color.appHairline, lineWidth: 1))
-        )
-        .shadow(color: selectedAccent.base.opacity(0.30), radius: 18, y: 8)
-        .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
+        .background(glassBar)
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
         .animation(Motion.bouncy, value: selection)
+    }
+
+    /// The Liquid Glass shell: a material blur tinted with the app surface, a soft top highlight,
+    /// and a translucent white edge so it reads as a raised clay bar over the content behind it.
+    private var glassBar: some View {
+        ZStack {
+            Capsule(style: .continuous)
+                .fill(.ultraThinMaterial)
+            Capsule(style: .continuous)
+                .fill(Color.appSurface.opacity(0.55))
+            Capsule(style: .continuous)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(stops: [
+                            .init(color: Color.white.opacity(0.22), location: 0),
+                            .init(color: Color.white.opacity(0.05), location: 0.4),
+                            .init(color: Color.clear, location: 1)
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .blendMode(.overlay)
+            Capsule(style: .continuous)
+                .strokeBorder(Color.white.opacity(0.32), lineWidth: 0.5)
+        }
+        .shadow(color: selectedAccent.base.opacity(0.28), radius: 20, x: 0, y: 10)
+        .shadow(color: Color.black.opacity(0.14), radius: 10, x: 0, y: 5)
     }
 
     /// One tab: an icon with a tiny label below it. The selected item gets a tinted pill behind it,
@@ -132,23 +154,17 @@ private struct FloatingTabBar: View {
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: item.icon)
-                    .font(AppFont.scaled(20, relativeTo: .headline, weight: .bold))
+                    .font(AppFont.scaled(19, relativeTo: .headline, weight: .bold))
                     .symbolEffect(.bounce, value: isSelected)
                 Text(item.title)
-                    .font(.appCaption2.weight(.heavy))
+                    .font(AppFont.scaled(10, relativeTo: .caption2, weight: .heavy))
             }
-            .foregroundStyle(isSelected ? AnyShapeStyle(item.accent.base) : AnyShapeStyle(Color.secondary))
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .padding(.vertical, 6)
+            .foregroundStyle(isSelected ? AnyShapeStyle(item.accent.base) : AnyShapeStyle(Color.secondary.opacity(0.75)))
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .padding(.vertical, 5)
             .background {
                 if isSelected {
-                    Capsule(style: .continuous)
-                        .fill(item.accent.base.opacity(0.15))
-                        .overlay(
-                            Capsule(style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.4), lineWidth: 0.5)
-                        )
-                        .matchedGeometryEffect(id: "pill", in: pill)
+                    selectedPill(for: item)
                 }
             }
             .contentShape(Capsule())
@@ -156,6 +172,16 @@ private struct FloatingTabBar: View {
         .buttonStyle(.plain)
         .accessibilityLabel(item.title)
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    private func selectedPill(for item: (title: String, icon: String, accent: Accent)) -> some View {
+        Capsule(style: .continuous)
+            .fill(item.accent.base.opacity(0.14))
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.38), lineWidth: 0.5)
+            )
+            .matchedGeometryEffect(id: "pill", in: pill)
     }
 }
 
@@ -336,27 +362,15 @@ private struct MoreDivider: View {
 
 /// A persistent, floating Ask Ledger button. Moved to the top-right so it doesn't compete with the
 /// custom tab bar, and kept compact so it fits beside navigation content. On non-Home tabs it shows
-/// an attached "Ask Ledger" pill so users know what the sparkle dot does.
+/// an attached "Ask Ledger" glass pill so users know what the sparkle dot does.
 private struct AskLedgerButton: View {
     @Binding var isPresented: Bool
     let showLabel: Bool
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(alignment: .center, spacing: 0) {
             if showLabel {
-                Text("Ask Ledger")
-                    .font(.appCaption2.weight(.black))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.appSurface)
-                            .overlay(
-                                Capsule(style: .continuous)
-                                    .strokeBorder(Color.appHairline, lineWidth: 1)
-                            )
-                    )
+                labelPill
             }
             Button {
                 Haptics.tap(.soft)
@@ -365,13 +379,13 @@ private struct AskLedgerButton: View {
                 ZStack {
                     Circle()
                         .fill(.white)
-                        .frame(width: 44, height: 44)
-                        .shadow(color: Accent.insights.base.opacity(0.45), radius: 10, y: 4)
+                        .frame(width: 40, height: 40)
+                        .shadow(color: Accent.insights.base.opacity(0.45), radius: 10, x: 0, y: 4)
                     Circle()
                         .fill(Accent.insights.gradient)
-                        .frame(width: 40, height: 40)
+                        .frame(width: 36, height: 36)
                     Image(systemName: "sparkles")
-                        .font(AppFont.scaled(18, relativeTo: .body, weight: .bold))
+                        .font(AppFont.scaled(17, relativeTo: .body, weight: .bold))
                         .foregroundStyle(.white)
                         .symbolEffect(.pulse, options: .repeating)
                 }
@@ -380,6 +394,24 @@ private struct AskLedgerButton: View {
             .zIndex(1)
         }
         .accessibilityLabel("Ask Ledger")
+    }
+
+    private var labelPill: some View {
+        Text("Ask Ledger")
+            .font(AppFont.scaled(10, relativeTo: .caption2, weight: .black))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                ZStack {
+                    Capsule(style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    Capsule(style: .continuous)
+                        .fill(Color.appSurface.opacity(0.55))
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5)
+                }
+            )
     }
 }
 
