@@ -292,7 +292,14 @@ private struct MoreLink<Destination: View>: View {
     let title: String
     let icon: String
     let accent: Accent
-    @ViewBuilder let destination: Destination
+    let destination: Destination
+
+    init(title: String, icon: String, accent: Accent, @ViewBuilder destination: () -> Destination) {
+        self.title = title
+        self.icon = icon
+        self.accent = accent
+        self.destination = destination()
+    }
 
     var body: some View {
         NavigationLink {
