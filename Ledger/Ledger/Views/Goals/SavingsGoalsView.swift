@@ -26,6 +26,8 @@ struct SavingsGoalsView: View {
                             GoalCard(goal: goal) {
                                 contributingGoal = goal
                             }
+                            .contentShape(Rectangle())
+                            .onTapGesture { editingGoal = goal }
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)

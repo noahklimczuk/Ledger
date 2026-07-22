@@ -373,6 +373,8 @@ private struct RecurringRow: View {
                 .lineLimit(1)
         }
         .padding(.vertical, 2)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
     }
 
     /// Cadence plus the next (or, for a cancelled series, the last) charge date. `nextExpected` can
