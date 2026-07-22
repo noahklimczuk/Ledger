@@ -78,9 +78,17 @@ struct TransactionDetailView: View {
 
     private var heroSection: some View {
         VStack(spacing: 14) {
-            Text(transaction.merchant)
-                .font(.appTitle3.weight(.heavy))
-                .multilineTextAlignment(.center)
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.appSurface)
+                    .frame(width: 58, height: 58)
+                    .shadow(color: Color.bloomShadow, radius: 15, x: 6, y: 6)
+                    .shadow(color: Color.bloomHighlight, radius: 10, x: -4, y: -4)
+
+                Image(systemName: transaction.category?.sfSymbolName ?? "questionmark.circle.fill")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(heroIconColor)
+            }
 
             Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.account?.currencyCode ?? "CAD"))
                 .font(.appMoney)
@@ -88,19 +96,27 @@ struct TransactionDetailView: View {
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
 
+            Text(transaction.merchant)
+                .font(.appHeadline.weight(.heavy))
+                .multilineTextAlignment(.center)
+
             HStack(spacing: 6) {
-                Image(systemName: "calendar")
+                Image(systemName: "clock")
                     .font(.caption2)
-                Text(DateFormatting.relativeDay(transaction.date))
-                    .font(.appCaption.weight(.bold))
+                Text(DateFormatting.medium(transaction.date))
+                    .font(.appCaption)
             }
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Color.appSurface, in: Capsule())
         }
         .padding(.vertical, 24)
         .frame(maxWidth: .infinity)
+    }
+
+    private var heroIconColor: Color {
+        if let category = transaction.category {
+            return Color(hex: category.colorHex)
+        }
+        return .gray
     }
 
     // MARK: - Category chip
@@ -171,9 +187,14 @@ struct TransactionDetailView: View {
                     if index > 0 {
                         Divider().padding(.leading, 24)
                     }
-                    HStack {
+                    HStack(spacing: 10) {
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(split.category.map { Color(hex: $0.colorHex) } ?? .gray)
+                            .frame(width: 10, height: 10)
+
                         Text(split.category?.name ?? "Uncategorized")
                             .font(.appBodyMedium.weight(.semibold))
+
                         Spacer()
                         Text(CurrencyFormatter.string(from: split.amount, currencyCode: transaction.account?.currencyCode ?? "CAD"))
                             .font(.appBody.weight(.heavy))
@@ -191,26 +212,23 @@ struct TransactionDetailView: View {
     private var insightFooter: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Image(systemName: "sparkles")
+                Image(systemName: "lightbulb.fill")
                     .font(.appCaption.weight(.bold))
-                    .foregroundStyle(Palette.amberDeep)
-                Text("Ask Ledger")
-                    .font(.appCaption.weight(.black))
-                    .foregroundStyle(Palette.amberDeep)
+                    .foregroundStyle(Palette.peri)
             }
 
             if relatedInsights.isEmpty {
-                Text("No insights for this transaction.")
+                Text("Changing the category here also teaches Ledger to auto-file future \(transaction.merchant) charges.")
                     .font(.appSubheadline)
                     .foregroundStyle(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(relatedInsights, id: \.self) { insight in
                         HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "smallcircle.filled.circle")
-                                .font(.system(size: 7))
-                                .foregroundStyle(Palette.amber)
-                                .padding(.top, 6)
+                            Image(systemName: "lightbulb.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Palette.peri)
+                                .padding(.top, 4)
                             Text(insight)
                                 .font(.appSubheadline)
                                 .foregroundStyle(.secondary)
@@ -221,11 +239,17 @@ struct TransactionDetailView: View {
         }
         .padding(Theme.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.amber.opacity(0.10))
+        .background(
+            LinearGradient(
+                colors: [Palette.peri.opacity(0.10), Palette.peri.opacity(0.04)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                .strokeBorder(Palette.amber.opacity(0.18), lineWidth: 1)
+                .strokeBorder(Palette.peri.opacity(0.18), lineWidth: 1)
         )
     }
 
@@ -233,17 +257,12 @@ struct TransactionDetailView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 12) {
-            Button { isEditing = true } label: {
-                Label("Edit", systemImage: "pencil")
-                    .font(.appSubheadline.weight(.black))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+            AccentButton(title: "Edit transaction", systemImage: "pencil", accent: .dashboard) {
+                isEditing = true
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.accentColor)
 
             Button { isConfirmingDelete = true } label: {
-                Label("Delete", systemImage: "trash")
+                Text("Delete")
                     .font(.appSubheadline.weight(.black))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)

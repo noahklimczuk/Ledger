@@ -64,7 +64,7 @@ struct AccountListView: View {
                 .foregroundStyle(.secondary)
 
             CountingCurrency(value: viewModel.netWorth)
-                .font(.appDisplay)
+                .font(.appLargeTitle.weight(.heavy))
                 .foregroundStyle(Color.primary)
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
@@ -198,7 +198,7 @@ private struct AccountRow: View {
             accountIcon
             VStack(alignment: .leading, spacing: 2) {
                 Text(account.name)
-                    .font(.appBodyMedium.weight(.semibold))
+                    .font(.appSubheadline.weight(.heavy))
                     .foregroundStyle(Color.primary)
                 Text(subtitle)
                     .font(.appCaption)
@@ -207,7 +207,7 @@ private struct AccountRow: View {
             }
             Spacer(minLength: 8)
             Text(CurrencyFormatter.string(from: account.currentBalance, currencyCode: account.currencyCode))
-                .font(.appBody.weight(.heavy))
+                .font(.appSubheadline.weight(.heavy))
                 .foregroundStyle(account.currentBalance < 0 ? Palette.expense : Color.primary)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
@@ -218,9 +218,9 @@ private struct AccountRow: View {
     private var accountIcon: some View {
         Group {
             if account.isLinked {
-                IconBadge(systemName: account.type.sfSymbolName, accent: accent, size: 42)
+                IconBadge(systemName: account.type.sfSymbolName, accent: accent, size: 44)
             } else {
-                IconBadge(systemName: account.type.sfSymbolName, accent: accent, size: 42, filled: false)
+                IconBadge(systemName: account.type.sfSymbolName, accent: accent, size: 44, filled: false)
             }
         }
     }

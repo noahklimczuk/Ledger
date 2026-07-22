@@ -85,63 +85,72 @@ struct RecurringView: View {
         Section {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("MONTHLY RECURRING")
-                            .font(.appCaption.weight(.heavy))
-                            .tracking(1.1)
-                            .foregroundStyle(.white.opacity(0.85))
-                        CountingCurrency(value: viewModel.monthlyRecurringExpense)
-                            .font(.appDisplay)
-                            .foregroundStyle(.white)
-                            .minimumScaleFactor(0.5)
-                            .lineLimit(1)
-                        Text("≈ \(CurrencyFormatter.string(from: viewModel.annualRecurringExpense)) / year")
-                            .font(.appCaption)
-                            .foregroundStyle(.white.opacity(0.85))
-                    }
-                    Spacer()
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.9))
+                    summaryColumn(
+                        label: "Bills & subs",
+                        value: viewModel.monthlyRecurringExpense,
+                        suffix: "/mo",
+                        color: Color.primary
+                    )
+                    Spacer(minLength: 16)
+                    summaryColumn(
+                        label: "Income",
+                        value: viewModel.monthlyRecurringIncome,
+                        suffix: nil,
+                        color: Palette.income,
+                        alignment: .trailing
+                    )
                 }
-                Divider().overlay(Color.white.opacity(0.25))
-                HStack {
-                    summaryStat("Subscriptions", "\(viewModel.activeSubscriptionCount)")
-                    Spacer()
-                    if viewModel.monthlyRecurringIncome > 0 {
-                        summaryStat("Income / mo", CurrencyFormatter.string(from: viewModel.monthlyRecurringIncome))
-                        Spacer()
-                    }
-                    summaryStat("Next 30 days", CurrencyFormatter.string(from: viewModel.next30DaysOutflow))
-                }
+
+                RecurringSummaryBar(
+                    expense: viewModel.monthlyRecurringExpense,
+                    income: viewModel.monthlyRecurringIncome
+                )
             }
-            .padding(6)
+            .padding(Theme.cardPadding)
             .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
             .listRowBackground(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Accent.recurring.gradient)
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .fill(Color.appSurface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                            .strokeBorder(Color.appHairline, lineWidth: 1)
+                    )
                     .padding(4)
             )
         }
     }
 
-    private func summaryStat(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(.appHeadline.weight(.heavy))
-                .foregroundStyle(.white)
-                .minimumScaleFactor(0.7)
-                .lineLimit(1)
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.8))
+    private func summaryColumn(
+        label: String,
+        value: Decimal,
+        suffix: String?,
+        color: Color,
+        alignment: HorizontalAlignment = .leading
+    ) -> some View {
+        VStack(alignment: alignment, spacing: 4) {
+            Text(label.uppercased())
+                .font(.appCaption2.weight(.heavy))
+                .tracking(0.3)
+                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(CurrencyFormatter.string(from: value))
+                    .font(.appTitle.weight(.heavy))
+                    .foregroundStyle(color)
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
+                if let suffix {
+                    Text(suffix)
+                        .font(.appCaption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
     // MARK: - Insights
 
     private func insightsSection(_ viewModel: RecurringViewModel) -> some View {
-        Section("Needs Attention") {
+        Section {
             ForEach(viewModel.insights) { insight in
                 insightRow(insight)
             }
@@ -150,26 +159,58 @@ struct RecurringView: View {
 
     @ViewBuilder
     private func insightRow(_ insight: RecurringViewModel.Insight) -> some View {
-        let content = HStack(spacing: 12) {
-            Image(systemName: insight.symbol)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 34, height: 34)
-                .background(insight.tint, in: Circle())
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(insight.title).font(.subheadline.weight(.semibold))
-                Text(insight.detail).font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 4)
-        }
-        // A navigable insight is wrapped in a NavigationLink, which supplies its own disclosure
-        // chevron — so we don't add one here (doing both showed a double arrow).
+        let card = insightCard(insight)
         if let series = insight.series {
-            NavigationLink(value: series) { content }
+            NavigationLink(value: series) { card }
         } else {
-            content
+            card
         }
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+    }
+
+    private func insightCard(_ insight: RecurringViewModel.Insight) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Palette.peri, Palette.green],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 20, height: 20)
+
+                Text("Heads up")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(Palette.peri)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(insight.title)
+                    .font(.appSubheadline.weight(.heavy))
+                    .foregroundStyle(Color.primary)
+
+                Text(insight.detail)
+                    .font(.appCaption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(Theme.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [Palette.peri.opacity(0.10), Palette.peri.opacity(0.04)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .strokeBorder(Palette.peri.opacity(0.18), lineWidth: 1)
+        )
     }
 
     // MARK: - Suggested (review)
@@ -305,26 +346,28 @@ private struct RecurringRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: series.isIncome ? "arrow.down.left" : "arrow.up.right")
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(.white)
-                .frame(width: 38, height: 38)
+                .frame(width: 44, height: 44)
                 .background(
                     LinearGradient(
                         colors: series.isIncome ? [Palette.emerald, Palette.emeraldDeep] : [Palette.pink, Palette.pinkDeep],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     ),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                 )
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
-                Text(series.displayName).fontWeight(.medium)
+                Text(series.displayName)
+                    .font(.appSubheadline.weight(.heavy))
+                    .foregroundStyle(Color.primary)
                 Text(scheduleLine)
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.appCaption).foregroundStyle(.secondary)
                 badges
             }
             Spacer(minLength: 6)
             Text(CurrencyFormatter.string(from: series.averageAmount))
-                .fontWeight(.semibold)
+                .font(.appSubheadline.weight(.heavy))
                 .foregroundStyle(series.isIncome ? Palette.income : Color.primary)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
@@ -367,6 +410,45 @@ private struct RecurringRow: View {
             .padding(.vertical, 2)
             .background(color.opacity(0.15), in: Capsule())
             .foregroundStyle(color)
+    }
+}
+
+// MARK: - Summary bar
+
+private struct RecurringSummaryBar: View {
+    let expense: Decimal
+    let income: Decimal
+
+    var body: some View {
+        GeometryReader { geo in
+            let total = NSDecimalNumber(decimal: max(expense + income, 0)).doubleValue
+            let expenseFraction = total > 0 ? NSDecimalNumber(decimal: max(expense, 0)).doubleValue / total : 0
+            let incomeFraction = total > 0 ? 1.0 - expenseFraction : 0
+            let numberOfBars = (expenseFraction > 0 ? 1 : 0) + (incomeFraction > 0 ? 1 : 0)
+            let availableWidth = max(0, geo.size.width - CGFloat(numberOfBars - 1) * 2)
+
+            ZStack(alignment: .leading) {
+                Capsule(style: .continuous)
+                    .fill(Color.appSurface)
+                    .shadow(color: Color.bloomShadow, radius: 4, x: 2, y: 2)
+                    .shadow(color: Color.bloomHighlight, radius: 3, x: -1, y: -1)
+
+                HStack(spacing: 2) {
+                    if expenseFraction > 0 {
+                        RoundedRectangle(cornerRadius: 999, style: .continuous)
+                            .fill(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .leading, endPoint: .trailing))
+                            .frame(width: availableWidth * CGFloat(expenseFraction), height: 12)
+                    }
+
+                    if incomeFraction > 0 {
+                        RoundedRectangle(cornerRadius: 999, style: .continuous)
+                            .fill(LinearGradient(colors: [Palette.amber, Palette.peach], startPoint: .leading, endPoint: .trailing))
+                            .frame(width: availableWidth * CGFloat(incomeFraction), height: 12)
+                    }
+                }
+            }
+        }
+        .frame(height: 12)
     }
 }
 

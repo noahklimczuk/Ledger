@@ -127,9 +127,9 @@ final class RecurringSeries {
 
     /// True when two amounts are effectively the same price, tolerating small rounding differences.
     private static func amountsAreClose(_ a: Decimal, _ b: Decimal) -> Bool {
-        let diff = abs((a - b) as NSDecimalNumber).doubleValue
+        let diff = NSDecimalNumber(decimal: abs(a - b)).doubleValue
         if diff <= 0.50 { return true }
-        let avg = ((abs(a) + abs(b)) / 2 as NSDecimalNumber).doubleValue
+        let avg = NSDecimalNumber(decimal: (abs(a) + abs(b)) / 2).doubleValue
         guard avg > 0 else { return false }
         return diff / avg <= 0.10
     }

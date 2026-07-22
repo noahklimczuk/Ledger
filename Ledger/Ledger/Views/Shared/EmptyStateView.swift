@@ -25,13 +25,18 @@ struct EmptyStateView: View {
                     )
                     .frame(width: 130, height: 130)
 
+                Circle()
+                    .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+                    .foregroundStyle(Palette.green.opacity(0.35))
+                    .frame(width: 110, height: 110)
+
                 Image(systemName: systemImage)
-                    .font(.system(size: 46, weight: .bold))
+                    .font(.system(size: 48, weight: .bold))
                     .foregroundStyle(Palette.greenDeep)
             }
 
             Text(title)
-                .font(.appTitle3.weight(.heavy))
+                .font(.appTitle2.weight(.heavy))
                 .multilineTextAlignment(.center)
 
             Text(message)

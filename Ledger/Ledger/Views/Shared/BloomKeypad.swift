@@ -41,19 +41,22 @@ private struct KeyButton: View {
     let key: String
     let action: () -> Void
 
+    private var isMut: Bool { key == "." || key == "⌫" }
+
     var body: some View {
         Button(action: action) {
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(Color.appSurface)
                     .shadow(color: Color.bloomShadow, radius: 4, x: 2, y: 3)
                     .shadow(color: Color.bloomHighlight, radius: 3, x: -1, y: -1)
 
                 Text(key)
-                    .font(key == "⌫" ? .system(size: 22, weight: .bold) : .system(size: 24, weight: .heavy))
+                    .font(isMut ? .system(size: 20, weight: .bold) : .system(size: 22, weight: .heavy))
                     .foregroundStyle(Color.primary)
             }
-            .aspectRatio(1.45, contentMode: .fit)
+            .frame(maxWidth: .infinity, minHeight: 56)
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
     }
