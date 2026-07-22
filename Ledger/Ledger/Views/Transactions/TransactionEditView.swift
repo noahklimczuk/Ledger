@@ -95,7 +95,10 @@ struct TransactionEditView: View {
                 .minimumScaleFactor(0.4)
                 .padding(.horizontal, 24)
 
-            BloomKeypad(value: $viewModel.amountText)
+            BloomKeypad(value: Binding(
+                get: { viewModel.amountText },
+                set: { viewModel.amountText = $0 }
+            ))
                 .padding(.horizontal, 10)
         }
         .padding(Theme.cardPadding)

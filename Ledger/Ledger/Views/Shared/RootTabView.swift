@@ -172,7 +172,7 @@ private struct MoreView: View {
                 } header: { sectionLabel("Routine") }
 
                 Section {
-                    moreLink("Ask Ledger", "sparkles", .insights) { AskLedgerView() }
+                    moreLink("Ask Ledger", "sparkles", .insights) { AskLedgerView(month: .now) }
                     moreLink("Reports", "chart.bar.xaxis", .reports) { ReportsView() }
                     moreLink("Recurring", "arrow.triangle.2.circlepath", .recurring) { RecurringView() }
                 } header: { sectionLabel("Insights") }
