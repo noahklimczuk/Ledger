@@ -71,8 +71,7 @@ struct ReportsView: View {
                 DatePicker("To", selection: Binding(get: { viewModel.customEnd }, set: { viewModel.customEnd = $0 }), displayedComponents: .date)
             }
         }
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .card()
     }
 
     // MARK: - Summary
