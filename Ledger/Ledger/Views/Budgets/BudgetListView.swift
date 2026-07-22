@@ -527,6 +527,8 @@ private struct BudgetRowView: View {
             }
         }
         .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
     }
 
     private var remainingPill: some View {
@@ -597,6 +599,8 @@ private struct UnbudgetedRowView: View {
             }
         }
         .padding(.vertical, 5)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
     }
 }
 
