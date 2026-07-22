@@ -213,6 +213,8 @@ private struct AccountRow: View {
                 .lineLimit(1)
         }
         .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
     }
 
     private var accountIcon: some View {
