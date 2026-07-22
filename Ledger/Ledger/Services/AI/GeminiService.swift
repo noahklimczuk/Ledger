@@ -159,6 +159,21 @@ struct GeminiService: Sendable {
         let endMonth: String?
     }
 
+    /// A transaction the model asked us to create via the `create_transaction` tool.
+    struct TransactionPlan: Sendable {
+        enum Direction: String, Sendable { case expense, income }
+
+        let merchant: String
+        let amount: Decimal
+        let direction: Direction
+        let date: String?
+        let accountName: String?
+        let categoryName: String?
+        let notes: String?
+        let isReviewed: Bool
+        let summary: String?
+    }
+
     /// What one advisor round produced: text to show, and/or a budget plan to apply.
     struct AdvisorReply: Sendable {
         let text: String
@@ -168,6 +183,9 @@ struct GeminiService: Sendable {
         /// A budget deletion the model asked us to apply, if any.
         let deletePlan: BudgetDeletion?
         let deletePlanArgsJSON: String?
+        /// A transaction the model asked us to record, if any.
+        let transactionPlan: TransactionPlan?
+        let transactionArgsJSON: String?
         /// Gemini's reasoning token for this reply (from the function-call part when present, else the
         /// text part). Must be echoed back on the same part in the next request; see `ChatTurn.model`.
         let thoughtSignature: String?
@@ -208,7 +226,7 @@ struct GeminiService: Sendable {
         let body: [String: Any] = [
             "system_instruction": ["parts": [["text": system]]],
             "contents": contents,
-            "tools": [["functionDeclarations": [Self.createBudgetDeclaration, Self.deleteBudgetDeclaration]]]
+            "tools": [["functionDeclarations": [Self.createBudgetDeclaration, Self.deleteBudgetDeclaration, Self.createTransactionDeclaration]]]
         ]
         let parts = try await generateParts(body: body, apiKey: apiKey)
 
@@ -221,9 +239,11 @@ struct GeminiService: Sendable {
         // next request. Prefer the function-call part's token (the one the API enforces), else the
         // last part that carries one.
         let callPart = parts.first {
-            $0.functionCall?.name == Self.createBudgetToolName || $0.functionCall?.name == Self.deleteBudgetToolName
+            $0.functionCall?.name == Self.createBudgetToolName || $0.functionCall?.name == Self.deleteBudgetToolName || $0.functionCall?.name == Self.createTransactionToolName
         }
         let thoughtSignature = callPart?.thoughtSignature ?? parts.compactMap(\.thoughtSignature).last
+        var transactionPlan: TransactionPlan?
+        var transactionArgsJSON: String?
         if let call = callPart?.functionCall, let args = call.args {
             switch call.name {
             case Self.createBudgetToolName:
@@ -250,19 +270,36 @@ struct GeminiService: Sendable {
                     summary: args.summary
                 )
                 deleteArgsJSON = Self.json(from: args)
+            case Self.createTransactionToolName:
+                if let merchant = args.merchant, let amount = args.amount, amount > 0 {
+                    let direction = TransactionPlan.Direction(rawValue: (args.direction ?? "expense").lowercased()) ?? .expense
+                    transactionPlan = TransactionPlan(
+                        merchant: merchant,
+                        amount: Decimal(amount),
+                        direction: direction,
+                        date: args.date,
+                        accountName: args.accountName,
+                        categoryName: args.categoryName,
+                        notes: args.notes,
+                        isReviewed: args.isReviewed ?? true,
+                        summary: args.summary
+                    )
+                    transactionArgsJSON = Self.json(from: args)
+                }
             default:
                 break
             }
         }
 
-        guard plan != nil || deletePlan != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard plan != nil || deletePlan != nil || transactionPlan != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ServiceError.emptyResponse
         }
-        return AdvisorReply(text: text, budgetPlan: plan, budgetPlanArgsJSON: planArgsJSON, deletePlan: deletePlan, deletePlanArgsJSON: deleteArgsJSON, thoughtSignature: thoughtSignature)
+        return AdvisorReply(text: text, budgetPlan: plan, budgetPlanArgsJSON: planArgsJSON, deletePlan: deletePlan, deletePlanArgsJSON: deleteArgsJSON, transactionPlan: transactionPlan, transactionArgsJSON: transactionArgsJSON, thoughtSignature: thoughtSignature)
     }
 
     static let createBudgetToolName = "create_budget"
     static let deleteBudgetToolName = "delete_budget"
+    static let createTransactionToolName = "create_transaction"
 
     /// The tool the advisor can call to actually build the user's monthly budget. Gemini's
     /// function-declaration schema is the same OpenAPI 3.0 subset as `outputSchema`.
@@ -337,6 +374,57 @@ struct GeminiService: Sendable {
                     "description": "One sentence confirming what was deleted."
                 ]
             ] as [String: Any]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to record a transaction. Call this when the user says something
+    /// like "I spent $12 at Starbucks", "add my paycheck", or "record rent for the first". The model
+    /// must resolve the date to "YYYY-MM-DD" and pick an account and category from the lists
+    /// provided in the system prompt.
+    private static let createTransactionDeclaration: [String: Any] = [
+        "name": createTransactionToolName,
+        "description": "Record a single transaction in Ledger. Call this when the user asks to add, record, or log spending/income (e.g. \"I spent $12 at Starbucks\", \"add my paycheck\", \"record rent\"). Resolve relative dates like \"today\", \"yesterday\", or \"last Friday\" into the `date` field as \"YYYY-MM-DD\". Use the exact account and category names from the lists in the system prompt; if no match is close, leave categoryName blank and the user can categorize later.",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "merchant": [
+                    "type": "STRING",
+                    "description": "Short merchant or description, e.g. \"Starbucks\", \"Paycheque\", \"Rent\"."
+                ],
+                "amount": [
+                    "type": "NUMBER",
+                    "description": "Positive amount of the transaction."
+                ],
+                "direction": [
+                    "type": "STRING",
+                    "description": "expense for money out, income for money in. Defaults to expense if not sure."
+                ],
+                "date": [
+                    "type": "STRING",
+                    "description": "Date as \"YYYY-MM-DD\". Defaults to today if omitted."
+                ],
+                "accountName": [
+                    "type": "STRING",
+                    "description": "Exact name of one of the user's accounts."
+                ],
+                "categoryName": [
+                    "type": "STRING",
+                    "description": "Exact name of one of the user's categories, or blank if unsure."
+                ],
+                "notes": [
+                    "type": "STRING",
+                    "description": "Optional extra details."
+                ],
+                "isReviewed": [
+                    "type": "BOOLEAN",
+                    "description": "Whether the transaction should be marked as already reviewed. Defaults to true."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was recorded."
+                ]
+            ] as [String: Any],
+            "required": ["merchant", "amount"]
         ] as [String: Any]
     ]
 
@@ -556,6 +644,13 @@ struct GeminiService: Sendable {
         if let endMonth = args.endMonth { object["endMonth"] = endMonth }
         if let categoryName = args.categoryName { object["categoryName"] = categoryName }
         if let summary = args.summary { object["summary"] = summary }
+        if let merchant = args.merchant { object["merchant"] = merchant }
+        if let amount = args.amount { object["amount"] = amount }
+        if let direction = args.direction { object["direction"] = direction }
+        if let date = args.date { object["date"] = date }
+        if let accountName = args.accountName { object["accountName"] = accountName }
+        if let notes = args.notes { object["notes"] = notes }
+        if let isReviewed = args.isReviewed { object["isReviewed"] = isReviewed }
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return "{}" }
         return String(decoding: data, as: UTF8.self)
     }
@@ -598,6 +693,14 @@ struct GeminiService: Sendable {
             let endMonth: String?
             let categoryName: String?
             let summary: String?
+            // create_transaction fields
+            let merchant: String?
+            let amount: Double?
+            let direction: String?
+            let date: String?
+            let accountName: String?
+            let notes: String?
+            let isReviewed: Bool?
         }
         let name: String
         let args: Args?

@@ -234,6 +234,24 @@ final class AskLedgerViewModel {
                         responseJSON: result.responseJSON
                     ))
                     systemInstruction = nil
+                } else if let transactionPlan = reply.transactionPlan {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.createTransactionToolName,
+                            argsJSON: reply.transactionArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyTransactionPlan(transactionPlan)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.createTransactionToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
                 } else {
                     if !replyText.isEmpty {
                         apiHistory.append(.model(text: replyText, functionCall: nil, thoughtSignature: reply.thoughtSignature))
@@ -391,6 +409,77 @@ final class AskLedgerViewModel {
         return (note, responseJSON)
     }
 
+    /// Applies the model's `create_transaction` call by creating a transaction, matching the
+    /// account and category by name, and letting the existing edit-save logic handle categorization
+    /// and debt rules. Returns a chat-facing note and the JSON result handed back.
+    private func applyTransactionPlan(_ plan: GeminiService.TransactionPlan) -> (note: String, responseJSON: String) {
+        let accounts = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
+        let activeAccounts = accounts.filter { !$0.isArchived }
+
+        let account: Account?
+        if let requested = plan.accountName?.trimmingCharacters(in: .whitespacesAndNewlines), !requested.isEmpty {
+            account = activeAccounts.first { $0.name.trimmingCharacters(in: .whitespaces).lowercased() == requested.lowercased() }
+        } else {
+            account = activeAccounts.first
+        }
+
+        guard let resolvedAccount = account else {
+            let response = #"{"status":"no_account","error":"No active account found."}"#
+            return ("I couldn't find an account to record this transaction. Add an account first.", response)
+        }
+
+        let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
+        let category: Category?
+        if let requested = plan.categoryName?.trimmingCharacters(in: .whitespacesAndNewlines), !requested.isEmpty {
+            category = categories.first { $0.name.trimmingCharacters(in: .whitespaces).lowercased() == requested.lowercased() }
+        } else {
+            category = nil
+        }
+
+        let date: Date
+        if let raw = plan.date, !raw.isEmpty, let parsed = Self.transactionDateFormatter.date(from: raw) {
+            date = parsed
+        } else {
+            date = .now
+        }
+
+        let viewModel = TransactionEditViewModel(modelContext: modelContext, transaction: nil)
+        viewModel.merchant = plan.merchant
+        viewModel.amountText = NSDecimalNumber(decimal: plan.amount).stringValue
+        viewModel.direction = plan.direction == .income ? .income : .expense
+        viewModel.date = date
+        viewModel.account = resolvedAccount
+        viewModel.category = category
+        viewModel.notes = plan.notes ?? ""
+
+        guard let transaction = viewModel.save() else {
+            let response = #"{"status":"failed","error":"Could not save transaction."}"#
+            return ("I couldn't save that transaction. Make sure the amount and account are valid.", response)
+        }
+
+        transaction.isReviewed = plan.isReviewed
+        try? modelContext.save()
+
+        let categoryLabel = transaction.category?.name ?? "Uncategorized"
+        let accountLabel = transaction.account?.name ?? "account"
+        let note = "Recorded \(CurrencyFormatter.string(from: abs(transaction.amount))) \(plan.direction == .income ? "income" : "expense") for \"\(transaction.merchant)\" in \(accountLabel) under \(categoryLabel)."
+        let response: [String: Any] = [
+            "status": "created",
+            "merchant": transaction.merchant,
+            "amount": (transaction.amount as NSDecimalNumber).doubleValue,
+            "account": accountLabel,
+            "category": categoryLabel,
+            "date": Self.transactionDateFormatter.string(from: transaction.date)
+        ]
+        let responseJSON: String
+        if let data = try? JSONSerialization.data(withJSONObject: response) {
+            responseJSON = String(decoding: data, as: UTF8.self)
+        } else {
+            responseJSON = #"{"status":"created"}"#
+        }
+        return (note, responseJSON)
+    }
+
     // MARK: - Context
 
     /// The advisor persona plus a snapshot of the user's finances: this month's plan, recent
@@ -410,6 +499,7 @@ final class AskLedgerViewModel {
         lines.append("Today is \(DateFormatting.medium(.now)). The month currently open in the app is \(DateFormatting.monthYear(month)) (\(Self.monthKey(month))).")
         lines.append("Creating budgets: when — and only when — the user asks you to create, set, or update their budget, call the \(GeminiService.createBudgetToolName) tool. It defaults to the open month (\(DateFormatting.monthYear(month))), but you can budget any month — past or future — by passing the `month` argument as \"YYYY-MM\". For vague or multi-month requests like \"the next three months\", \"the rest of the year\", or \"January through March\", pass `startMonth` and `endMonth` (both \"YYYY-MM\", inclusive) instead and the same amounts apply to every month in that range. Resolve relative phrases like \"last month\", \"next month\", or \"the next three months\" against today's date above; if a request is ambiguous about the span, make a sensible interpretation and state which months you set. Base the amounts on the transaction history below and use the exact category names listed. Always include savingsAmount, sized in proportion to the gap between the month's income and spending: when income comfortably exceeds spending, direct most of the surplus to savings; when the budget is tight, keep it small or zero. Category budgets plus savings must stay within monthly income. Savings is budgeted automatically under a \"Savings\" category — don't also list it in categories.")
         lines.append("Deleting budgets: when the user asks to delete, remove, or clear a budget or the whole month's plan, call the \(GeminiService.deleteBudgetToolName) tool. Pass `month` as \"YYYY-MM\" for the month to target (defaults to the open month), and optionally `categoryName` to remove only that category's budget. Omit `categoryName` to delete every budget for the month. Do not call this tool unless the user explicitly asks to delete a budget.")
+        lines.append("Creating transactions: when the user asks to add, record, or log a spending or income transaction (e.g. \"I spent $12 at Starbucks\", \"add my paycheck\"), call the \(GeminiService.createTransactionToolName) tool. Provide a short merchant/description, a positive amount, direction ('expense' for money out, 'income' for money in), and resolve the date to \"YYYY-MM-DD\". Pick the account and category from the exact names listed below; if the category isn't a clear match, leave it blank and Ledger will auto-categorize.")
 
         let expenseCategoryNames = ((try? modelContext.fetch(FetchDescriptor<Category>())) ?? [])
             .filter { !$0.isIncome && !$0.isTransfer }
@@ -417,6 +507,19 @@ final class AskLedgerViewModel {
             .sorted()
         if !expenseCategoryNames.isEmpty {
             lines.append("Expense categories available for budgeting: \(expenseCategoryNames.joined(separator: ", ")).")
+        }
+
+        let allCategoryNames = ((try? modelContext.fetch(FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)]))) ?? [])
+            .map { "\($0.name)\($0.isIncome ? " (income)" : "")" }
+        if !allCategoryNames.isEmpty {
+            lines.append("All categories available for transactions: \(allCategoryNames.joined(separator: ", ")).")
+        }
+
+        let accountNames = ((try? modelContext.fetch(FetchDescriptor<Account>(sortBy: [SortDescriptor(\.name)]))) ?? [])
+            .filter { !$0.isArchived }
+            .map { "\($0.name) (\($0.type.displayName))" }
+        if !accountNames.isEmpty {
+            lines.append("Active accounts: \(accountNames.joined(separator: ", ")).")
         }
 
         lines.append("")
@@ -528,6 +631,13 @@ final class AskLedgerViewModel {
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM"
+        return formatter
+    }()
+
+    /// Reads the `create_transaction` `date` argument ("yyyy-MM-dd") in the user's local calendar.
+    private static let transactionDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
 
