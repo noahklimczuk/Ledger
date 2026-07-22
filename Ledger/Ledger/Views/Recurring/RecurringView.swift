@@ -150,7 +150,7 @@ struct RecurringView: View {
     // MARK: - Insights
 
     private func insightsSection(_ viewModel: RecurringViewModel) -> some View {
-        Section("Needs Attention") {
+        Section {
             ForEach(viewModel.insights) { insight in
                 insightRow(insight)
             }
@@ -159,26 +159,58 @@ struct RecurringView: View {
 
     @ViewBuilder
     private func insightRow(_ insight: RecurringViewModel.Insight) -> some View {
-        let content = HStack(spacing: 12) {
-            Image(systemName: insight.symbol)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 34, height: 34)
-                .background(insight.tint, in: Circle())
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(insight.title).font(.subheadline.weight(.semibold))
-                Text(insight.detail).font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 4)
-        }
-        // A navigable insight is wrapped in a NavigationLink, which supplies its own disclosure
-        // chevron — so we don't add one here (doing both showed a double arrow).
+        let card = insightCard(insight)
         if let series = insight.series {
-            NavigationLink(value: series) { content }
+            NavigationLink(value: series) { card }
         } else {
-            content
+            card
         }
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+    }
+
+    private func insightCard(_ insight: RecurringViewModel.Insight) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Palette.peri, Palette.green],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 20, height: 20)
+
+                Text("Heads up")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundStyle(Palette.peri)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(insight.title)
+                    .font(.appSubheadline.weight(.heavy))
+                    .foregroundStyle(Color.primary)
+
+                Text(insight.detail)
+                    .font(.appCaption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(Theme.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [Palette.peri.opacity(0.10), Palette.peri.opacity(0.04)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .strokeBorder(Palette.peri.opacity(0.18), lineWidth: 1)
+        )
     }
 
     // MARK: - Suggested (review)
