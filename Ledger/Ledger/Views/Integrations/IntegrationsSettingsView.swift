@@ -30,7 +30,6 @@ struct IntegrationsSettingsView: View {
                         }
                         .padding()
                     }
-                    .background(Color.appBackground.ignoresSafeArea())
                 } else {
                     LoadingView()
                 }

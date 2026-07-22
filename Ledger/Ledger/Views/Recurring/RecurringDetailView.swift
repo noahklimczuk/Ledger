@@ -26,6 +26,8 @@ struct RecurringDetailView: View {
         .navigationTitle(series.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .accent(.recurring)
+        .accentWash(.recurring)
+        .scrollContentBackground(.hidden)
         .task { loadHistory() }
     }
 

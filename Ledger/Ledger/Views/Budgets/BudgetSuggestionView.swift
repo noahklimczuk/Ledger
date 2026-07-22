@@ -26,6 +26,7 @@ struct BudgetSuggestionView: View {
             }
             .navigationTitle("Suggested Budget")
             .accent(.budgets)
+            .accentWash(.budgets)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -139,6 +140,7 @@ struct BudgetSuggestionView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
     }
 
     // MARK: - Pieces
@@ -168,8 +170,7 @@ struct BudgetSuggestionView: View {
                 statTile("History", value: "\(viewModel.monthsAnalyzed) mo")
             }
         }
-        .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .card()
         .padding(.top, 4)
     }
 
@@ -289,6 +290,8 @@ struct BudgetSuggestionView: View {
                 }
             }
             .navigationTitle("AI Suggestions")
+            .accentWash(.budgets)
+            .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

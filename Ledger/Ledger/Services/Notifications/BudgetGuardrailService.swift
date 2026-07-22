@@ -111,7 +111,7 @@ struct BudgetGuardrailService {
         let spent = CurrencyFormatter.string(from: row.spent)
         let available = CurrencyFormatter.string(from: row.allocatedIncludingRollover)
         if row.isOverBudget {
-            let over = CurrencyFormatter.string(from: -row.remaining)
+            let over = CurrencyFormatter.string(from: 0 - row.remaining)
             return "\(spent) spent of \(available) — \(over) over. New spending here comes out of another category."
         }
         let left = CurrencyFormatter.string(from: row.remaining)

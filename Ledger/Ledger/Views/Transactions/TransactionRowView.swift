@@ -12,7 +12,7 @@ struct TransactionRowView: View {
             categoryIcon
             VStack(alignment: .leading, spacing: 3) {
                 Text(transaction.merchant)
-                    .font(.appBodyMedium)
+                    .font(.appSubheadline.weight(.heavy))
                     .lineLimit(1)
                 HStack(spacing: 5) {
                     Text(DateFormatting.relativeDay(transaction.date))
@@ -29,7 +29,7 @@ struct TransactionRowView: View {
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 4) {
                 Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.account?.currencyCode ?? "CAD"))
-                    .font(.appBody.weight(.heavy))
+                    .font(.appSubheadline.weight(.heavy))
                     .foregroundStyle(transaction.amount < 0 ? Color.primary : Palette.income)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -54,12 +54,12 @@ struct TransactionRowView: View {
         let symbol = transaction.category?.sfSymbolName ?? "questionmark.circle.fill"
         let color = categoryColor
         return Image(systemName: symbol)
-            .font(.system(size: 15, weight: .bold))
+            .font(.system(size: 16, weight: .bold))
             .foregroundStyle(.white)
-            .frame(width: 38, height: 38)
+            .frame(width: 44, height: 44)
             .background(
                 LinearGradient(colors: [color, color.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
             )
             .accessibilityHidden(true)
     }

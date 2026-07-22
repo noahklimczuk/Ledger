@@ -52,6 +52,7 @@ struct DailyCheckInView: View {
             .navigationTitle("Daily Check-In")
             .navigationBarTitleDisplayMode(.inline)
             .accent(.checkIn)
+            .accentWash(.checkIn)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -303,7 +304,7 @@ struct DailyCheckInView: View {
                         rows: viewModel.overBudget,
                         color: Palette.expense
                     ) { row in
-                        "\(CurrencyFormatter.string(from: -row.remaining)) over"
+                        "\(CurrencyFormatter.string(from: 0 - row.remaining)) over"
                     }
                 }
                 if !viewModel.aheadOfPace.isEmpty {

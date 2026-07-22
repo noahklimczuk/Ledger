@@ -212,6 +212,9 @@ private struct MoreView: View {
                 } header: { sectionLabel("Appearance") }
             }
             .navigationTitle("More")
+            .accent(.dashboard)
+            .accentWash(.dashboard)
+            .scrollContentBackground(.hidden)
             .sheet(isPresented: $isPresentingCheckIn) {
                 DailyCheckInView()
             }
@@ -238,8 +241,8 @@ private struct MoreView: View {
 
     private func moreRow(_ title: String, _ icon: String, _ accent: Accent) -> some View {
         HStack(spacing: 14) {
-            IconBadge(systemName: icon, accent: accent, size: 34)
-            Text(title).font(.appBodyMedium)
+            IconBadge(systemName: icon, accent: accent, size: 44)
+            Text(title).font(.appSubheadline.weight(.heavy))
         }
         .padding(.vertical, 4)
     }

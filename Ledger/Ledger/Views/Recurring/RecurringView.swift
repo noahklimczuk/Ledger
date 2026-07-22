@@ -157,13 +157,13 @@ struct RecurringView: View {
         }
     }
 
-    @ViewBuilder
     private func insightRow(_ insight: RecurringViewModel.Insight) -> some View {
-        let card = insightCard(insight)
-        if let series = insight.series {
-            NavigationLink(value: series) { card }
-        } else {
-            card
+        VStack(alignment: .leading, spacing: 0) {
+            if let series = insight.series {
+                NavigationLink(value: series) { insightCard(insight) }
+            } else {
+                insightCard(insight)
+            }
         }
         .listRowBackground(Color.clear)
         .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))

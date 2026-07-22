@@ -685,10 +685,12 @@ private struct MonthFlowTransactionsView: View {
                         }
                     }
                 }
+                .scrollContentBackground(.hidden)
             }
         }
         .navigationTitle(flow.title)
         .navigationBarTitleDisplayMode(.inline)
+        .accentWash(.dashboard)
         .task(id: flow) { load() }
     }
 

@@ -36,6 +36,7 @@ struct CSVImportView: View {
         }
         .navigationTitle("Import")
         .accent(.transactions)
+        .accentWash(.transactions)
         .navigationBarTitleDisplayMode(.inline)
         .fileImporter(isPresented: $isPresentingFileImporter, allowedContentTypes: allowedContentTypes) { result in
             switch result {
@@ -120,6 +121,8 @@ struct CSVImportView: View {
                 .disabled(!viewModel.canBuildPreview)
             }
         }
+        .accentWash(.transactions)
+        .scrollContentBackground(.hidden)
     }
 
     @ViewBuilder
@@ -187,6 +190,7 @@ struct CSVImportView: View {
                     previewRow(row, viewModel: viewModel)
                 }
             }
+            .scrollContentBackground(.hidden)
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 8) {
