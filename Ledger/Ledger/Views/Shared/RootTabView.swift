@@ -46,10 +46,10 @@ struct RootTabView: View {
         .onChange(of: lockService.isUnlocked) { _, isUnlocked in
             if isUnlocked { selection = 2 }
         }
-        .overlay(alignment: .bottomTrailing) {
-            AskLedgerButton(isPresented: $isPresentingAskLedger)
+        .overlay(alignment: .topTrailing) {
+            AskLedgerButton(isPresented: $isPresentingAskLedger, showLabel: selection != 2)
                 .padding(.trailing, 16)
-                .padding(.bottom, 92)
+                .padding(.top, 16)
         }
         .sheet(isPresented: $isPresentingAskLedger) {
             AskLedgerView(month: .now)
@@ -245,30 +245,51 @@ private struct MoreView: View {
     }
 }
 
-/// A persistent, floating Ask Ledger button. It lives above the custom tab bar on every screen,
-/// so the chat is reachable without changing tabs.
+/// A persistent, floating Ask Ledger button. Moved to the top-right so it doesn't compete with the
+/// custom tab bar, and kept compact so it fits beside navigation content. On non-Home tabs it shows
+/// an attached "Ask Ledger" pill so users know what the sparkle dot does.
 private struct AskLedgerButton: View {
     @Binding var isPresented: Bool
+    let showLabel: Bool
 
     var body: some View {
-        Button {
-            Haptics.tap(.soft)
-            isPresented = true
-        } label: {
-            ZStack {
-                Circle()
-                    .fill(.white)
-                    .frame(width: 58, height: 58)
-                    .shadow(color: Accent.insights.base.opacity(0.45), radius: 14, y: 8)
-                Circle()
-                    .fill(Accent.insights.gradient)
-                    .frame(width: 54, height: 54)
-                Image(systemName: "sparkles")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(.white)
+        HStack(spacing: 0) {
+            if showLabel {
+                Text("Ask Ledger")
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(.regularMaterial)
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .strokeBorder(Color.appHairline, lineWidth: 1)
+                            )
+                    )
             }
+            Button {
+                Haptics.tap(.soft)
+                isPresented = true
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 44, height: 44)
+                        .shadow(color: Accent.insights.base.opacity(0.45), radius: 10, y: 4)
+                    Circle()
+                        .fill(Accent.insights.gradient)
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                        .symbolEffect(.pulse, options: .repeating)
+                }
+            }
+            .buttonStyle(.pressable)
+            .zIndex(1)
         }
-        .buttonStyle(.pressable)
         .accessibilityLabel("Ask Ledger")
     }
 }

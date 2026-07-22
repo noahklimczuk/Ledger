@@ -89,7 +89,7 @@ struct TransactionEditView: View {
             .frame(width: 220)
 
             Text(displayAmount(for: viewModel))
-                .font(.system(size: 64, weight: .bold, design: .rounded))
+                .font(.appMoney)
                 .foregroundStyle(viewModel.direction == .expense ? Color.primary : Palette.income)
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
