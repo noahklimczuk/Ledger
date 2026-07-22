@@ -107,17 +107,17 @@ struct RecurringView: View {
                 )
             }
             .padding(Theme.cardPadding)
-            .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-            .listRowBackground(
-                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                    .fill(Color.appSurface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                            .strokeBorder(Color.appHairline, lineWidth: 1)
-                    )
-                    .padding(4)
-            )
         }
+        .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+        .listRowBackground(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .fill(Color.appSurface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                        .strokeBorder(Color.appHairline, lineWidth: 1)
+                )
+                .padding(4)
+        )
     }
 
     private func summaryColumn(
