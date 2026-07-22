@@ -174,6 +174,37 @@ struct GeminiService: Sendable {
         let summary: String?
     }
 
+    /// An account the model asked us to create via the `create_account` tool.
+    struct AccountPlan: Sendable {
+        let name: String
+        let accountTypeRaw: String
+        let institutionName: String?
+        let startingBalance: Decimal
+        let summary: String?
+    }
+
+    /// A bill reminder the model asked us to create via the `create_bill` tool.
+    struct BillPlan: Sendable {
+        let name: String
+        let amount: Decimal
+        let dueDate: String?
+        let cadence: RecurrenceCadence?
+        let notifyDaysBefore: Int
+        let summary: String?
+    }
+
+    /// A savings goal the model asked us to create via the `create_goal` tool.
+    struct GoalPlan: Sendable {
+        let name: String
+        let sfSymbolName: String
+        let colorHex: String
+        let targetAmount: Decimal
+        let currentAmount: Decimal
+        let targetDate: String?
+        let accountName: String?
+        let summary: String?
+    }
+
     /// What one advisor round produced: text to show, and/or a budget plan to apply.
     struct AdvisorReply: Sendable {
         let text: String
@@ -186,6 +217,15 @@ struct GeminiService: Sendable {
         /// A transaction the model asked us to record, if any.
         let transactionPlan: TransactionPlan?
         let transactionArgsJSON: String?
+        /// An account the model asked us to add, if any.
+        let accountPlan: AccountPlan?
+        let accountArgsJSON: String?
+        /// A bill the model asked us to add, if any.
+        let billPlan: BillPlan?
+        let billArgsJSON: String?
+        /// A goal the model asked us to add, if any.
+        let goalPlan: GoalPlan?
+        let goalArgsJSON: String?
         /// Gemini's reasoning token for this reply (from the function-call part when present, else the
         /// text part). Must be echoed back on the same part in the next request; see `ChatTurn.model`.
         let thoughtSignature: String?
@@ -226,7 +266,14 @@ struct GeminiService: Sendable {
         let body: [String: Any] = [
             "system_instruction": ["parts": [["text": system]]],
             "contents": contents,
-            "tools": [["functionDeclarations": [Self.createBudgetDeclaration, Self.deleteBudgetDeclaration, Self.createTransactionDeclaration]]]
+            "tools": [["functionDeclarations": [
+                Self.createBudgetDeclaration,
+                Self.deleteBudgetDeclaration,
+                Self.createTransactionDeclaration,
+                Self.createAccountDeclaration,
+                Self.createBillDeclaration,
+                Self.createGoalDeclaration
+            ]]]
         ]
         let parts = try await generateParts(body: body, apiKey: apiKey)
 
@@ -238,12 +285,24 @@ struct GeminiService: Sendable {
         // Gemini 3.x attaches a reasoning token per part; capture it so it can be echoed back on the
         // next request. Prefer the function-call part's token (the one the API enforces), else the
         // last part that carries one.
-        let callPart = parts.first {
-            $0.functionCall?.name == Self.createBudgetToolName || $0.functionCall?.name == Self.deleteBudgetToolName || $0.functionCall?.name == Self.createTransactionToolName
-        }
+        let toolNames: Set<String> = [
+            Self.createBudgetToolName,
+            Self.deleteBudgetToolName,
+            Self.createTransactionToolName,
+            Self.createAccountToolName,
+            Self.createBillToolName,
+            Self.createGoalToolName
+        ]
+        let callPart = parts.first { toolNames.contains($0.functionCall?.name ?? "") }
         let thoughtSignature = callPart?.thoughtSignature ?? parts.compactMap(\.thoughtSignature).last
         var transactionPlan: TransactionPlan?
         var transactionArgsJSON: String?
+        var accountPlan: AccountPlan?
+        var accountArgsJSON: String?
+        var billPlan: BillPlan?
+        var billArgsJSON: String?
+        var goalPlan: GoalPlan?
+        var goalArgsJSON: String?
         if let call = callPart?.functionCall, let args = call.args {
             switch call.name {
             case Self.createBudgetToolName:
@@ -286,20 +345,76 @@ struct GeminiService: Sendable {
                     )
                     transactionArgsJSON = Self.json(from: args)
                 }
+            case Self.createAccountToolName:
+                if let name = args.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let typeRaw = args.accountType?.lowercased() {
+                    accountPlan = AccountPlan(
+                        name: name,
+                        accountTypeRaw: typeRaw,
+                        institutionName: args.institutionName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        startingBalance: Decimal(args.startingBalance ?? 0),
+                        summary: args.summary
+                    )
+                    accountArgsJSON = Self.json(from: args)
+                }
+            case Self.createBillToolName:
+                if let name = args.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let amount = args.amount, amount > 0 {
+                    let cadence = args.cadence.flatMap { RecurrenceCadence(rawValue: $0.lowercased()) }
+                    billPlan = BillPlan(
+                        name: name,
+                        amount: Decimal(amount),
+                        dueDate: args.dueDate,
+                        cadence: cadence,
+                        notifyDaysBefore: max(args.notifyDaysBefore ?? 1, 0),
+                        summary: args.summary
+                    )
+                    billArgsJSON = Self.json(from: args)
+                }
+            case Self.createGoalToolName:
+                if let name = args.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let targetAmount = args.targetAmount, targetAmount > 0 {
+                    goalPlan = GoalPlan(
+                        name: name,
+                        sfSymbolName: args.sfSymbolName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "target",
+                        colorHex: args.colorHex?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "#34C759",
+                        targetAmount: Decimal(targetAmount),
+                        currentAmount: Decimal(max(args.currentAmount ?? 0, 0)),
+                        targetDate: args.targetDate,
+                        accountName: args.accountName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        summary: args.summary
+                    )
+                    goalArgsJSON = Self.json(from: args)
+                }
             default:
                 break
             }
         }
 
-        guard plan != nil || deletePlan != nil || transactionPlan != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard plan != nil || deletePlan != nil || transactionPlan != nil || accountPlan != nil || billPlan != nil || goalPlan != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ServiceError.emptyResponse
         }
-        return AdvisorReply(text: text, budgetPlan: plan, budgetPlanArgsJSON: planArgsJSON, deletePlan: deletePlan, deletePlanArgsJSON: deleteArgsJSON, transactionPlan: transactionPlan, transactionArgsJSON: transactionArgsJSON, thoughtSignature: thoughtSignature)
+        return AdvisorReply(
+            text: text,
+            budgetPlan: plan,
+            budgetPlanArgsJSON: planArgsJSON,
+            deletePlan: deletePlan,
+            deletePlanArgsJSON: deleteArgsJSON,
+            transactionPlan: transactionPlan,
+            transactionArgsJSON: transactionArgsJSON,
+            accountPlan: accountPlan,
+            accountArgsJSON: accountArgsJSON,
+            billPlan: billPlan,
+            billArgsJSON: billArgsJSON,
+            goalPlan: goalPlan,
+            goalArgsJSON: goalArgsJSON,
+            thoughtSignature: thoughtSignature
+        )
     }
 
     static let createBudgetToolName = "create_budget"
     static let deleteBudgetToolName = "delete_budget"
     static let createTransactionToolName = "create_transaction"
+    static let createAccountToolName = "create_account"
+    static let createBillToolName = "create_bill"
+    static let createGoalToolName = "create_goal"
 
     /// The tool the advisor can call to actually build the user's monthly budget. Gemini's
     /// function-declaration schema is the same OpenAPI 3.0 subset as `outputSchema`.
@@ -425,6 +540,118 @@ struct GeminiService: Sendable {
                 ]
             ] as [String: Any],
             "required": ["merchant", "amount"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to add a manual account.
+    private static let createAccountDeclaration: [String: Any] = [
+        "name": createAccountToolName,
+        "description": "Add a manual account to Ledger. Call this when the user asks to add, create, or track an account (e.g. \"add a savings account\", \"I opened a new chequing account\").",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "name": [
+                    "type": "STRING",
+                    "description": "Display name for the account, e.g. \"Scotiabank Chequing\"."
+                ],
+                "accountType": [
+                    "type": "STRING",
+                    "description": "One of: chequing, savings, credit, investment. Defaults to chequing if unknown."
+                ],
+                "institutionName": [
+                    "type": "STRING",
+                    "description": "Optional bank or institution name."
+                ],
+                "startingBalance": [
+                    "type": "NUMBER",
+                    "description": "Current balance to start tracking from. Positive for assets, negative for credit card debt. Defaults to 0."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was added."
+                ]
+            ] as [String: Any],
+            "required": ["name", "accountType"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to add a bill or subscription reminder.
+    private static let createBillDeclaration: [String: Any] = [
+        "name": createBillToolName,
+        "description": "Add a bill or subscription reminder in Ledger. Call this when the user asks to add, remind, or track a bill (e.g. \"remind me about rent on the 1st\", \"add a $15 monthly Netflix subscription\").",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "name": [
+                    "type": "STRING",
+                    "description": "Name of the bill or subscription, e.g. \"Rent\", \"Netflix\"."
+                ],
+                "amount": [
+                    "type": "NUMBER",
+                    "description": "Positive amount due."
+                ],
+                "dueDate": [
+                    "type": "STRING",
+                    "description": "Next due date as \"YYYY-MM-DD\". Resolve relative dates like \"today\", \"tomorrow\", or \"the 15th\" against today's date."
+                ],
+                "cadence": [
+                    "type": "STRING",
+                    "description": "How often the bill repeats: weekly, biweekly, monthly, quarterly, yearly. Omit for a one-time bill."
+                ],
+                "notifyDaysBefore": [
+                    "type": "INTEGER",
+                    "description": "How many days before the due date to send a notification. Defaults to 1."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was added."
+                ]
+            ] as [String: Any],
+            "required": ["name", "amount", "dueDate"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to add a savings goal.
+    private static let createGoalDeclaration: [String: Any] = [
+        "name": createGoalToolName,
+        "description": "Add a savings goal in Ledger. Call this when the user asks to save toward something (e.g. \"save $5,000 for a vacation\", \"goal for a new laptop $1,200\").",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "name": [
+                    "type": "STRING",
+                    "description": "Short name of the goal, e.g. \"Vacation\", \"Emergency Fund\"."
+                ],
+                "targetAmount": [
+                    "type": "NUMBER",
+                    "description": "Total amount the user wants to save."
+                ],
+                "currentAmount": [
+                    "type": "NUMBER",
+                    "description": "Amount already saved toward the goal. Defaults to 0."
+                ],
+                "targetDate": [
+                    "type": "STRING",
+                    "description": "Target completion date as \"YYYY-MM-DD\", optional."
+                ],
+                "accountName": [
+                    "type": "STRING",
+                    "description": "Exact name of an active account to link, so the account's live balance drives progress. Omit for a manual goal."
+                ],
+                "sfSymbolName": [
+                    "type": "STRING",
+                    "description": "An SF Symbols icon name for the goal, e.g. \"airplane\", \"laptopcomputer\". Defaults to \"target\"."
+                ],
+                "colorHex": [
+                    "type": "STRING",
+                    "description": "Hex color for the goal, e.g. \"#34C759\". Defaults to \"#34C759\"."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was added."
+                ]
+            ] as [String: Any],
+            "required": ["name", "targetAmount"]
         ] as [String: Any]
     ]
 
@@ -651,6 +878,19 @@ struct GeminiService: Sendable {
         if let accountName = args.accountName { object["accountName"] = accountName }
         if let notes = args.notes { object["notes"] = notes }
         if let isReviewed = args.isReviewed { object["isReviewed"] = isReviewed }
+        // create_account / create_bill / create_goal
+        if let name = args.name { object["name"] = name }
+        if let accountType = args.accountType { object["accountType"] = accountType }
+        if let institutionName = args.institutionName { object["institutionName"] = institutionName }
+        if let startingBalance = args.startingBalance { object["startingBalance"] = startingBalance }
+        if let dueDate = args.dueDate { object["dueDate"] = dueDate }
+        if let cadence = args.cadence { object["cadence"] = cadence }
+        if let notifyDaysBefore = args.notifyDaysBefore { object["notifyDaysBefore"] = notifyDaysBefore }
+        if let sfSymbolName = args.sfSymbolName { object["sfSymbolName"] = sfSymbolName }
+        if let colorHex = args.colorHex { object["colorHex"] = colorHex }
+        if let targetAmount = args.targetAmount { object["targetAmount"] = targetAmount }
+        if let currentAmount = args.currentAmount { object["currentAmount"] = currentAmount }
+        if let targetDate = args.targetDate { object["targetDate"] = targetDate }
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return "{}" }
         return String(decoding: data, as: UTF8.self)
     }
@@ -678,7 +918,7 @@ struct GeminiService: Sendable {
         let thoughtSignature: String?
     }
 
-    /// Only one tool exists, so the arguments decode straight into its shape. Every field is
+    /// Arguments for every tool the advisor can call, flattened into one struct. Every field is
     /// optional so a malformed call degrades to "no plan" instead of failing the whole response.
     private struct FunctionCallPayload: Decodable {
         struct Args: Decodable {
@@ -686,6 +926,7 @@ struct GeminiService: Sendable {
                 let name: String?
                 let amount: Double?
             }
+            // create_budget / delete_budget
             let categories: [PlanCategory]?
             let savingsAmount: Double?
             let month: String?
@@ -701,6 +942,22 @@ struct GeminiService: Sendable {
             let accountName: String?
             let notes: String?
             let isReviewed: Bool?
+            // create_account / create_bill / create_goal shared
+            let name: String?
+            // create_account fields
+            let accountType: String?
+            let institutionName: String?
+            let startingBalance: Double?
+            // create_bill fields
+            let dueDate: String?
+            let cadence: String?
+            let notifyDaysBefore: Int?
+            // create_goal fields
+            let sfSymbolName: String?
+            let colorHex: String?
+            let targetAmount: Double?
+            let currentAmount: Double?
+            let targetDate: String?
         }
         let name: String
         let args: Args?

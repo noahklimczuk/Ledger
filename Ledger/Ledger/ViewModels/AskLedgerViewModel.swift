@@ -252,6 +252,60 @@ final class AskLedgerViewModel {
                         responseJSON: result.responseJSON
                     ))
                     systemInstruction = nil
+                } else if let accountPlan = reply.accountPlan {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.createAccountToolName,
+                            argsJSON: reply.accountArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyAccountPlan(accountPlan)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.createAccountToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
+                } else if let billPlan = reply.billPlan {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.createBillToolName,
+                            argsJSON: reply.billArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = await applyBillPlan(billPlan)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.createBillToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
+                } else if let goalPlan = reply.goalPlan {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.createGoalToolName,
+                            argsJSON: reply.goalArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyGoalPlan(goalPlan)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.createGoalToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
                 } else {
                     if !replyText.isEmpty {
                         apiHistory.append(.model(text: replyText, functionCall: nil, thoughtSignature: reply.thoughtSignature))
@@ -480,6 +534,120 @@ final class AskLedgerViewModel {
         return (note, responseJSON)
     }
 
+    /// Applies the model's `create_account` call by adding a manual account. The type falls back to
+    /// chequing when the model passes an unknown value.
+    private func applyAccountPlan(_ plan: GeminiService.AccountPlan) -> (note: String, responseJSON: String) {
+        let accountType = AccountType(rawValue: plan.accountTypeRaw) ?? .chequing
+        AccountsViewModel(modelContext: modelContext).addAccount(
+            name: plan.name,
+            type: accountType,
+            institutionName: plan.institutionName,
+            startingBalance: plan.startingBalance
+        )
+
+        let note = "Added \(accountType.displayName) account \"\(plan.name)\" with a starting balance of \(CurrencyFormatter.string(from: plan.startingBalance))."
+        let response: [String: Any] = [
+            "status": "created",
+            "name": plan.name,
+            "accountType": accountType.rawValue,
+            "institutionName": plan.institutionName ?? "",
+            "startingBalance": (plan.startingBalance as NSDecimalNumber).doubleValue
+        ]
+        let responseJSON: String
+        if let data = try? JSONSerialization.data(withJSONObject: response) {
+            responseJSON = String(decoding: data, as: UTF8.self)
+        } else {
+            responseJSON = #"{"status":"created"}"#
+        }
+        return (note, responseJSON)
+    }
+
+    /// Applies the model's `create_bill` call by adding a bill reminder and scheduling a notification.
+    private func applyBillPlan(_ plan: GeminiService.BillPlan) async -> (note: String, responseJSON: String) {
+        let dueDate: Date
+        if let raw = plan.dueDate, !raw.isEmpty, let parsed = Self.transactionDateFormatter.date(from: raw) {
+            dueDate = parsed
+        } else {
+            dueDate = .now
+        }
+
+        await BillRemindersViewModel(modelContext: modelContext).addReminder(
+            name: plan.name,
+            amount: plan.amount,
+            dueDate: dueDate,
+            cadence: plan.cadence,
+            notifyDaysBefore: plan.notifyDaysBefore
+        )
+
+        let cadenceLabel = plan.cadence?.displayName ?? "one-time"
+        let note = "Added \(cadenceLabel) bill \"\(plan.name)\" for \(CurrencyFormatter.string(from: plan.amount)) due \(DateFormatting.medium(dueDate))."
+        let response: [String: Any] = [
+            "status": "created",
+            "name": plan.name,
+            "amount": (plan.amount as NSDecimalNumber).doubleValue,
+            "dueDate": Self.transactionDateFormatter.string(from: dueDate),
+            "cadence": plan.cadence?.rawValue ?? NSNull()
+        ]
+        let responseJSON: String
+        if let data = try? JSONSerialization.data(withJSONObject: response) {
+            responseJSON = String(decoding: data, as: UTF8.self)
+        } else {
+            responseJSON = #"{"status":"created"}"#
+        }
+        return (note, responseJSON)
+    }
+
+    /// Applies the model's `create_goal` call by adding a savings goal, optionally linked to an account.
+    private func applyGoalPlan(_ plan: GeminiService.GoalPlan) -> (note: String, responseJSON: String) {
+        let accounts = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
+        let activeAccounts = accounts.filter { !$0.isArchived }
+        let account: Account?
+        if let requested = plan.accountName?.trimmingCharacters(in: .whitespacesAndNewlines), !requested.isEmpty {
+            account = activeAccounts.first { $0.name.trimmingCharacters(in: .whitespaces).lowercased() == requested.lowercased() }
+        } else {
+            account = nil
+        }
+
+        let targetDate: Date?
+        if let raw = plan.targetDate, !raw.isEmpty, let parsed = Self.transactionDateFormatter.date(from: raw) {
+            targetDate = parsed
+        } else {
+            targetDate = nil
+        }
+
+        SavingsGoalsViewModel(modelContext: modelContext).addGoal(
+            name: plan.name,
+            sfSymbolName: plan.sfSymbolName,
+            colorHex: plan.colorHex,
+            targetAmount: plan.targetAmount,
+            currentAmount: plan.currentAmount,
+            targetDate: targetDate,
+            account: account
+        )
+
+        let note: String
+        if let account {
+            note = "Added goal \"\(plan.name)\" for \(CurrencyFormatter.string(from: plan.targetAmount)) linked to \(account.name)."
+        } else {
+            note = "Added goal \"\(plan.name)\" for \(CurrencyFormatter.string(from: plan.targetAmount))."
+        }
+        var response: [String: Any] = [
+            "status": "created",
+            "name": plan.name,
+            "targetAmount": (plan.targetAmount as NSDecimalNumber).doubleValue,
+            "currentAmount": (plan.currentAmount as NSDecimalNumber).doubleValue,
+            "targetDate": plan.targetDate ?? NSNull()
+        ]
+        if let account { response["linkedAccount"] = account.name }
+        let responseJSON: String
+        if let data = try? JSONSerialization.data(withJSONObject: response) {
+            responseJSON = String(decoding: data, as: UTF8.self)
+        } else {
+            responseJSON = #"{"status":"created"}"#
+        }
+        return (note, responseJSON)
+    }
+
     // MARK: - Context
 
     /// The advisor persona plus a snapshot of the user's finances: this month's plan, recent
@@ -500,6 +668,9 @@ final class AskLedgerViewModel {
         lines.append("Creating budgets: when — and only when — the user asks you to create, set, or update their budget, call the \(GeminiService.createBudgetToolName) tool. It defaults to the open month (\(DateFormatting.monthYear(month))), but you can budget any month — past or future — by passing the `month` argument as \"YYYY-MM\". For vague or multi-month requests like \"the next three months\", \"the rest of the year\", or \"January through March\", pass `startMonth` and `endMonth` (both \"YYYY-MM\", inclusive) instead and the same amounts apply to every month in that range. Resolve relative phrases like \"last month\", \"next month\", or \"the next three months\" against today's date above; if a request is ambiguous about the span, make a sensible interpretation and state which months you set. Base the amounts on the transaction history below and use the exact category names listed. Always include savingsAmount, sized in proportion to the gap between the month's income and spending: when income comfortably exceeds spending, direct most of the surplus to savings; when the budget is tight, keep it small or zero. Category budgets plus savings must stay within monthly income. Savings is budgeted automatically under a \"Savings\" category — don't also list it in categories.")
         lines.append("Deleting budgets: when the user asks to delete, remove, or clear a budget or the whole month's plan, call the \(GeminiService.deleteBudgetToolName) tool. Pass `month` as \"YYYY-MM\" for the month to target (defaults to the open month), and optionally `categoryName` to remove only that category's budget. Omit `categoryName` to delete every budget for the month. Do not call this tool unless the user explicitly asks to delete a budget.")
         lines.append("Creating transactions: when the user asks to add, record, or log a spending or income transaction (e.g. \"I spent $12 at Starbucks\", \"add my paycheck\"), call the \(GeminiService.createTransactionToolName) tool. Provide a short merchant/description, a positive amount, direction ('expense' for money out, 'income' for money in), and resolve the date to \"YYYY-MM-DD\". Pick the account and category from the exact names listed below; if the category isn't a clear match, leave it blank and Ledger will auto-categorize.")
+        lines.append("Creating accounts: when the user asks to add, create, or track an account (e.g. \"add a savings account\", \"I opened a new chequing account\"), call the \(GeminiService.createAccountToolName) tool. Pass `name`, `accountType` (chequing, savings, credit, investment), optional `institutionName`, and optional `startingBalance`.")
+        lines.append("Creating bills: when the user asks to add or be reminded about a bill or subscription (e.g. \"remind me about rent on the 1st\", \"add a $15 Netflix subscription\"), call the \(GeminiService.createBillToolName) tool. Pass `name`, positive `amount`, `dueDate` as \"YYYY-MM-DD\", optional `cadence` (weekly, biweekly, monthly, quarterly, yearly — omit for one-time), and optional `notifyDaysBefore`.")
+        lines.append("Creating goals: when the user asks to save toward something (e.g. \"save $5,000 for a vacation\", \"goal for a new laptop $1,200\"), call the \(GeminiService.createGoalToolName) tool. Pass `name`, `targetAmount`, optional `currentAmount`, optional `targetDate` as \"YYYY-MM-DD\", and optional `accountName` from the active accounts below to link progress to that account.")
 
         let expenseCategoryNames = ((try? modelContext.fetch(FetchDescriptor<Category>())) ?? [])
             .filter { !$0.isIncome && !$0.isTransfer }
