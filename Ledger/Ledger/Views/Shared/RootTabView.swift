@@ -9,7 +9,7 @@ import Observation
 /// rendering.
 struct RootTabView: View {
     @Environment(AppLockService.self) private var lockService
-    /// The selected tab index. Visual bar order is Wellness(0), Budgets(1), Home(2), Activity(3), More(4)
+    /// The selected tab index. Visual bar order is Wellness(0), Activity(1), Home(2), Budgets(3), More(4)
     /// so Home sits in the centre.
     @State private var selection = 2
     @State private var isPresentingAskLedger = false
@@ -20,14 +20,14 @@ struct RootTabView: View {
             Tab("Wellness", systemImage: "leaf.fill", value: 0) {
                 FinancialWellnessView().toolbarVisibility(.hidden, for: .tabBar)
             }
-            Tab("Budgets", systemImage: "chart.pie.fill", value: 1) {
-                BudgetListView().toolbarVisibility(.hidden, for: .tabBar)
+            Tab("Activity", systemImage: "chart.bar.xaxis", value: 1) {
+                TransactionListView().toolbarVisibility(.hidden, for: .tabBar)
             }
             Tab("Home", systemImage: "house.fill", value: 2) {
                 DashboardView().toolbarVisibility(.hidden, for: .tabBar)
             }
-            Tab("Activity", systemImage: "chart.bar.xaxis", value: 3) {
-                TransactionListView().toolbarVisibility(.hidden, for: .tabBar)
+            Tab("Budgets", systemImage: "chart.pie.fill", value: 3) {
+                BudgetListView().toolbarVisibility(.hidden, for: .tabBar)
             }
             Tab("More", systemImage: "square.grid.2x2.fill", value: 4) {
                 MoreView().toolbarVisibility(.hidden, for: .tabBar)
@@ -92,9 +92,9 @@ private struct FloatingTabBar: View {
     /// Bloom rendering.
     private let items: [(title: String, icon: String, accent: Accent)] = [
         ("Wellness", "leaf.fill", .wellness),
-        ("Budgets", "chart.pie.fill", .budgets),
-        ("Home", "house.fill", .dashboard),
         ("Activity", "chart.bar.xaxis", .transactions),
+        ("Home", "house.fill", .dashboard),
+        ("Budgets", "chart.pie.fill", .budgets),
         ("More", "square.grid.2x2.fill", .insights),
     ]
 
