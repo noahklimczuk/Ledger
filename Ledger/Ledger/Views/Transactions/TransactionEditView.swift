@@ -32,7 +32,6 @@ struct TransactionEditView: View {
                         }
                         .padding()
                     }
-                    .background(Color.appBackground.ignoresSafeArea())
                 } else {
                     LoadingView()
                 }
@@ -40,6 +39,7 @@ struct TransactionEditView: View {
             .navigationTitle(transaction == nil ? "New Transaction" : "Edit Transaction")
             .navigationBarTitleDisplayMode(.inline)
             .accent(.transactions)
+            .accentWash(.transactions)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
@@ -409,7 +409,7 @@ private struct DatePickerSheet: View {
                 .buttonStyle(.borderedProminent)
                 .padding(.horizontal)
         }
-        .background(Color.appBackground.ignoresSafeArea())
+        .accentWash(.transactions)
         .navigationTitle("Select Date")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

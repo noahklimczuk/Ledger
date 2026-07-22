@@ -39,7 +39,7 @@ struct TransactionDetailView: View {
             }
             .padding()
         }
-        .background(Color.appBackground.ignoresSafeArea())
+        .accentWash(.transactions)
         .navigationTitle("Transaction")
         .navigationBarTitleDisplayMode(.inline)
         .accent(.transactions)
