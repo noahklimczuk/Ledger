@@ -115,9 +115,24 @@ final class RecurringSeries {
     /// Annualized magnitude of the series.
     var annualEquivalent: Decimal { monthlyEquivalent * 12 }
 
-    /// The amount to expect for the next charge — the latest observed amount when known (so a recent
-    /// price change is reflected), otherwise the running average.
-    var predictedAmount: Decimal { lastAmount ?? averageAmount }
+    /// The amount to expect for the next charge. If a stable baseline exists and the latest charge
+    /// differs from it, keep the baseline (the price change is flagged as an insight until it sticks).
+    /// Otherwise use the latest observed amount, falling back to the running average.
+    var predictedAmount: Decimal {
+        if let baseline = baselineAmount, let last = lastAmount {
+            return Self.amountsAreClose(baseline, last) ? last : baseline
+        }
+        return lastAmount ?? averageAmount
+    }
+
+    /// True when two amounts are effectively the same price, tolerating small rounding differences.
+    private static func amountsAreClose(_ a: Decimal, _ b: Decimal) -> Bool {
+        let diff = abs((a - b) as NSDecimalNumber).doubleValue
+        if diff <= 0.50 { return true }
+        let avg = ((abs(a) + abs(b)) / 2 as NSDecimalNumber).doubleValue
+        guard avg > 0 else { return false }
+        return diff / avg <= 0.10
+    }
 
     /// Days the next expected charge is overdue (0 if it isn't). The signal behind "likely cancelled".
     func daysOverdue(asOf now: Date = .now, calendar: Calendar = .current) -> Int {
@@ -141,7 +156,7 @@ final class RecurringSeries {
         return next
     }
 
-    /// A detected change between the baseline amount and the most recent one, past a meaningful
+    /// A detected change between the stable baseline amount and the most recent one, past a meaningful
     /// threshold (>10% and >$1 in magnitude) — nil when the price is effectively steady or unknown.
     var priceChange: PriceChange? {
         guard let last = lastAmount, let base = baselineAmount else { return nil }
