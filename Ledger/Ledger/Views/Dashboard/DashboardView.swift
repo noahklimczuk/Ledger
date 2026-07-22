@@ -117,6 +117,8 @@ struct DashboardView: View {
     private var onboardingCard: some View {
         ScrollView {
             VStack(spacing: 14) {
+                emptyStateHeader
+
                 VStack(spacing: 18) {
                     ZStack {
                         Circle()
@@ -167,6 +169,26 @@ struct DashboardView: View {
             .padding()
         }
         .accentWash(.dashboard)
+    }
+
+    /// The rendering's empty-state header: a welcome line and a small gradient avatar.
+    private var emptyStateHeader: some View {
+        HStack {
+            Text("Welcome 🌿")
+                .font(.appHeadline.weight(.heavy))
+                .foregroundStyle(Color.primary)
+            Spacer()
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Palette.peach, Palette.peri],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 40, height: 40)
+                .shadow(color: Color.bloomShadow, radius: 8, x: 3, y: 4)
+        }
     }
 
     /// Shown on days the check-in hasn't been done yet — the ritual only sticks if the app
