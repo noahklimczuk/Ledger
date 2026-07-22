@@ -257,7 +257,7 @@ struct TransactionDetailView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 12) {
-            AccentButton(title: "Edit transaction", systemImage: "pencil", accent: .dashboard) {
+            AccentButton(title: "Edit transaction", systemName: "pencil", accent: .dashboard) {
                 isEditing = true
             }
 

@@ -73,11 +73,13 @@ struct CategoryTransactionsView: View {
                         }
                     }
                 }
+                .scrollContentBackground(.hidden)
             }
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .accent(.transactions)
+        .accentWash(.transactions)
         .task(id: category?.persistentModelID) { load() }
     }
 

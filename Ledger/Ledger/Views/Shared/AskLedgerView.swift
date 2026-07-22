@@ -26,6 +26,7 @@ struct AskLedgerView: View {
             }
             .navigationTitle("Ask Ledger")
             .accent(.insights)
+            .accentWash(.insights)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -232,6 +233,7 @@ struct AskLedgerView: View {
                 Text("Free with a Google account — no credit card. Get a key at aistudio.google.com/apikey. Stored in the iOS Keychain only.")
             }
         }
+        .scrollContentBackground(.hidden)
     }
 }
 

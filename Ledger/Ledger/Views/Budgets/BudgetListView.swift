@@ -255,7 +255,7 @@ struct BudgetListView: View {
                 return ("Set your income to start the plan", "info.circle.fill", .secondary)
             }
             if viewModel.leftToAssign < 0 {
-                return ("Over-assigned by \(periodMoney(-viewModel.leftToAssign))\(periodSuffix)", "exclamationmark.triangle.fill", Palette.expense)
+                return ("Over-assigned by \(periodMoney(0 - viewModel.leftToAssign))\(periodSuffix)", "exclamationmark.triangle.fill", Palette.expense)
             }
             if viewModel.leftToAssign == 0 {
                 return ("Every dollar has a job", "checkmark.seal.fill", .brandEmerald)
@@ -534,7 +534,7 @@ private struct BudgetRowView: View {
 
     private var remainingPill: some View {
         Text(row.isOverBudget
-             ? "\(periodMoney(-row.remaining))\(periodSuffix) over"
+             ? "\(periodMoney(0 - row.remaining))\(periodSuffix) over"
              : "\(periodMoney(row.remaining))\(periodSuffix) left")
             .font(.caption.weight(.bold))
             .foregroundStyle(row.isOverBudget ? Palette.expense : Palette.income)

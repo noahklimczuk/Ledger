@@ -152,7 +152,7 @@ final class TransactionEditViewModel {
     }
 
     private func signed(_ magnitude: Decimal) -> Decimal {
-        direction == .expense ? -magnitude : magnitude
+        direction == .expense ? 0 - magnitude : magnitude
     }
 
     private func syncSplits(on transaction: Transaction) {
