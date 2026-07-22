@@ -64,7 +64,7 @@ struct AccountListView: View {
                 .foregroundStyle(.secondary)
 
             CountingCurrency(value: viewModel.netWorth)
-                .font(.appDisplay)
+                .font(.appLargeTitle.weight(.heavy))
                 .foregroundStyle(Color.primary)
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)

@@ -29,7 +29,6 @@ struct TransactionEditView: View {
                             accountDateCards(viewModel)
                             splitsSection(viewModel)
                             notesSection(viewModel)
-                            saveButton(viewModel)
                         }
                         .padding()
                     }
@@ -43,7 +42,43 @@ struct TransactionEditView: View {
             .accent(.transactions)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button { dismiss() } label: {
+                        Text("Cancel")
+                            .font(.appCaption.weight(.black))
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.appSurface, in: Capsule(style: .continuous))
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .strokeBorder(Color.appHairline, lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        if let viewModel, viewModel.canSave {
+                            viewModel.save()
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            dismiss()
+                        }
+                    } label: {
+                        Text("Save")
+                            .font(.appCaption.weight(.black))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                viewModel?.canSave == true
+                                    ? AnyShapeStyle(Accent.transactions.gradient)
+                                    : AnyShapeStyle(Color.gray)
+                                , in: Capsule(style: .continuous)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(viewModel?.canSave != true)
                 }
             }
             .sheet(isPresented: $isPresentingDatePicker) {
@@ -89,7 +124,7 @@ struct TransactionEditView: View {
             .frame(width: 220)
 
             Text(displayAmount(for: viewModel))
-                .font(.appMoney)
+                .font(.appDisplay)
                 .foregroundStyle(viewModel.direction == .expense ? Color.primary : Palette.income)
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
@@ -123,7 +158,7 @@ struct TransactionEditView: View {
     private func displayAmount(for viewModel: TransactionEditViewModel) -> String {
         let magnitude = abs(ImportValueParsing.decimal(from: viewModel.amountText) ?? 0)
         let sign = viewModel.direction == .expense ? "−" : "+"
-        return "\(sign) \(CurrencyFormatter.string(from: magnitude))"
+        return "\(sign)\(CurrencyFormatter.string(from: magnitude))"
     }
 
     // MARK: - Merchant
@@ -282,20 +317,6 @@ struct TransactionEditView: View {
         .card()
     }
 
-    private func saveButton(_ viewModel: TransactionEditViewModel) -> some View {
-        Button {
-            viewModel.save()
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-            dismiss()
-        } label: {
-            Label("Save", systemImage: "checkmark")
-                .font(.appSubheadline.weight(.black))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(viewModel.canSave != true)
-    }
 }
 
 // MARK: - Supporting views
