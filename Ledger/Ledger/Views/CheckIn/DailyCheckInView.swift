@@ -107,7 +107,7 @@ struct DailyCheckInView: View {
         HStack(spacing: 8) {
             ForEach(0..<stepCount, id: \.self) { index in
                 Capsule()
-                    .fill(index <= step ? Color.accentColor : Color(.systemGray4))
+                    .fill(index <= step ? Color.accentColor : Color.secondary.opacity(0.2))
                     .frame(width: index == step ? 22 : 8, height: 8)
             }
         }
@@ -265,7 +265,14 @@ struct DailyCheckInView: View {
             .foregroundStyle(transaction.category == nil ? Color.accentColor : Color.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(Color(.systemGray6), in: Capsule())
+            .background(
+                Capsule()
+                    .fill(Color.appSurface)
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(Color.appHairline, lineWidth: 1)
+                    )
+            )
         }
     }
 

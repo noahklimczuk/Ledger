@@ -172,79 +172,158 @@ private struct MoreView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    Button { isPresentingCheckIn = true } label: {
-                        moreRow("Daily Check-In", "checklist", .checkIn)
-                    }
-                    .buttonStyle(.plain)
-                } header: { sectionLabel("Routine") }
-
-                Section {
-                    moreLink("Ask Ledger", "sparkles", .insights) { AskLedgerView(month: .now) }
-                    moreLink("Reports", "chart.bar.xaxis", .reports) { ReportsView() }
-                    moreLink("Recurring", "arrow.triangle.2.circlepath", .recurring) { RecurringView() }
-                } header: { sectionLabel("Insights") }
-
-                Section {
-                    moreLink("Savings Goals", "target", .goals) { SavingsGoalsView() }
-                    moreLink("Debt Tracker", "creditcard.trianglebadge.exclamationmark", .debt) { DebtListView() }
-                    moreLink("Bill Reminders", "bell.badge", .bills) { BillRemindersView() }
-                } header: { sectionLabel("Planning") }
-
-                Section {
-                    moreLink("Categories", "tag.fill", .categories) { CategoryEditorView() }
-                } header: { sectionLabel("Organize") }
-
-                Section {
-                    moreLink("Connect Wealthsimple", "link", .accounts) { IntegrationsSettingsView() }
-                    moreLink("Import CSV / OFX", "square.and.arrow.down", .transactions) { CSVImportView() }
-                } header: { sectionLabel("Data Sources") }
-
-                Section {
-                    Picker("Appearance", selection: colorScheme) {
-                        ForEach(AppColorScheme.allCases) { scheme in
-                            Text(scheme.displayName).tag(scheme)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    MoreGroup(title: "Routine") {
+                        MoreButton(title: "Daily Check-In", icon: "checklist", accent: .checkIn) {
+                            isPresentingCheckIn = true
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .padding(.vertical, 4)
-                } header: { sectionLabel("Appearance") }
+
+                    MoreGroup(title: "Insights") {
+                        MoreLink(title: "Ask Ledger", icon: "sparkles", accent: .insights) {
+                            AskLedgerView(month: .now)
+                        }
+                        MoreDivider()
+                        MoreLink(title: "Reports", icon: "chart.bar.xaxis", accent: .reports) {
+                            ReportsView()
+                        }
+                        MoreDivider()
+                        MoreLink(title: "Recurring", icon: "arrow.triangle.2.circlepath", accent: .recurring) {
+                            RecurringView()
+                        }
+                    }
+
+                    MoreGroup(title: "Planning") {
+                        MoreLink(title: "Savings Goals", icon: "target", accent: .goals) {
+                            SavingsGoalsView()
+                        }
+                        MoreDivider()
+                        MoreLink(title: "Debt Tracker", icon: "creditcard.trianglebadge.exclamationmark", accent: .debt) {
+                            DebtListView()
+                        }
+                        MoreDivider()
+                        MoreLink(title: "Bill Reminders", icon: "bell.badge", accent: .bills) {
+                            BillRemindersView()
+                        }
+                    }
+
+                    MoreGroup(title: "Organize") {
+                        MoreLink(title: "Categories", icon: "tag.fill", accent: .categories) {
+                            CategoryEditorView()
+                        }
+                    }
+
+                    MoreGroup(title: "Data Sources") {
+                        MoreLink(title: "Connect Wealthsimple", icon: "link", accent: .accounts) {
+                            IntegrationsSettingsView()
+                        }
+                        MoreDivider()
+                        MoreLink(title: "Import CSV / OFX", icon: "square.and.arrow.down", accent: .transactions) {
+                            CSVImportView()
+                        }
+                    }
+
+                    MoreGroup(title: "Appearance") {
+                        Picker("Appearance", selection: colorScheme) {
+                            ForEach(AppColorScheme.allCases) { scheme in
+                                Text(scheme.displayName).tag(scheme)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.vertical, 4)
+                    }
+                }
+                .padding()
             }
             .navigationTitle("More")
             .accent(.dashboard)
             .accentWash(.dashboard)
-            .scrollContentBackground(.hidden)
             .sheet(isPresented: $isPresentingCheckIn) {
                 DailyCheckInView()
             }
         }
     }
+}
 
-    private func sectionLabel(_ text: String) -> some View {
-        Text(text).font(.appCaption.weight(.bold)).textCase(nil).foregroundStyle(.secondary)
+/// A titled, Bloom-styled group of More actions. The card holds the rows; the headline keeps the
+/// screen's editorial hierarchy.
+private struct MoreGroup<Content: View>: View {
+    let title: String
+    let content: Content
+
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
     }
 
-    private func moreLink<Destination: View>(
-        _ title: String,
-        _ icon: String,
-        _ accent: Accent,
-        @ViewBuilder destination: () -> Destination
-    ) -> some View {
-        let target = destination()
-        return NavigationLink {
-            target
-        } label: {
-            moreRow(title, icon, accent)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeadline(title)
+            VStack(spacing: 0) {
+                content
+            }
+            .card()
         }
     }
+}
 
-    private func moreRow(_ title: String, _ icon: String, _ accent: Accent) -> some View {
+private struct MoreRow: View {
+    let title: String
+    let icon: String
+    let accent: Accent
+
+    var body: some View {
         HStack(spacing: 14) {
-            IconBadge(systemName: icon, accent: accent, size: 44)
-            Text(title).font(.appSubheadline.weight(.heavy))
+            IconBadge(systemName: icon, accent: accent, size: 40)
+            Text(title)
+                .font(.appSubheadline.weight(.semibold))
+            Spacer()
+            Image(systemName: "chevron.forward")
+                .font(.appCaption.weight(.bold))
+                .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct MoreLink<Destination: View>: View {
+    let title: String
+    let icon: String
+    let accent: Accent
+    @ViewBuilder let destination: Destination
+
+    var body: some View {
+        NavigationLink {
+            destination
+        } label: {
+            MoreRow(title: title, icon: icon, accent: accent)
+        }
+        .buttonStyle(.pressable)
+    }
+}
+
+private struct MoreButton: View {
+    let title: String
+    let icon: String
+    let accent: Accent
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            MoreRow(title: title, icon: icon, accent: accent)
+        }
+        .buttonStyle(.pressable)
+    }
+}
+
+private struct MoreDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(Color.appHairline)
+            .frame(height: 1)
+            .padding(.leading, 54)
     }
 }
 

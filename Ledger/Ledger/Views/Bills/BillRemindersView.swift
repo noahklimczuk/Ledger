@@ -52,6 +52,9 @@ struct BillRemindersView: View {
                                     .tint(Palette.income)
                                 }
                             }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         }
                     }
                     .scrollContentBackground(.hidden)
@@ -111,7 +114,8 @@ private struct BillRow: View {
                 .labelsHidden()
                 .accessibilityLabel("Reminders for \(reminder.name)")
         }
-        .padding(.vertical, 5)
+        .card()
+        .contentShape(Rectangle())
     }
 }
 

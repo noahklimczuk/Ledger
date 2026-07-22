@@ -36,6 +36,9 @@ struct DebtListView: View {
                                         Label("Delete", systemImage: "trash")
                                     }
                                 }
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             }
                         }
                     }
@@ -88,8 +91,11 @@ struct DebtListView: View {
                         .lineLimit(1)
                 }
             }
-            .padding(.vertical, 4)
+            .card()
         }
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 }
 
@@ -115,7 +121,8 @@ private struct DebtRow: View {
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
         }
-        .padding(.vertical, 5)
+        .card()
+        .contentShape(Rectangle())
     }
 
     private var subtitle: String {

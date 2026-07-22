@@ -95,6 +95,11 @@ private struct CategoryRow: View {
             }
         }
         .buttonStyle(.pressable)
+        .card()
+        .contentShape(Rectangle())
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
     }
 }
 
