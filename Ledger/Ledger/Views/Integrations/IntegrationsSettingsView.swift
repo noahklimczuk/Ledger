@@ -186,7 +186,7 @@ struct IntegrationsSettingsView: View {
 
     // MARK: - Summary / error
 
-    private func syncSummaryCard(_ summary: IntegrationsViewModel.LastSyncSummary) -> some View {
+    private func syncSummaryCard(_ summary: TransactionImportService.ImportSummary) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Last Sync")
                 .font(.appCaption2.weight(.heavy))
