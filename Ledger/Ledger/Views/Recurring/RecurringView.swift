@@ -422,8 +422,10 @@ private struct RecurringSummaryBar: View {
     var body: some View {
         GeometryReader { geo in
             let total = NSDecimalNumber(decimal: max(expense + income, 0)).doubleValue
-            let expenseWidth = total > 0 ? NSDecimalNumber(decimal: max(expense, 0)).doubleValue / total : 0
-            let incomeWidth = total > 0 ? 1.0 - expenseWidth : 0
+            let expenseFraction = total > 0 ? NSDecimalNumber(decimal: max(expense, 0)).doubleValue / total : 0
+            let incomeFraction = total > 0 ? 1.0 - expenseFraction : 0
+            let numberOfBars = (expenseFraction > 0 ? 1 : 0) + (incomeFraction > 0 ? 1 : 0)
+            let availableWidth = max(0, geo.size.width - CGFloat(numberOfBars - 1) * 2)
 
             ZStack(alignment: .leading) {
                 Capsule(style: .continuous)
@@ -432,17 +434,18 @@ private struct RecurringSummaryBar: View {
                     .shadow(color: Color.bloomHighlight, radius: 3, x: -1, y: -1)
 
                 HStack(spacing: 2) {
-                    RoundedRectangle(cornerRadius: 999, style: .continuous)
-                        .fill(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .leading, endPoint: .trailing))
-                        .frame(width: max(0, geo.size.width * CGFloat(expenseWidth) - 1), height: 12)
+                    if expenseFraction > 0 {
+                        RoundedRectangle(cornerRadius: 999, style: .continuous)
+                            .fill(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .leading, endPoint: .trailing))
+                            .frame(width: availableWidth * CGFloat(expenseFraction), height: 12)
+                    }
 
-                    if incomeWidth > 0.01 {
+                    if incomeFraction > 0 {
                         RoundedRectangle(cornerRadius: 999, style: .continuous)
                             .fill(LinearGradient(colors: [Palette.amber, Palette.peach], startPoint: .leading, endPoint: .trailing))
-                            .frame(width: max(0, geo.size.width * CGFloat(incomeWidth) - 1), height: 12)
+                            .frame(width: availableWidth * CGFloat(incomeFraction), height: 12)
                     }
                 }
-                .padding(2)
             }
         }
         .frame(height: 12)
