@@ -330,17 +330,18 @@ private struct CategoryChip: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: isSelected ? 8 : 6) {
+            HStack(spacing: isSelected ? 10 : 7) {
                 Image(systemName: systemImage)
-                    .font(AppFont.scaled(isSelected ? 24 : 20, relativeTo: .headline, weight: .bold))
+                    .font(AppFont.scaled(isSelected ? 26 : 22, relativeTo: .headline, weight: .bold))
                     .symbolEffect(.bounce, value: isSelected)
                     .foregroundStyle(isSelected ? .white : color)
                 Text(name)
-                    .font(isSelected ? .appCallout.weight(.heavy) : .appCaption.weight(.bold))
+                    .font(isSelected ? .appBody.weight(.heavy) : .appSubheadline.weight(.bold))
                     .foregroundStyle(isSelected ? .white : Color.primary)
+                    .lineLimit(1)
             }
-            .padding(.horizontal, isSelected ? 22 : 16)
-            .padding(.vertical, isSelected ? 14 : 10)
+            .padding(.horizontal, isSelected ? 26 : 18)
+            .padding(.vertical, isSelected ? 16 : 12)
             .background(isSelected ? color.opacity(0.92) : Color.appSurface, in: Capsule())
             .overlay(
                 Capsule(style: .continuous)

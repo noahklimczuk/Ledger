@@ -339,16 +339,18 @@ private struct DetailCategoryChip: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
+            HStack(spacing: isSelected ? 8 : 6) {
                 Image(systemName: systemImage)
-                    .font(.appCaption2.weight(.bold))
+                    .font(AppFont.scaled(isSelected ? 22 : 18, relativeTo: .headline, weight: .bold))
+                    .symbolEffect(.bounce, value: isSelected)
                     .foregroundStyle(isSelected ? .white : color)
                 Text(name)
-                    .font(.appCaption.weight(.bold))
+                    .font(isSelected ? .appCallout.weight(.heavy) : .appCaption.weight(.bold))
                     .foregroundStyle(isSelected ? .white : Color.primary)
+                    .lineLimit(1)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
+            .padding(.horizontal, isSelected ? 20 : 14)
+            .padding(.vertical, isSelected ? 12 : 9)
             .background(isSelected ? color.opacity(0.92) : Color.appSurface, in: Capsule())
             .overlay(
                 Capsule(style: .continuous)
@@ -356,6 +358,7 @@ private struct DetailCategoryChip: View {
             )
         }
         .buttonStyle(.plain)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: isSelected)
     }
 }
 
