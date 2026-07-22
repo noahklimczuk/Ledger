@@ -89,7 +89,7 @@ struct TransactionEditView: View {
             .frame(width: 220)
 
             Text(displayAmount(for: viewModel))
-                .font(.system(size: 64, weight: .bold, design: .rounded))
+                .font(.appMoney)
                 .foregroundStyle(viewModel.direction == .expense ? Color.primary : Palette.income)
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
@@ -180,7 +180,8 @@ struct TransactionEditView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 2)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
             }
         }
         .padding(Theme.cardPadding)
@@ -308,16 +309,17 @@ private struct CategoryChip: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
+            HStack(spacing: isSelected ? 8 : 6) {
                 Image(systemName: systemImage)
-                    .font(.caption2.weight(.bold))
+                    .font(.system(size: isSelected ? 24 : 20, weight: .bold))
+                    .symbolEffect(.bounce, value: isSelected)
                     .foregroundStyle(isSelected ? .white : color)
                 Text(name)
-                    .font(.appCaption.weight(.bold))
+                    .font(isSelected ? .appCallout.weight(.heavy) : .appCaption.weight(.bold))
                     .foregroundStyle(isSelected ? .white : Color.primary)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
+            .padding(.horizontal, isSelected ? 22 : 16)
+            .padding(.vertical, isSelected ? 14 : 10)
             .background(isSelected ? color.opacity(0.92) : Color.appSurface, in: Capsule())
             .overlay(
                 Capsule(style: .continuous)
@@ -325,6 +327,7 @@ private struct CategoryChip: View {
             )
         }
         .buttonStyle(.plain)
+        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: isSelected)
     }
 }
 

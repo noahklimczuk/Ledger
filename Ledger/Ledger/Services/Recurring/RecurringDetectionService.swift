@@ -31,9 +31,9 @@ nonisolated final class RecurringDetectionService {
         let merchantKey: String
         let displayName: String
         let averageAmount: Decimal
-        /// Most recent occurrence's amount, and the typical amount before it — for price-change checks.
+        /// Most recent occurrence's amount, and the typical stable amount before it — for price-change checks.
         let lastAmount: Decimal
-        let baselineAmount: Decimal
+        let baselineAmount: Decimal?
         let cadence: RecurrenceCadence
         let firstOccurrence: Date
         let lastOccurrence: Date
@@ -165,9 +165,9 @@ nonisolated final class RecurringDetectionService {
             let total = amounts.reduce(Decimal(0), +)
             let average = total / Decimal(amounts.count)
             let lastAmount = amounts.last ?? average
-            // Baseline = typical amount before the latest charge, so a fresh price change stands out.
-            let baseline = Self.median(amounts.dropLast().map { ($0 as NSDecimalNumber).doubleValue })
-                .map { Decimal($0) } ?? average
+            // Baseline = most recent stable amount that persisted long enough before the latest charge,
+            // so a genuine price change stands out while one-off anomalies are ignored.
+            let baseline = Self.stableBaselineAmount(for: sorted, cadence: cadence)
 
             let confidence = Self.confidence(
                 regularity: regularity,
@@ -226,6 +226,41 @@ nonisolated final class RecurringDetectionService {
             counts[transaction.merchant, default: 0] += 1
         }
         return counts.max { $0.value < $1.value }?.key ?? group.first?.merchant ?? "Recurring"
+    }
+
+    /// Returns the most recent stable amount for a recurring series if it held steady for at least
+    /// one full cadence before the latest charge. One-off price anomalies won't become a new baseline
+    /// until they repeat, and short-lived subscriptions won't claim a baseline before enough history.
+    private static func stableBaselineAmount(for sorted: [Transaction], cadence: RecurrenceCadence) -> Decimal? {
+        let count = sorted.count
+        guard count >= 3 else { return nil }
+        let lastIndex = count - 1
+        let stableWindowDays = max(7.0, Double(cadence.approximateDays))
+
+        func isClose(_ a: Decimal, _ b: Decimal) -> Bool {
+            let diff = abs((a - b) as NSDecimalNumber).doubleValue
+            if diff <= 0.01 { return true }
+            let avg = ((abs(a) + abs(b)) / 2 as NSDecimalNumber).doubleValue
+            guard avg > 0 else { return diff <= 0.01 }
+            return diff / avg <= 0.02
+        }
+
+        var runStart = lastIndex
+        for i in (0..<lastIndex).reversed() {
+            if i == lastIndex - 1 || isClose(sorted[i].amount, sorted[i + 1].amount) {
+                runStart = i
+            } else {
+                break
+            }
+        }
+
+        let runCount = lastIndex - runStart
+        let runSpanDays = sorted[lastIndex - 1].date.timeIntervalSince(sorted[runStart].date) / 86_400
+        guard runCount >= 2, runSpanDays >= stableWindowDays else { return nil }
+
+        let runAmounts = sorted[runStart..<lastIndex].map(\.amount)
+        let runTotal = runAmounts.reduce(Decimal(0), +)
+        return runTotal / Decimal(runAmounts.count)
     }
 
     private static func median(_ values: [Double]) -> Double? {

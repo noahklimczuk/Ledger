@@ -4,6 +4,7 @@ import SwiftData
 struct BudgetEditView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("budgetShowBiweekly") private var showBiweekly = false
 
     let month: Date
     let budgetRow: BudgetsViewModel.BudgetRow?
@@ -23,6 +24,18 @@ struct BudgetEditView: View {
     /// budget that already points at one keeps its selection visible instead of showing blank.
     private var pickerCategories: [Category] {
         categories.filter { !$0.isIncome || $0.persistentModelID == category?.persistentModelID }
+    }
+
+    private func periodAmount(_ amount: Decimal) -> Decimal {
+        showBiweekly ? amount / 2 : amount
+    }
+
+    private func periodMoney(_ amount: Decimal) -> String {
+        CurrencyFormatter.string(from: periodAmount(amount))
+    }
+
+    private var periodSuffix: String {
+        showBiweekly ? " /bi-weekly" : " /mo"
     }
 
     var body: some View {
@@ -46,13 +59,18 @@ struct BudgetEditView: View {
                     }
                 }
                 Section {
+                    Picker("Budget period", selection: $showBiweekly) {
+                        Text("Monthly").tag(false)
+                        Text("Bi-weekly").tag(true)
+                    }
+                    .pickerStyle(.segmented)
                     TextField("0.00", text: $amountText)
                         .keyboardType(.decimalPad)
                     if let leftToAssign, leftToAssign > 0 {
                         Button {
-                            amountText = NSDecimalNumber(decimal: leftToAssign).stringValue
+                            amountText = NSDecimalNumber(decimal: periodAmount(leftToAssign)).stringValue
                         } label: {
-                            Label("Assign Remaining (\(CurrencyFormatter.string(from: leftToAssign)))", systemImage: "arrow.down.to.line")
+                            Label("Assign Remaining (\(periodMoney(leftToAssign))\(periodSuffix))", systemImage: "arrow.down.to.line")
                         }
                     }
                     Toggle("Roll Over Unused Amount", isOn: $rolloverEnabled)
@@ -84,12 +102,17 @@ struct BudgetEditView: View {
                 loadCategories()
                 if let budgetRow {
                     category = budgetRow.budget.category
-                    amountText = NSDecimalNumber(decimal: budgetRow.budget.allocatedAmount).stringValue
+                    amountText = NSDecimalNumber(decimal: periodAmount(budgetRow.budget.allocatedAmount)).stringValue
                     rolloverEnabled = budgetRow.budget.rolloverEnabled
                 } else if let preselectedCategory {
                     category = preselectedCategory
                 }
                 computeLeftToAssign()
+            }
+            .onChange(of: showBiweekly) { _, newValue in
+                guard let current = ImportValueParsing.decimal(from: amountText) else { return }
+                let converted = newValue ? current / 2 : current * 2
+                amountText = NSDecimalNumber(decimal: converted).stringValue
             }
         }
     }
@@ -116,9 +139,10 @@ struct BudgetEditView: View {
 
     private func save() {
         guard let category, let amount = ImportValueParsing.decimal(from: amountText) else { return }
+        let monthlyAmount = showBiweekly ? amount * 2 : amount
         let viewModel = BudgetsViewModel(modelContext: modelContext)
         viewModel.selectedMonth = month
-        viewModel.addOrUpdateBudget(category: category, allocatedAmount: amount, rolloverEnabled: rolloverEnabled)
+        viewModel.addOrUpdateBudget(category: category, allocatedAmount: monthlyAmount, rolloverEnabled: rolloverEnabled)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         dismiss()
     }

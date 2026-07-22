@@ -28,6 +28,8 @@ struct DashboardView: View {
     @State private var flowDrilldown: MonthFlow?
     /// Whether the Total Balance card is expanded to reveal the per-account breakdown.
     @State private var isBalanceExpanded = false
+    /// Rotates the Ask Ledger briefing card through a few different messages on Home.
+    @State private var askLedgerTick = 0
 
     var body: some View {
         NavigationStack {
@@ -226,8 +228,8 @@ struct DashboardView: View {
         .buttonStyle(.pressable)
     }
 
-    /// The "Ask Ledger" briefing — the single most important on-device insight (or a warm all-clear),
-    /// tapping through to the full Ask Ledger screen.
+    /// The "Ask Ledger" briefing — cycles through a handful of insights and prompts so Home never
+    /// feels static. Tapping the card opens the full Ask Ledger screen.
     private func askLedgerCard(_ viewModel: DashboardViewModel) -> some View {
         NavigationLink {
             AskLedgerView(month: .now)
@@ -243,11 +245,13 @@ struct DashboardView: View {
                         .font(.footnote.weight(.bold))
                         .foregroundStyle(Accent.insights.base)
                 }
-                Text(askLedgerMessage(viewModel))
+                Text(askLedgerMessage(viewModel, tick: askLedgerTick))
                     .font(.appBody)
                     .foregroundStyle(Color.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
+                    .contentTransition(.opacity)
+                    .animation(.easeInOut(duration: 0.4), value: askLedgerTick)
             }
             .padding(Theme.cardPadding)
             .background(Accent.insights.faintGradient, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
@@ -257,14 +261,38 @@ struct DashboardView: View {
             )
         }
         .buttonStyle(.pressable)
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(4.5))
+                guard !Task.isCancelled else { return }
+                askLedgerTick += 1
+            }
+        }
     }
 
-    private func askLedgerMessage(_ viewModel: DashboardViewModel) -> String {
-        if let insight = viewModel.topInsight { return insight.message }
+    private func askLedgerMessage(_ viewModel: DashboardViewModel, tick: Int) -> String {
+        let messages = askLedgerMessages(viewModel)
+        guard !messages.isEmpty else { return "Ask me anything — I'm here to help with your money." }
+        return messages[tick % messages.count]
+    }
+
+    private func askLedgerMessages(_ viewModel: DashboardViewModel) -> [String] {
+        var messages: [String] = []
+        if let insight = viewModel.topInsight { messages.append(insight.message) }
         if let tend = viewModel.wellness.toTend.first {
-            return "You're doing well. The one thing worth tending this month is \(tend.name.lowercased())."
+            messages.append("You're doing well. The one thing worth tending this month is \(tend.name.lowercased()).")
         }
-        return "You're on track this month — nothing needs your attention right now. 🌿"
+        let net = viewModel.monthNet
+        messages.append(net >= 0
+            ? "You're up \(CurrencyFormatter.string(from: net)) this month."
+            : "You're down \(CurrencyFormatter.string(from: abs(net))) this month.")
+        messages.append("Safe to spend: \(CurrencyFormatter.string(from: viewModel.safeToSpend)) this month.")
+        if viewModel.monthBudgetTotal > 0 {
+            let percent = Int((viewModel.monthSpending.doubleValue / viewModel.monthBudgetTotal.doubleValue * 100).rounded())
+            messages.append("You've used \(percent)% of your monthly budget.")
+        }
+        messages.append("Ask me anything — e.g., 'How much did I spend on groceries?'")
+        return messages
     }
 
     /// The Total Balance card. Tapping it expands a clean per-account breakdown in place, so the
@@ -410,6 +438,8 @@ struct DashboardView: View {
                 .foregroundStyle(color)
                 .minimumScaleFactor(0.4)
                 .lineLimit(1)
+                .contentTransition(.numericText())
+                .animation(.smooth, value: value)
             HStack(spacing: 3) {
                 Text(label).font(.appCaption.weight(.semibold)).foregroundStyle(.secondary)
                 if tappable {
@@ -474,6 +504,8 @@ struct DashboardView: View {
                     .foregroundStyle(ok ? Color.primary : Palette.expense)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
+                    .contentTransition(.numericText())
+                    .animation(.smooth, value: viewModel.safeToSpend)
                 if viewModel.reservedForBills > 0 {
                     Text("After reserving \(CurrencyFormatter.string(from: viewModel.reservedForBills)) for upcoming bills")
                         .font(.appCaption)
@@ -495,9 +527,13 @@ struct DashboardView: View {
                 Text(CurrencyFormatter.string(from: viewModel.monthSpending))
                     .font(.appNumber)
                     .foregroundStyle(.primary)
+                    .contentTransition(.numericText())
+                    .animation(.smooth, value: viewModel.monthSpending)
                 Text("of \(CurrencyFormatter.string(from: viewModel.monthBudgetTotal))")
                     .font(.appFootnote)
                     .foregroundStyle(.secondary)
+                    .contentTransition(.numericText())
+                    .animation(.smooth, value: viewModel.monthBudgetTotal)
             }
             if viewModel.monthBudgetTotal > 0 {
                 budgetGauge(spent: viewModel.monthSpending, budget: viewModel.monthBudgetTotal)
@@ -538,6 +574,8 @@ struct DashboardView: View {
                 Text(viewModel.dailyBurnText)
                     .font(.appCaption.weight(.bold))
                     .foregroundStyle(Palette.peachDeep)
+                    .contentTransition(.numericText())
+                    .animation(.smooth, value: viewModel.dailyBurnText)
             }
             BurnMeter(position: viewModel.burnPosition)
             HStack {

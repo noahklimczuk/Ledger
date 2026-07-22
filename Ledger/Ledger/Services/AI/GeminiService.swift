@@ -132,6 +132,13 @@ struct GeminiService: Sendable {
         let argsJSON: String
     }
 
+    /// A budget the model asked us to delete via the `delete_budget` tool.
+    struct BudgetDeletion: Sendable {
+        let categoryName: String?
+        let month: String?
+        let summary: String?
+    }
+
     /// A budget the model asked us to create via the `create_budget` tool.
     struct BudgetPlan: Sendable {
         struct PlanCategory: Sendable {
@@ -158,6 +165,9 @@ struct GeminiService: Sendable {
         let budgetPlan: BudgetPlan?
         /// The call's raw arguments, echoed back into history alongside our function response.
         let budgetPlanArgsJSON: String?
+        /// A budget deletion the model asked us to apply, if any.
+        let deletePlan: BudgetDeletion?
+        let deletePlanArgsJSON: String?
         /// Gemini's reasoning token for this reply (from the function-call part when present, else the
         /// text part). Must be echoed back on the same part in the next request; see `ChatTurn.model`.
         let thoughtSignature: String?
@@ -166,8 +176,8 @@ struct GeminiService: Sendable {
     /// Freeform advisor reply for the multi-turn financial-advisor chat. `system` carries the
     /// advisor persona plus the financial snapshot (budget totals and recent transactions);
     /// `history` is the running exchange, oldest first, ending with the user's latest question or
-    /// our latest function response. The model may answer with text, a `create_budget` call, or
-    /// both.
+    /// our latest function response. The model may answer with text, a `create_budget` call, a
+    /// `delete_budget` call, or any combination.
     func advise(system: String, history: [ChatTurn], apiKey: String) async throws -> AdvisorReply {
         var contents: [[String: Any]] = []
         for turn in history {
@@ -198,44 +208,61 @@ struct GeminiService: Sendable {
         let body: [String: Any] = [
             "system_instruction": ["parts": [["text": system]]],
             "contents": contents,
-            "tools": [["functionDeclarations": [Self.createBudgetDeclaration]]]
+            "tools": [["functionDeclarations": [Self.createBudgetDeclaration, Self.deleteBudgetDeclaration]]]
         ]
         let parts = try await generateParts(body: body, apiKey: apiKey)
 
         let text = parts.compactMap(\.text).joined()
         var plan: BudgetPlan?
-        var argsJSON: String?
+        var planArgsJSON: String?
+        var deletePlan: BudgetDeletion?
+        var deleteArgsJSON: String?
         // Gemini 3.x attaches a reasoning token per part; capture it so it can be echoed back on the
         // next request. Prefer the function-call part's token (the one the API enforces), else the
         // last part that carries one.
-        let callPart = parts.first { $0.functionCall?.name == Self.createBudgetToolName }
+        let callPart = parts.first {
+            $0.functionCall?.name == Self.createBudgetToolName || $0.functionCall?.name == Self.deleteBudgetToolName
+        }
         let thoughtSignature = callPart?.thoughtSignature ?? parts.compactMap(\.thoughtSignature).last
         if let call = callPart?.functionCall, let args = call.args {
-            let categories = (args.categories ?? []).compactMap { item -> BudgetPlan.PlanCategory? in
-                guard let name = item.name, let amount = item.amount, amount > 0 else { return nil }
-                return BudgetPlan.PlanCategory(name: name, amount: Decimal(amount))
-            }
-            let savings = Decimal(max(args.savingsAmount ?? 0, 0))
-            if !categories.isEmpty || savings > 0 {
-                plan = BudgetPlan(
-                    categories: categories,
-                    savingsAmount: savings,
-                    summary: args.summary,
+            switch call.name {
+            case Self.createBudgetToolName:
+                let categories = (args.categories ?? []).compactMap { item -> BudgetPlan.PlanCategory? in
+                    guard let name = item.name, let amount = item.amount, amount > 0 else { return nil }
+                    return BudgetPlan.PlanCategory(name: name, amount: Decimal(amount))
+                }
+                let savings = Decimal(max(args.savingsAmount ?? 0, 0))
+                if !categories.isEmpty || savings > 0 {
+                    plan = BudgetPlan(
+                        categories: categories,
+                        savingsAmount: savings,
+                        summary: args.summary,
+                        month: args.month,
+                        startMonth: args.startMonth,
+                        endMonth: args.endMonth
+                    )
+                    planArgsJSON = Self.json(from: args)
+                }
+            case Self.deleteBudgetToolName:
+                deletePlan = BudgetDeletion(
+                    categoryName: args.categoryName,
                     month: args.month,
-                    startMonth: args.startMonth,
-                    endMonth: args.endMonth
+                    summary: args.summary
                 )
-                argsJSON = Self.json(from: args)
+                deleteArgsJSON = Self.json(from: args)
+            default:
+                break
             }
         }
 
-        guard plan != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard plan != nil || deletePlan != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ServiceError.emptyResponse
         }
-        return AdvisorReply(text: text, budgetPlan: plan, budgetPlanArgsJSON: argsJSON, thoughtSignature: thoughtSignature)
+        return AdvisorReply(text: text, budgetPlan: plan, budgetPlanArgsJSON: planArgsJSON, deletePlan: deletePlan, deletePlanArgsJSON: deleteArgsJSON, thoughtSignature: thoughtSignature)
     }
 
     static let createBudgetToolName = "create_budget"
+    static let deleteBudgetToolName = "delete_budget"
 
     /// The tool the advisor can call to actually build the user's monthly budget. Gemini's
     /// function-declaration schema is the same OpenAPI 3.0 subset as `outputSchema`.
@@ -285,6 +312,31 @@ struct GeminiService: Sendable {
                 "summary": ["type": "STRING", "description": "One or two sentences describing the plan."]
             ] as [String: Any],
             "required": ["categories", "savingsAmount"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to delete the user's monthly budgets. Omit `categoryName` to
+    /// delete the entire month's plan; provide it (matching an exact expense category name) to
+    /// delete that category's budget only.
+    private static let deleteBudgetDeclaration: [String: Any] = [
+        "name": deleteBudgetToolName,
+        "description": "Delete the user's category budgets for a specific month. Call this only when the user asks to delete, remove, or clear a budget or the whole month's budget plan. Omit categoryName to wipe the entire month; include it to delete only that category's budget. The month defaults to the conversation's open month if omitted.",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "month": [
+                    "type": "STRING",
+                    "description": "Which single month to delete budgets for, as \"YYYY-MM\". Omit to use the open month."
+                ],
+                "categoryName": [
+                    "type": "STRING",
+                    "description": "Exact name of one of the user's expense categories to remove the budget for. Omit to delete the whole month's budgets."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was deleted."
+                ]
+            ] as [String: Any]
         ] as [String: Any]
     ]
 
@@ -502,6 +554,7 @@ struct GeminiService: Sendable {
         if let month = args.month { object["month"] = month }
         if let startMonth = args.startMonth { object["startMonth"] = startMonth }
         if let endMonth = args.endMonth { object["endMonth"] = endMonth }
+        if let categoryName = args.categoryName { object["categoryName"] = categoryName }
         if let summary = args.summary { object["summary"] = summary }
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return "{}" }
         return String(decoding: data, as: UTF8.self)
@@ -543,6 +596,7 @@ struct GeminiService: Sendable {
             let month: String?
             let startMonth: String?
             let endMonth: String?
+            let categoryName: String?
             let summary: String?
         }
         let name: String

@@ -48,6 +48,7 @@ struct LedgerApp: App {
             .tint(.accentColor)
             .preferredColorScheme(colorScheme.colorScheme)
             .environment(refreshCoordinator)
+            .environment(lockService)
             .animation(.default, value: lockService.isUnlocked)
             .animation(.easeOut(duration: 0.4), value: showSplash)
             .task {

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Observation
 
 /// The app's root: a native `TabView` over the five primary screens. The visual tab bar renders as
 /// a floating Liquid Glass pill with Home in the centre: Wellness · Budgets · Home · Activity ·
@@ -7,6 +8,7 @@ import SwiftData
 /// Accounts and Recurring live under Home (via the balance card) and More, matching the `bloom-ios`
 /// rendering.
 struct RootTabView: View {
+    @Environment(AppLockService.self) private var lockService
     /// The selected tab index. Visual bar order is Wellness(0), Budgets(1), Home(2), Activity(3), More(4)
     /// so Home sits in the centre.
     @State private var selection = 2
@@ -16,34 +18,38 @@ struct RootTabView: View {
     var body: some View {
         TabView(selection: $selection) {
             Tab("Wellness", systemImage: "leaf.fill", value: 0) {
-                FinancialWellnessView().toolbar(.hidden, for: .tabBar)
+                FinancialWellnessView().toolbarVisibility(.hidden, for: .tabBar)
             }
             Tab("Budgets", systemImage: "chart.pie.fill", value: 1) {
-                BudgetListView().toolbar(.hidden, for: .tabBar)
+                BudgetListView().toolbarVisibility(.hidden, for: .tabBar)
             }
             Tab("Home", systemImage: "house.fill", value: 2) {
-                DashboardView().toolbar(.hidden, for: .tabBar)
+                DashboardView().toolbarVisibility(.hidden, for: .tabBar)
             }
             Tab("Activity", systemImage: "chart.bar.xaxis", value: 3) {
-                TransactionListView().toolbar(.hidden, for: .tabBar)
+                TransactionListView().toolbarVisibility(.hidden, for: .tabBar)
             }
             Tab("More", systemImage: "square.grid.2x2.fill", value: 4) {
-                MoreView().toolbar(.hidden, for: .tabBar)
+                MoreView().toolbarVisibility(.hidden, for: .tabBar)
             }
         }
+        .padding(.bottom, 1)
         // Hide the system tab bar so only the custom floating pill shows. The modifier must sit on
         // *each tab's content* — applying it at the `TabView` level doesn't take on iOS 26, which left
         // the native bar visible *behind* the custom pill (the double-bar bug). The custom bar is
         // floated higher via `safeAreaInset`, which also reserves its space so scrolling content
-        // clears it. The native `TabView` still owns tab switching and per-tab state, so none of the
-        // old custom-pager bugs (zero-height pages, launch hang) can recur; only the bar is custom.
+        // clears it. A 1-point bottom padding on `TabView` forces SwiftUI to break contact with the
+        // bottom safe area, so the inset actually pushes scrollable content up.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FloatingTabBar(selection: $selection)
         }
-        .overlay(alignment: .bottomTrailing) {
-            AskLedgerButton(isPresented: $isPresentingAskLedger)
+        .onChange(of: lockService.isUnlocked) { _, isUnlocked in
+            if isUnlocked { selection = 2 }
+        }
+        .overlay(alignment: .topTrailing) {
+            AskLedgerButton(isPresented: $isPresentingAskLedger, showLabel: selection != 2)
                 .padding(.trailing, 16)
-                .padding(.bottom, 92)
+                .padding(.top, 16)
         }
         .sheet(isPresented: $isPresentingAskLedger) {
             AskLedgerView(month: .now)
@@ -100,7 +106,8 @@ private struct FloatingTabBar: View {
                 tabButton(index)
             }
         }
-        .padding(7)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .background(
             Capsule(style: .continuous)
                 .fill(.regularMaterial)
@@ -109,11 +116,13 @@ private struct FloatingTabBar: View {
         .shadow(color: selectedAccent.base.opacity(0.30), radius: 18, y: 8)
         .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
         .frame(maxWidth: .infinity)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 16)
         .animation(Motion.bouncy, value: selection)
     }
 
-    /// One tab: a plain glyph that grows a gradient label pill in its section color when selected.
+    /// One tab: an icon with a tiny label below it. The selected item gets a tinted pill behind it,
+    /// and a gentle inset top highlight, matching the Liquid Glass tab bar in the Bloom rendering.
     private func tabButton(_ index: Int) -> some View {
         let item = items[index]
         let isSelected = selection == index
@@ -121,24 +130,24 @@ private struct FloatingTabBar: View {
             Haptics.tap(.soft)
             selection = index
         } label: {
-            HStack(spacing: 8) {
+            VStack(spacing: 3) {
                 Image(systemName: item.icon)
                     .font(.system(size: 20, weight: .bold))
                     .symbolEffect(.bounce, value: isSelected)
-                if isSelected {
-                    Text(item.title)
-                        .font(.system(size: 14, weight: .heavy))
-                        .fixedSize()
-                        .transition(.opacity.combined(with: .scale(scale: 0.6, anchor: .leading)))
-                }
+                Text(item.title)
+                    .font(.system(size: 10, weight: .heavy))
             }
-            .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(Color.secondary))
-            .padding(.horizontal, isSelected ? 18 : 15)
-            .padding(.vertical, 14)
+            .foregroundStyle(isSelected ? AnyShapeStyle(item.accent.base) : AnyShapeStyle(Color.secondary))
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .padding(.vertical, 6)
             .background {
                 if isSelected {
                     Capsule(style: .continuous)
-                        .fill(item.accent.gradient)
+                        .fill(item.accent.base.opacity(0.15))
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.4), lineWidth: 0.5)
+                        )
                         .matchedGeometryEffect(id: "pill", in: pill)
                 }
             }
@@ -236,30 +245,51 @@ private struct MoreView: View {
     }
 }
 
-/// A persistent, floating Ask Ledger button. It lives above the custom tab bar on every screen,
-/// so the chat is reachable without changing tabs.
+/// A persistent, floating Ask Ledger button. Moved to the top-right so it doesn't compete with the
+/// custom tab bar, and kept compact so it fits beside navigation content. On non-Home tabs it shows
+/// an attached "Ask Ledger" pill so users know what the sparkle dot does.
 private struct AskLedgerButton: View {
     @Binding var isPresented: Bool
+    let showLabel: Bool
 
     var body: some View {
-        Button {
-            Haptics.tap(.soft)
-            isPresented = true
-        } label: {
-            ZStack {
-                Circle()
-                    .fill(.white)
-                    .frame(width: 58, height: 58)
-                    .shadow(color: Accent.insights.base.opacity(0.45), radius: 14, y: 8)
-                Circle()
-                    .fill(Accent.insights.gradient)
-                    .frame(width: 54, height: 54)
-                Image(systemName: "sparkles")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(.white)
+        HStack(spacing: 0) {
+            if showLabel {
+                Text("Ask Ledger")
+                    .font(.system(size: 10, weight: .black))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(.regularMaterial)
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .strokeBorder(Color.appHairline, lineWidth: 1)
+                            )
+                    )
             }
+            Button {
+                Haptics.tap(.soft)
+                isPresented = true
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 44, height: 44)
+                        .shadow(color: Accent.insights.base.opacity(0.45), radius: 10, y: 4)
+                    Circle()
+                        .fill(Accent.insights.gradient)
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                        .symbolEffect(.pulse, options: .repeating)
+                }
+            }
+            .buttonStyle(.pressable)
+            .zIndex(1)
         }
-        .buttonStyle(.pressable)
         .accessibilityLabel("Ask Ledger")
     }
 }

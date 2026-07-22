@@ -188,32 +188,58 @@ final class AskLedgerViewModel {
                     appendMessage(Message(role: .assistant, text: replyText))
                 }
 
-                guard let plan = reply.budgetPlan, toolRounds < Self.maxToolRoundsPerSend else {
+                guard toolRounds < Self.maxToolRoundsPerSend else {
                     if !replyText.isEmpty {
                         apiHistory.append(.model(text: replyText, functionCall: nil, thoughtSignature: reply.thoughtSignature))
                     }
                     break
                 }
-                toolRounds += 1
 
-                apiHistory.append(.model(
-                    text: replyText.isEmpty ? nil : replyText,
-                    functionCall: GeminiService.FunctionCallEcho(
+                if let plan = reply.budgetPlan {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.createBudgetToolName,
+                            argsJSON: reply.budgetPlanArgsJSON ?? "{}"
+                        ),
+                        // Echo Gemini's reasoning token back on the function-call part next request, or
+                        // the follow-up round-trip 400s with "missing a thought_signature".
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyBudgetPlan(plan)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
                         name: GeminiService.createBudgetToolName,
-                        argsJSON: reply.budgetPlanArgsJSON ?? "{}"
-                    ),
-                    // Echo Gemini's reasoning token back on the function-call part next request, or
-                    // the follow-up round-trip 400s with "missing a thought_signature".
-                    thoughtSignature: reply.thoughtSignature
-                ))
-                let result = applyBudgetPlan(plan)
-                appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
-                apiHistory.append(.functionResponse(
-                    name: GeminiService.createBudgetToolName,
-                    responseJSON: result.responseJSON
-                ))
-                // The plan changed the data the snapshot was built from; rebuild it next message.
-                systemInstruction = nil
+                        responseJSON: result.responseJSON
+                    ))
+                    // The plan changed the data the snapshot was built from; rebuild it next message.
+                    systemInstruction = nil
+                } else if let deletePlan = reply.deletePlan {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.deleteBudgetToolName,
+                            argsJSON: reply.deletePlanArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyDeletePlan(deletePlan)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.deleteBudgetToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
+                } else {
+                    if !replyText.isEmpty {
+                        apiHistory.append(.model(text: replyText, functionCall: nil, thoughtSignature: reply.thoughtSignature))
+                    }
+                    break
+                }
             }
         } catch {
             // Leave the user's question in the transcript and surface why it failed; they can retry.
@@ -317,6 +343,54 @@ final class AskLedgerViewModel {
         return (applied, savingsSet, skipped)
     }
 
+    /// Applies the model's `delete_budget` call by removing budgets for the requested month and
+    /// optionally a single category. Returns a chat-facing note and the JSON result handed back.
+    private func applyDeletePlan(_ plan: GeminiService.BudgetDeletion) -> (note: String, responseJSON: String) {
+        let targetMonth = parseMonth(plan.month) ?? month
+        let budgets = (try? modelContext.fetch(FetchDescriptor<Budget>(predicate: #Predicate { $0.month == targetMonth }))) ?? []
+        let searchName = plan.categoryName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let targetLower = searchName?.lowercased()
+
+        var deleted = 0
+        for budget in budgets {
+            if let targetLower {
+                guard let category = budget.category else { continue }
+                if category.name.trimmingCharacters(in: .whitespaces).lowercased() == targetLower {
+                    modelContext.delete(budget)
+                    deleted += 1
+                }
+            } else {
+                modelContext.delete(budget)
+                deleted += 1
+            }
+        }
+        try? modelContext.save()
+        systemInstruction = nil
+
+        let monthLabel = DateFormatting.monthYear(targetMonth)
+        let note: String
+        if deleted > 0 {
+            note = targetLower != nil
+                ? "Deleted \(deleted) budget(s) for \(monthLabel) matching '\(searchName!)'."
+                : "Deleted all \(deleted) budgets for \(monthLabel)."
+        } else {
+            note = "No matching budgets found for \(monthLabel)."
+        }
+
+        let response: [String: Any] = [
+            "status": deleted > 0 ? "deleted" : "no_match",
+            "deleted": deleted,
+            "month": Self.monthKey(targetMonth)
+        ]
+        let responseJSON: String
+        if let data = try? JSONSerialization.data(withJSONObject: response) {
+            responseJSON = String(decoding: data, as: UTF8.self)
+        } else {
+            responseJSON = #"{"status":"no_match"}"#
+        }
+        return (note, responseJSON)
+    }
+
     // MARK: - Context
 
     /// The advisor persona plus a snapshot of the user's finances: this month's plan, recent
@@ -335,6 +409,7 @@ final class AskLedgerViewModel {
         lines.append("")
         lines.append("Today is \(DateFormatting.medium(.now)). The month currently open in the app is \(DateFormatting.monthYear(month)) (\(Self.monthKey(month))).")
         lines.append("Creating budgets: when — and only when — the user asks you to create, set, or update their budget, call the \(GeminiService.createBudgetToolName) tool. It defaults to the open month (\(DateFormatting.monthYear(month))), but you can budget any month — past or future — by passing the `month` argument as \"YYYY-MM\". For vague or multi-month requests like \"the next three months\", \"the rest of the year\", or \"January through March\", pass `startMonth` and `endMonth` (both \"YYYY-MM\", inclusive) instead and the same amounts apply to every month in that range. Resolve relative phrases like \"last month\", \"next month\", or \"the next three months\" against today's date above; if a request is ambiguous about the span, make a sensible interpretation and state which months you set. Base the amounts on the transaction history below and use the exact category names listed. Always include savingsAmount, sized in proportion to the gap between the month's income and spending: when income comfortably exceeds spending, direct most of the surplus to savings; when the budget is tight, keep it small or zero. Category budgets plus savings must stay within monthly income. Savings is budgeted automatically under a \"Savings\" category — don't also list it in categories.")
+        lines.append("Deleting budgets: when the user asks to delete, remove, or clear a budget or the whole month's plan, call the \(GeminiService.deleteBudgetToolName) tool. Pass `month` as \"YYYY-MM\" for the month to target (defaults to the open month), and optionally `categoryName` to remove only that category's budget. Omit `categoryName` to delete every budget for the month. Do not call this tool unless the user explicitly asks to delete a budget.")
 
         let expenseCategoryNames = ((try? modelContext.fetch(FetchDescriptor<Category>())) ?? [])
             .filter { !$0.isIncome && !$0.isTransfer }

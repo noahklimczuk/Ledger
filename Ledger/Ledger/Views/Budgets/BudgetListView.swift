@@ -7,10 +7,26 @@ import SwiftData
 struct BudgetListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppRefreshCoordinator.self) private var refresh
+    @AppStorage("budgetShowBiweekly") private var showBiweekly = false
     @State private var viewModel: BudgetsViewModel?
     @State private var activeSheet: ActiveSheet?
     @State private var isConfirmingAutoGenerate = false
     @State private var autoGenerateResult: String?
+
+    /// Converts a monthly amount to the bi-weekly equivalent when the user toggles the budget view.
+    private func periodAmount(_ amount: Decimal) -> Decimal {
+        showBiweekly ? amount / 2 : amount
+    }
+
+    /// Formats an amount for the currently selected budget period.
+    private func periodMoney(_ amount: Decimal) -> String {
+        CurrencyFormatter.string(from: periodAmount(amount))
+    }
+
+    /// Suffix for the current budget period view.
+    private var periodSuffix: String {
+        showBiweekly ? " /bi-weekly" : " /mo"
+    }
 
     /// One source of truth for the several sheets this screen can present. Consolidating the
     /// previous six independent `.sheet` bindings behind a single `.sheet(item:)` removes the
@@ -75,6 +91,14 @@ struct BudgetListView: View {
             .accentWash(.budgets)
             .accent(.budgets)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Picker("Budget period", selection: $showBiweekly) {
+                        Text("Monthly").tag(false)
+                        Text("Bi-weekly").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 160)
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button { activeSheet = .newBudget } label: {
@@ -162,12 +186,17 @@ struct BudgetListView: View {
                     .font(.appCaption.weight(.heavy))
                     .tracking(1.2)
                     .foregroundStyle(.secondary)
-                Text(CurrencyFormatter.string(from: viewModel.leftToAssign))
-                    .font(.appDisplay)
-                    .foregroundStyle(leftToAssignColor(viewModel))
-                    .minimumScaleFactor(0.5)
-                    .lineLimit(1)
-                    .contentTransition(.numericText())
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(periodMoney(viewModel.leftToAssign))
+                        .font(.appDisplay)
+                        .foregroundStyle(leftToAssignColor(viewModel))
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                        .contentTransition(.numericText())
+                    Text(periodSuffix)
+                        .font(.appCaption2)
+                        .foregroundStyle(.secondary)
+                }
                 planStatusChip(viewModel)
             }
 
@@ -195,7 +224,7 @@ struct BudgetListView: View {
                         paceMarker: paceMarker(viewModel)
                     )
                     HStack {
-                        Text("\(CurrencyFormatter.string(from: viewModel.totalSpent)) of \(CurrencyFormatter.string(from: viewModel.totalAvailable)) budget spent")
+                        Text("\(periodMoney(viewModel.totalSpent)) of \(periodMoney(viewModel.totalAvailable))\(periodSuffix) budget spent")
                         Spacer()
                         if let daysRemaining = viewModel.daysRemaining {
                             Text("\(daysRemaining) day\(daysRemaining == 1 ? "" : "s") left")
@@ -226,12 +255,12 @@ struct BudgetListView: View {
                 return ("Set your income to start the plan", "info.circle.fill", .secondary)
             }
             if viewModel.leftToAssign < 0 {
-                return ("Over-assigned by \(CurrencyFormatter.string(from: -viewModel.leftToAssign))", "exclamationmark.triangle.fill", Palette.expense)
+                return ("Over-assigned by \(periodMoney(-viewModel.leftToAssign))\(periodSuffix)", "exclamationmark.triangle.fill", Palette.expense)
             }
             if viewModel.leftToAssign == 0 {
                 return ("Every dollar has a job", "checkmark.seal.fill", .brandEmerald)
             }
-            return ("Assign \(CurrencyFormatter.string(from: viewModel.leftToAssign)) to finish the plan", "arrow.down.circle.fill", Palette.amber)
+            return ("Assign \(periodMoney(viewModel.leftToAssign))\(periodSuffix) to finish the plan", "arrow.down.circle.fill", Palette.amber)
         }()
 
         Label(text, systemImage: symbol)
@@ -252,11 +281,16 @@ struct BudgetListView: View {
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
-            Text(CurrencyFormatter.string(from: value))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(color)
-                .minimumScaleFactor(0.6)
-                .lineLimit(1)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(periodMoney(value))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(color)
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
+                Text(periodSuffix)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -348,7 +382,7 @@ struct BudgetListView: View {
             }
         } footer: {
             if viewModel.totalRollover > 0 {
-                Text("Includes \(CurrencyFormatter.string(from: viewModel.totalRollover)) rolled over from last month.")
+                Text("Includes \(periodMoney(viewModel.totalRollover))\(periodSuffix) rolled over from last month.")
             }
         }
     }
@@ -362,10 +396,10 @@ struct BudgetListView: View {
                     CategoryTransactionsView(category: category, month: viewModel.selectedMonth)
                 }
             } label: {
-                BudgetRowView(row: row, paceMarker: paceMarker(viewModel))
+                BudgetRowView(row: row, paceMarker: paceMarker(viewModel), showBiweekly: showBiweekly)
             }
         } else {
-            BudgetRowView(row: row, paceMarker: paceMarker(viewModel))
+            BudgetRowView(row: row, paceMarker: paceMarker(viewModel), showBiweekly: showBiweekly)
         }
     }
 
@@ -384,7 +418,8 @@ struct BudgetListView: View {
                             color: item.categoryColorHex.map { Color(hex: $0) } ?? .gray,
                             name: item.categoryName,
                             detail: "Tap to set a budget",
-                            spent: item.spent
+                            spent: item.spent,
+                            showBiweekly: showBiweekly
                         )
                     }
                     .buttonStyle(.plain)
@@ -394,7 +429,8 @@ struct BudgetListView: View {
                         color: .gray,
                         name: "Uncategorized",
                         detail: "Categorize these transactions to budget them",
-                        spent: item.spent
+                        spent: item.spent,
+                        showBiweekly: showBiweekly
                     )
                 }
             }
@@ -444,9 +480,18 @@ struct BudgetListView: View {
 private struct BudgetRowView: View {
     let row: BudgetsViewModel.BudgetRow
     var paceMarker: Double?
+    var showBiweekly: Bool = false
 
     private var categoryColor: Color {
         row.categoryColorHex.map { Color(hex: $0) } ?? Palette.indigo
+    }
+
+    private func periodMoney(_ amount: Decimal) -> String {
+        CurrencyFormatter.string(from: showBiweekly ? amount / 2 : amount)
+    }
+
+    private var periodSuffix: String {
+        showBiweekly ? " /bi-weekly" : " /mo"
     }
 
     var body: some View {
@@ -489,8 +534,8 @@ private struct BudgetRowView: View {
 
     private var remainingPill: some View {
         Text(row.isOverBudget
-             ? "\(CurrencyFormatter.string(from: -row.remaining)) over"
-             : "\(CurrencyFormatter.string(from: row.remaining)) left")
+             ? "\(periodMoney(-row.remaining))\(periodSuffix) over"
+             : "\(periodMoney(row.remaining))\(periodSuffix) left")
             .font(.caption.weight(.bold))
             .foregroundStyle(row.isOverBudget ? Palette.expense : Palette.income)
             .padding(.horizontal, 9)
@@ -500,9 +545,9 @@ private struct BudgetRowView: View {
     }
 
     private var detailText: String {
-        var text = "\(CurrencyFormatter.string(from: row.spent)) of \(CurrencyFormatter.string(from: row.allocatedIncludingRollover))"
+        var text = "\(periodMoney(row.spent)) of \(periodMoney(row.allocatedIncludingRollover))\(periodSuffix)"
         if row.rolloverFromPreviousMonth > 0 {
-            text += " · incl. \(CurrencyFormatter.string(from: row.rolloverFromPreviousMonth)) rollover"
+            text += " · incl. \(periodMoney(row.rolloverFromPreviousMonth)) rollover"
         }
         return text
     }
@@ -514,6 +559,15 @@ private struct UnbudgetedRowView: View {
     let name: String
     let detail: String
     let spent: Decimal
+    var showBiweekly: Bool = false
+
+    private func periodMoney(_ amount: Decimal) -> String {
+        CurrencyFormatter.string(from: showBiweekly ? amount / 2 : amount)
+    }
+
+    private var periodSuffix: String {
+        showBiweekly ? " /bi-weekly" : " /mo"
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -535,10 +589,15 @@ private struct UnbudgetedRowView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
-            Text(CurrencyFormatter.string(from: spent))
-                .font(.appBody.weight(.heavy))
-                .foregroundStyle(Palette.amber)
-                .layoutPriority(1)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(periodMoney(spent))
+                    .font(.appBody.weight(.heavy))
+                    .foregroundStyle(Palette.amber)
+                    .layoutPriority(1)
+                Text(periodSuffix)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.vertical, 5)
     }

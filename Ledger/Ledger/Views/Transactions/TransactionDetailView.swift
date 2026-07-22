@@ -83,7 +83,7 @@ struct TransactionDetailView: View {
                 .multilineTextAlignment(.center)
 
             Text(CurrencyFormatter.string(from: transaction.amount, currencyCode: transaction.account?.currencyCode ?? "CAD"))
-                .font(.system(size: 52, weight: .bold, design: .rounded))
+                .font(.appMoney)
                 .foregroundStyle(transaction.amount < 0 ? Color.primary : Palette.income)
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)

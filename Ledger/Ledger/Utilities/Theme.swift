@@ -59,12 +59,13 @@ extension Font {
     static let appCaption = AppFont.scaled(12, relativeTo: .caption, weight: .medium)
     static let appCaption2 = AppFont.scaled(11, relativeTo: .caption2, weight: .medium)
 
-    /// Large monetary figures — the same rounded, bold treatment used for headline balances.
-    static let appMoney = AppFont.scaled(34, relativeTo: .largeTitle, weight: .bold)
+    /// Large monetary figures — transaction hero amounts, matching the rendering's `.txhero .a` (44pt).
+    static let appMoney = AppFont.scaled(44, relativeTo: .largeTitle, weight: .bold)
 
     // Bold-editorial display sizes for hero numbers and oversized headlines. Heavier and larger than
-    // the standard scale so the numbers that matter carry the screen.
-    static let appDisplay = AppFont.scaled(46, relativeTo: .largeTitle, weight: .heavy)
+    // the standard scale so the numbers that matter carry the screen. Sizes track the Bloom CSS:
+    // `.amtbig` 56pt for headline balances, `.onbh` 30pt for prominent metrics.
+    static let appDisplay = AppFont.scaled(56, relativeTo: .largeTitle, weight: .heavy)
     static let appNumber = AppFont.scaled(30, relativeTo: .title, weight: .heavy)
 }
 
