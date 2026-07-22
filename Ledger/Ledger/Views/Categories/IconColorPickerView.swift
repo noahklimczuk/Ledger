@@ -22,7 +22,7 @@ struct IconPickerView: View {
                     selection = symbol
                 } label: {
                     Image(systemName: symbol)
-                        .font(.title3)
+                        .font(.appTitle3)
                         .frame(width: 40, height: 40)
                         .background(selection == symbol ? Color.accentColor.opacity(0.2) : Color.clear, in: Circle())
                 }
@@ -58,7 +58,7 @@ struct ColorPickerGridView: View {
                             if selectionHex == hex {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(.white)
-                                    .font(.caption.bold())
+                                    .font(.appCaption.bold())
                             }
                         }
                 }

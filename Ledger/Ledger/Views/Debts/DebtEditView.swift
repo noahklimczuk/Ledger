@@ -123,7 +123,7 @@ struct DebtEditView: View {
                     LabeledContent("Total interest", value: CurrencyFormatter.string(from: projection.totalInterest))
                 } else {
                     Label("This payment won't cover the monthly interest — the balance won't go down. Increase the monthly payment.", systemImage: "exclamationmark.triangle.fill")
-                        .font(.footnote)
+                        .font(.appFootnote)
                         .foregroundStyle(Palette.amber)
                 }
             }

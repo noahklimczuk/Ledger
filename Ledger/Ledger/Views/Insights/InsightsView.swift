@@ -57,7 +57,7 @@ private struct InsightCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: insight.systemImage)
-                .font(.system(size: 15, weight: .bold))
+                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
                 .background(
@@ -69,7 +69,7 @@ private struct InsightCard: View {
                 Text(insight.title)
                     .font(.appSubheadline.weight(.bold))
                 Text(insight.message)
-                    .font(.footnote)
+                    .font(.appFootnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

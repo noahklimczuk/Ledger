@@ -91,17 +91,17 @@ struct CategoryTransactionsView: View {
                 .background(color, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: spent))
-                    .font(.title2.bold())
+                    .font(.appTitle2.bold())
             }
             Spacer()
             if income > 0 {
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("Income").font(.caption).foregroundStyle(.secondary)
+                    Text("Income").font(.appCaption).foregroundStyle(.secondary)
                     Text(CurrencyFormatter.string(from: income))
-                        .fontWeight(.medium)
+                        .font(.appSubheadline.weight(.medium))
                         .foregroundStyle(Palette.income)
                 }
             }

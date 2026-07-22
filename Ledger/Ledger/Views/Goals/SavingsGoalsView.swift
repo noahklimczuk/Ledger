@@ -143,29 +143,29 @@ private struct GoalCard: View {
                         .font(.appBodyMedium.weight(.bold))
                         .lineLimit(1)
                     Text("\(CurrencyFormatter.string(from: goal.savedAmount)) of \(CurrencyFormatter.string(from: goal.targetAmount)) · \(Int(goal.progress * 100))%")
-                        .font(.caption)
+                        .font(.appCaption)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                     if goal.isComplete {
-                        Text("Fully grown 🎉").font(.caption2).foregroundStyle(Palette.green)
+                        Text("Fully grown 🎉").font(.appCaption2).foregroundStyle(Palette.green)
                     } else if let monthly = goal.requiredMonthlyContribution, let targetDate = goal.targetDate {
                         Text("\(CurrencyFormatter.string(from: monthly))/mo · by \(DateFormatting.medium(targetDate))")
-                            .font(.caption2).foregroundStyle(.secondary)
+                            .font(.appCaption2).foregroundStyle(.secondary)
                     } else {
                         Text("\(CurrencyFormatter.string(from: goal.remaining)) to grow")
-                            .font(.caption2).foregroundStyle(.secondary)
+                            .font(.appCaption2).foregroundStyle(.secondary)
                     }
                 }
                 Spacer(minLength: 4)
                 if goal.isAccountTracked {
                     Image(systemName: "link")
-                        .font(.subheadline.weight(.bold))
+                        .font(.appSubheadline.weight(.bold))
                         .foregroundStyle(Accent.goals.base)
                         .accessibilityLabel("Tracks an account automatically")
                 } else if !goal.isComplete {
                     Button(action: onAddMoney) {
                         Image(systemName: "plus")
-                            .font(.headline.weight(.bold))
+                            .font(.appHeadline.weight(.bold))
                             .foregroundStyle(.white)
                             .frame(width: 36, height: 36)
                             .background(Accent.goals.gradient, in: Circle())
@@ -177,7 +177,7 @@ private struct GoalCard: View {
 
             if let account = goal.account {
                 Label("Tracks \(account.name) automatically", systemImage: "link")
-                    .font(.caption)
+                    .font(.appCaption)
                     .foregroundStyle(.secondary)
             }
         }

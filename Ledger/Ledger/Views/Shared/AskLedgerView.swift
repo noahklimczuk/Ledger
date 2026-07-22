@@ -104,7 +104,7 @@ struct AskLedgerView: View {
                         }
                         if let errorText = viewModel.errorText {
                             Label(errorText, systemImage: "exclamationmark.triangle")
-                                .font(.footnote)
+                                .font(.appFootnote)
                                 .foregroundStyle(Palette.amber)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -132,22 +132,26 @@ struct AskLedgerView: View {
     private var intro: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "bubble.left.and.bubble.right.fill")
-                .font(.system(size: 16, weight: .semibold))
+                .font(AppFont.scaled(16, relativeTo: .body, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 36, height: 36)
                 .background(LinearGradient.brand, in: Circle())
             VStack(alignment: .leading, spacing: 4) {
                 Text("Ask Ledger")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.appSubheadline.weight(.semibold))
                 Text("Ask about this month's plan, where to cut back, or have me build your budget from your transactions — with savings sized to what's left of your income.")
-                    .font(.footnote)
+                    .font(.appFootnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.appHairline, lineWidth: 1)
+        )
     }
 
     private func starterPrompts(_ viewModel: AskLedgerViewModel) -> some View {
@@ -158,7 +162,7 @@ struct AskLedgerView: View {
                 } label: {
                     HStack {
                         Text(prompt)
-                            .font(.subheadline)
+                            .font(.appSubheadline)
                             .multilineTextAlignment(.leading)
                         Spacer()
                         Image(systemName: "arrow.up.circle")
@@ -167,7 +171,7 @@ struct AskLedgerView: View {
                     .padding(.vertical, 10)
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.thinMaterial, in: Capsule())
+                    .background(Color.appSurface, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .disabled(viewModel.isSending)
@@ -179,7 +183,7 @@ struct AskLedgerView: View {
         HStack(spacing: 6) {
             ProgressView()
             Text("Thinking…")
-                .font(.footnote)
+                .font(.appFootnote)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -204,12 +208,12 @@ struct AskLedgerView: View {
             Section {
                 VStack(spacing: 10) {
                     Image(systemName: "bubble.left.and.bubble.right.fill")
-                        .font(.system(size: 36))
+                        .font(.appDisplay)
                         .foregroundStyle(LinearGradient.brand)
                     Text("Meet Ask Ledger")
-                        .font(.headline)
+                        .font(.appHeadline)
                     Text("Chat about your budget and spending, grounded in your real numbers, and let it build your monthly budget for you. It runs on Google Gemini's free tier — add a key once to turn it on. Your budget totals and recent transactions (date, amount, category, merchant) are sent — never account names, balances, or notes.")
-                        .font(.footnote)
+                        .font(.appFootnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -258,21 +262,21 @@ private struct AdvisorInputBar: View {
                 .textFieldStyle(.plain)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 14)
-                .background(.thinMaterial, in: Capsule())
+                .background(Color.appSurface, in: Capsule(style: .continuous))
 
             Button {
                 submit()
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 30))
+                    .font(.appMoney)
                     .foregroundStyle(canSend ? AnyShapeStyle(LinearGradient.brand) : AnyShapeStyle(Color.secondary))
             }
             .disabled(!canSend)
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(.bar)
-        .overlay(alignment: .top) { Divider() }
+        .background(Color.appSurface)
+        .overlay(alignment: .top) { Rectangle().fill(Color.appHairline).frame(height: 1) }
     }
 
     private func submit() {
@@ -290,11 +294,11 @@ private struct ActionNote: View {
 
     var body: some View {
         Label(text, systemImage: "checkmark.circle.fill")
-            .font(.footnote.weight(.medium))
+            .font(.appFootnote.weight(.medium))
             .foregroundStyle(.secondary)
             .padding(.vertical, 6)
             .padding(.horizontal, 12)
-            .background(.thinMaterial, in: Capsule())
+            .background(Color.appSurface, in: Capsule(style: .continuous))
             .frame(maxWidth: .infinity)
             .multilineTextAlignment(.center)
     }
@@ -309,7 +313,7 @@ private struct MessageBubble: View {
         HStack {
             if message.role == .user { Spacer(minLength: 40) }
             Text(rendered)
-                .font(.subheadline)
+                .font(.appSubheadline)
                 .foregroundStyle(message.role == .user ? Color.white : Color.primary)
                 .padding(.vertical, 10)
                 .padding(.horizontal, 14)
@@ -330,7 +334,12 @@ private struct MessageBubble: View {
         if message.role == .user {
             LinearGradient.brand.clipShape(RoundedRectangle(cornerRadius: 16))
         } else {
-            RoundedRectangle(cornerRadius: 16).fill(.thinMaterial)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.appSurface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.appHairline, lineWidth: 1)
+                )
         }
     }
 }

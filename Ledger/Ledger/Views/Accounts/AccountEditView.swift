@@ -42,7 +42,7 @@ struct AccountEditView: View {
                     Section {
                         Label(linkedSourceLabel, systemImage: "link")
                             .foregroundStyle(.secondary)
-                            .font(.footnote)
+                            .font(.appFootnote)
                     }
                 }
                 if isEditing {

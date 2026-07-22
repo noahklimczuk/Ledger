@@ -24,7 +24,7 @@ struct BillRemindersView: View {
                         if viewModel.notificationsDenied {
                             Section {
                                 Label("Notifications are turned off. Enable them in Settings to get reminders.", systemImage: "exclamationmark.triangle")
-                                    .font(.footnote)
+                                    .font(.appFootnote)
                                     .foregroundStyle(Palette.amber)
                             }
                         }

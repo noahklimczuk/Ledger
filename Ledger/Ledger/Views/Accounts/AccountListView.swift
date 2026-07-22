@@ -71,7 +71,7 @@ struct AccountListView: View {
 
             HStack(spacing: 6) {
                 Image(systemName: viewModel.netWorthDeltaThisMonth >= 0 ? "arrow.up" : "arrow.down")
-                    .font(.caption2.weight(.heavy))
+                    .font(.appCaption2.weight(.heavy))
                 Text(CurrencyFormatter.string(from: viewModel.netWorthDeltaThisMonth))
                     .font(.appCaption.weight(.heavy))
             }
@@ -172,7 +172,7 @@ struct AccountListView: View {
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundStyle(.tertiary)
             }
         }

@@ -39,7 +39,7 @@ struct SearchBar: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
-        .background(.thinMaterial, in: Capsule())
+        .background(Color.appSurface, in: Capsule(style: .continuous))
         .overlay(Capsule().strokeBorder(Color.primary.opacity(0.06)))
     }
 
@@ -70,10 +70,10 @@ struct SearchBar: View {
     private var cancelButton: some View {
         Button(action: onCancel) {
             Image(systemName: "xmark")
-                .font(.system(size: 15, weight: .semibold))
+                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .frame(width: 40, height: 40)
-                .background(.thinMaterial, in: Circle())
+                .background(Color.appSurface, in: Circle())
                 .overlay(Circle().strokeBorder(Color.primary.opacity(0.06)))
         }
         .buttonStyle(.plain)

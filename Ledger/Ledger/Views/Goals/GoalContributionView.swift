@@ -37,7 +37,7 @@ struct GoalContributionView: View {
                     TextField("0.00", text: $amountText)
                         .keyboardType(.decimalPad)
                         .focused($amountFocused)
-                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                        .font(.appMoney)
                         .multilineTextAlignment(.center)
                         .padding(.vertical, 8)
 
@@ -56,7 +56,7 @@ struct GoalContributionView: View {
 
                     if amount != nil {
                         Text("Brings you to \(CurrencyFormatter.string(from: projectedTotal)) · \(projectedPercent)% of the goal")
-                            .font(.footnote)
+                            .font(.appFootnote)
                             .foregroundStyle(.secondary)
                             .contentTransition(.numericText())
                     }
@@ -84,14 +84,14 @@ struct GoalContributionView: View {
     private var header: some View {
         VStack(spacing: 8) {
             Image(systemName: goal.sfSymbolName)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.appTitle3.weight(.semibold))
                 .foregroundStyle(.white)
                 .frame(width: 48, height: 48)
                 .background(Color(hex: goal.colorHex), in: Circle())
             Text(goal.name)
-                .font(.headline)
+                .font(.appHeadline)
             Text("\(CurrencyFormatter.string(from: goal.savedAmount)) of \(CurrencyFormatter.string(from: goal.targetAmount)) · \(CurrencyFormatter.string(from: goal.remaining)) to go")
-                .font(.caption)
+                .font(.appCaption)
                 .foregroundStyle(.secondary)
             ProgressView(value: goal.progress)
                 .tint(Color(hex: goal.colorHex))
@@ -107,7 +107,7 @@ struct GoalContributionView: View {
                     amountText = NSDecimalNumber(decimal: current + chip).stringValue
                 } label: {
                     Text("+\(CurrencyFormatter.string(from: chip))")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.appSubheadline.weight(.semibold))
                         .padding(.horizontal, 4)
                 }
                 .buttonStyle(.bordered)

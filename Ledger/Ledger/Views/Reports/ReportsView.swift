@@ -195,14 +195,14 @@ struct ReportsView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Spending change")
-                            .font(.subheadline).foregroundStyle(.secondary)
+                            .font(.appSubheadline).foregroundStyle(.secondary)
                         Text(CurrencyFormatter.string(from: abs(delta)))
-                            .font(.title3.bold())
+                            .font(.appMoney)
                             .foregroundStyle(isUp ? Palette.expense : Palette.income)
                     }
                     Spacer()
                     Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
-                        .font(.title)
+                        .font(.appTitle)
                         .foregroundStyle(isUp ? Palette.expense : Palette.income)
                 }
             }

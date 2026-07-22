@@ -54,7 +54,7 @@ struct TransactionRowView: View {
         let symbol = transaction.category?.sfSymbolName ?? "questionmark.circle.fill"
         let color = categoryColor
         return Image(systemName: symbol)
-            .font(.system(size: 16, weight: .bold))
+            .font(AppFont.scaled(16, relativeTo: .body, weight: .bold))
             .foregroundStyle(.white)
             .frame(width: 44, height: 44)
             .background(

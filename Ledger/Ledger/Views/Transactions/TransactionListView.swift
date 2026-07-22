@@ -304,7 +304,7 @@ struct TransactionListView: View {
                     } label: {
                         Label("Show All History", systemImage: "clock.arrow.circlepath")
                             .frame(maxWidth: .infinity)
-                            .font(.subheadline)
+                            .font(.appSubheadline)
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
