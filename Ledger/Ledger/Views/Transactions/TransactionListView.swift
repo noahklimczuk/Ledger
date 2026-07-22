@@ -148,7 +148,7 @@ struct TransactionListView: View {
                         )
                 }
             }
-            .navigationTitle("Transactions")
+            .navigationTitle("Activity")
             .accentWash(.transactions)
             .accent(.transactions)
             // Pull-to-refresh runs a real sync (not just a local re-read); the reload triggered off

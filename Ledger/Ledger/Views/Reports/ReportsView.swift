@@ -148,9 +148,6 @@ struct ReportsView: View {
                         }
                     }
                 )
-                Text("Tap a slice or row to see its transactions.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
             }
         }
     }

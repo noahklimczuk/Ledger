@@ -56,6 +56,8 @@ struct AccountEditView: View {
             }
             .navigationTitle(isEditing ? "Edit Account" : "New Account")
             .accent(.accounts)
+            .accentWash(.accounts)
+            .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

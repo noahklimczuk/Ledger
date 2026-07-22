@@ -22,6 +22,8 @@ struct DashboardView: View {
     @State private var viewModel: DashboardViewModel?
     @State private var isPresentingCheckIn = false
     @State private var isCheckInDue = false
+    @State private var isPresentingNewAccount = false
+    @State private var isPresentingNewTransaction = false
     @State private var drilldown: CategoryDrilldown?
     @State private var flowDrilldown: MonthFlow?
     /// Whether the Total Balance card is expanded to reveal the per-account breakdown.
@@ -36,7 +38,7 @@ struct DashboardView: View {
                     LoadingView()
                 }
             }
-            .navigationTitle("Dashboard")
+            .navigationTitle("Home")
             .accent(.dashboard)
             .navigationDestination(item: $drilldown) { target in
                 switch target {
@@ -59,6 +61,12 @@ struct DashboardView: View {
                 viewModel?.load()
             }) {
                 DailyCheckInView()
+            }
+            .sheet(isPresented: $isPresentingNewAccount, onDismiss: { viewModel?.load() }) {
+                AccountEditView(account: nil)
+            }
+            .sheet(isPresented: $isPresentingNewTransaction, onDismiss: { viewModel?.load() }) {
+                TransactionEditView(transaction: nil)
             }
             // Reload once a background refresh (sync + categorize) finishes, so balances and
             // recent transactions reflect the latest data without needing to re-open the tab.
@@ -103,77 +111,60 @@ struct DashboardView: View {
         }
     }
 
-    /// First-run guidance: a blank dashboard should say what to do, not just that it's empty.
+    /// Bloom empty dashboard: warm, minimal, no tutorial copy.
     private var onboardingCard: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(spacing: 8) {
-                    Image(systemName: "chart.bar.fill")
-                        .font(.system(size: 40))
-                        .foregroundStyle(LinearGradient.brand)
-                    Text("Welcome to Ledger")
-                        .font(.appTitle2)
-                    Text("Three ways to get your money in — pick whichever fits.")
+            VStack(spacing: 14) {
+                VStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    gradient: Gradient(colors: [Palette.green.opacity(0.18), Color.clear]),
+                                    center: .center,
+                                    startRadius: 10,
+                                    endRadius: 70
+                                )
+                            )
+                            .frame(width: 130, height: 130)
+                        Text("🌱")
+                            .font(.system(size: 54))
+                    }
+                    .padding(.top, 40)
+
+                    Text("Let's plant your first goal")
+                        .font(.appTitle2.weight(.heavy))
+                        .multilineTextAlignment(.center)
+
+                    Text("Add an account or a few transactions and your balance, budgets and wellness score will bloom here.")
                         .font(.appSubheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 20)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 24)
 
-                onboardingStep(
-                    number: 1,
-                    symbol: "banknote",
-                    title: "Add an account",
-                    detail: "Accounts tab → +. A chequing account with a starting balance is enough to begin."
-                )
-                onboardingStep(
-                    number: 2,
-                    symbol: "link",
-                    title: "Or connect Wealthsimple",
-                    detail: "More → Connect Wealthsimple signs in with your Wealthsimple login and pulls in your Cash account and transactions automatically."
-                )
-                onboardingStep(
-                    number: 3,
-                    symbol: "square.and.arrow.down",
-                    title: "Or import a file",
-                    detail: "More → Import CSV / OFX brings in a statement export from any bank, with automatic deduplication."
-                )
+                VStack(spacing: 12) {
+                    AccentButton(title: "Add an account", systemName: "banknote", accent: .dashboard) {
+                        isPresentingNewAccount = true
+                    }
 
-                Text("Once transactions are in, Ledger auto-categorizes them, spots recurring bills, and can suggest a monthly budget from your real spending.")
-                    .font(.appFootnote)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 4)
+                    Button {
+                        isPresentingNewTransaction = true
+                    } label: {
+                        Text("Add a transaction by hand")
+                            .font(.appSubheadline.weight(.heavy))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 10)
+
+                Spacer()
             }
             .padding()
         }
-        .background(Color.appBackground)
-    }
-
-    private func onboardingStep(number: Int, symbol: String, title: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text("\(number)")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 26, height: 26)
-                .background(LinearGradient.brand, in: Circle())
-            VStack(alignment: .leading, spacing: 3) {
-                Label(title, systemImage: symbol)
-                    .font(.appSubheadline.weight(.semibold))
-                Text(detail)
-                    .font(.appFootnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous)
-                .strokeBorder(Color.appHairline, lineWidth: 1)
-        )
-        .accessibilityElement(children: .combine)
+        .accentWash(.dashboard)
     }
 
     /// Shown on days the check-in hasn't been done yet — the ritual only sticks if the app
@@ -239,7 +230,7 @@ struct DashboardView: View {
     /// tapping through to the full Ask Ledger screen.
     private func askLedgerCard(_ viewModel: DashboardViewModel) -> some View {
         NavigationLink {
-            InsightsView()
+            AskLedgerView(month: .now)
         } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {
@@ -364,6 +355,18 @@ struct DashboardView: View {
                 }
                 .accessibilityElement(children: .combine)
             }
+            NavigationLink { AccountListView() } label: {
+                HStack {
+                    Text("All accounts")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.top, 14)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -441,9 +444,6 @@ struct DashboardView: View {
                         }
                     }
                 )
-                Text("Tap a slice to see its transactions.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
             }
         }
     }

@@ -85,6 +85,8 @@ struct TransactionFilterView: View {
             }
             .navigationTitle("Filter")
             .accent(.transactions)
+            .accentWash(.transactions)
+            .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

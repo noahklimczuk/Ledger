@@ -1,15 +1,15 @@
 import SwiftUI
 import SwiftData
 
-/// The AI financial-advisor chat, opened from the floating bubble on the Budgets screen. It talks
-/// to Gemini (the same free key used for budget suggestions) grounded in the current plan and
-/// recent transactions, and can build the month's budget on request — including a savings
-/// set-aside proportional to income vs. spending. See `AIAdvisorViewModel`.
-struct AIAdvisorView: View {
+/// Ask Ledger: a floating, always-available AI chat. It talks to Gemini (the same free key used
+/// for budget suggestions) grounded in the current month's plan, recent transactions, and account
+/// data, and can take action — building budgets, creating transactions, adding bills and goals,
+/// and more — from natural language. See `AskLedgerViewModel`.
+struct AskLedgerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     let month: Date
-    @State private var viewModel: AIAdvisorViewModel?
+    @State private var viewModel: AskLedgerViewModel?
 
     var body: some View {
         NavigationStack {
@@ -24,7 +24,7 @@ struct AIAdvisorView: View {
                     LoadingView()
                 }
             }
-            .navigationTitle("Financial Advisor")
+            .navigationTitle("Ask Ledger")
             .accent(.insights)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -48,7 +48,7 @@ struct AIAdvisorView: View {
             }
             .task {
                 if viewModel == nil {
-                    viewModel = AIAdvisorViewModel(modelContext: modelContext, month: month)
+                    viewModel = AskLedgerViewModel(modelContext: modelContext, month: month)
                 }
             }
         }
@@ -57,7 +57,7 @@ struct AIAdvisorView: View {
     // MARK: - History
 
     /// Lists saved conversations, most recent first; tapping one reopens it.
-    private func historyMenu(_ viewModel: AIAdvisorViewModel) -> some View {
+    private func historyMenu(_ viewModel: AskLedgerViewModel) -> some View {
         Menu {
             if viewModel.recentChats.isEmpty {
                 Text("No saved chats yet")
@@ -80,7 +80,7 @@ struct AIAdvisorView: View {
 
     // MARK: - Chat
 
-    private func chat(_ viewModel: AIAdvisorViewModel) -> some View {
+    private func chat(_ viewModel: AskLedgerViewModel) -> some View {
         VStack(spacing: 0) {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -136,7 +136,7 @@ struct AIAdvisorView: View {
                 .frame(width: 36, height: 36)
                 .background(LinearGradient.brand, in: Circle())
             VStack(alignment: .leading, spacing: 4) {
-                Text("Your financial advisor")
+                Text("Ask Ledger")
                     .font(.subheadline.weight(.semibold))
                 Text("Ask about this month's plan, where to cut back, or have me build your budget from your transactions — with savings sized to what's left of your income.")
                     .font(.footnote)
@@ -149,7 +149,7 @@ struct AIAdvisorView: View {
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 
-    private func starterPrompts(_ viewModel: AIAdvisorViewModel) -> some View {
+    private func starterPrompts(_ viewModel: AskLedgerViewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(viewModel.suggestedPrompts, id: \.self) { prompt in
                 Button {
@@ -186,7 +186,7 @@ struct AIAdvisorView: View {
 
     private static let typingID = "advisor.typing"
 
-    private func scrollToEnd(_ viewModel: AIAdvisorViewModel, _ proxy: ScrollViewProxy) {
+    private func scrollToEnd(_ viewModel: AskLedgerViewModel, _ proxy: ScrollViewProxy) {
         withAnimation(.easeOut(duration: 0.2)) {
             if viewModel.isSending {
                 proxy.scrollTo(Self.typingID, anchor: .bottom)
@@ -198,14 +198,14 @@ struct AIAdvisorView: View {
 
     // MARK: - API key entry
 
-    private func keyEntry(_ viewModel: AIAdvisorViewModel) -> some View {
+    private func keyEntry(_ viewModel: AskLedgerViewModel) -> some View {
         Form {
             Section {
                 VStack(spacing: 10) {
                     Image(systemName: "bubble.left.and.bubble.right.fill")
                         .font(.system(size: 36))
                         .foregroundStyle(LinearGradient.brand)
-                    Text("Meet your financial advisor")
+                    Text("Meet Ask Ledger")
                         .font(.headline)
                     Text("Chat about your budget and spending, grounded in your real numbers, and let it build your monthly budget for you. It runs on Google Gemini's free tier — add a key once to turn it on. Your budget totals and recent transactions (date, amount, category, merchant) are sent — never account names, balances, or notes.")
                         .font(.footnote)
@@ -301,7 +301,7 @@ private struct ActionNote: View {
 /// One chat bubble: the user's turns trail right on the accent gradient, the advisor's lead left
 /// on a material card. Advisor replies render their (lightweight) Markdown.
 private struct MessageBubble: View {
-    let message: AIAdvisorViewModel.Message
+    let message: AskLedgerViewModel.Message
 
     var body: some View {
         HStack {
@@ -334,6 +334,6 @@ private struct MessageBubble: View {
 }
 
 #Preview {
-    AIAdvisorView(month: .now)
+    AskLedgerView(month: .now)
         .modelContainer(for: LedgerSchema.models, inMemory: true)
 }

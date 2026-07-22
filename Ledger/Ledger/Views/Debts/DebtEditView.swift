@@ -59,6 +59,8 @@ struct DebtEditView: View {
             }
             .navigationTitle(isEditing ? "Edit Debt" : "New Debt")
             .accent(.debt)
+            .accentWash(.debt)
+            .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -108,8 +110,6 @@ struct DebtEditView: View {
                 }
             } header: {
                 Text("Assigned Transactions")
-            } footer: {
-                Text("Once you file a payment under a debt, Ledger recognizes that merchant and files matching payments here automatically — paying the balance down as they arrive.")
             }
         }
     }

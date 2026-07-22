@@ -61,28 +61,26 @@ struct CSVImportView: View {
                     message: "Imported transactions need an account to land in. Create one under Accounts, then come back."
                 )
             } else {
-                ContentUnavailableView {
-                    Label("Import Transactions", systemImage: "doc.text.magnifyingglass")
-                } description: {
-                    Text("Import a CSV or OFX/QFX export from Wealthsimple or your bank. Transactions are deduplicated automatically.")
-                } actions: {
-                    Button {
-                        isPresentingFileImporter = true
-                    } label: {
-                        Label("Choose File", systemImage: "folder")
+                VStack(spacing: 16) {
+                    EmptyStateView(
+                        systemImage: "doc.text.magnifyingglass",
+                        title: "Import Transactions",
+                        message: "Choose a CSV or OFX/QFX export from your bank. Transactions are deduplicated automatically.",
+                        actionTitle: "Choose File",
+                        action: { isPresentingFileImporter = true }
+                    )
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(Palette.expense)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                     }
-                    .buttonStyle(.borderedProminent)
-                }
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(Palette.expense)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accentWash(.transactions)
     }
 
     // MARK: - Stage: configure / map
@@ -259,16 +257,31 @@ struct CSVImportView: View {
     // MARK: - Stage: complete
 
     private func completeStage(_ viewModel: CSVImportViewModel) -> some View {
-        ContentUnavailableView {
-            Label("Import Complete", systemImage: "checkmark.circle.fill")
-        } description: {
-            if let summary = viewModel.summary {
-                Text("\(summary.transactionsCreated) transactions imported, \(summary.transactionsSkipped) already present.")
+        VStack(spacing: 20) {
+            Spacer()
+            ZStack {
+                Circle()
+                    .fill(Palette.income.opacity(0.15))
+                    .frame(width: 120, height: 120)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 52, weight: .bold))
+                    .foregroundStyle(Palette.income)
             }
-        } actions: {
+            Text("Import Complete")
+                .font(.appTitle3.weight(.heavy))
+            if let summary = viewModel.summary {
+                Text("\(summary.transactionsCreated) imported, \(summary.transactionsSkipped) already present.")
+                    .font(.appSubheadline)
+                    .foregroundStyle(.secondary)
+            }
             Button("Done") { dismiss() }
                 .buttonStyle(.borderedProminent)
+                .padding(.top, 8)
+            Spacer()
         }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accentWash(.transactions)
     }
 }
 

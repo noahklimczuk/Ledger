@@ -73,14 +73,29 @@ struct BudgetSuggestionView: View {
         case .review:
             reviewList(viewModel)
         case .applied:
-            ContentUnavailableView {
-                Label("Budget Applied", systemImage: "checkmark.circle.fill")
-            } description: {
+            VStack(spacing: 20) {
+                Spacer()
+                ZStack {
+                    Circle()
+                        .fill(Palette.income.opacity(0.15))
+                        .frame(width: 120, height: 120)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 52, weight: .bold))
+                        .foregroundStyle(Palette.income)
+                }
+                Text("Budget Applied")
+                    .font(.appTitle3.weight(.heavy))
                 Text("\(viewModel.appliedCount) budget\(viewModel.appliedCount == 1 ? "" : "s") set for \(DateFormatting.monthYear(viewModel.month)).")
-            } actions: {
+                    .font(.appSubheadline)
+                    .foregroundStyle(.secondary)
                 Button("Done") { dismiss() }
                     .buttonStyle(.borderedProminent)
+                    .padding(.top, 8)
+                Spacer()
             }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accentWash(.budgets)
         }
     }
 
@@ -103,16 +118,12 @@ struct BudgetSuggestionView: View {
                     Spacer()
                     Text("\(viewModel.includedCount) of \(viewModel.rows.count) included")
                 }
-            } footer: {
-                Text("Toggle a category off to leave its budget unchanged. Amounts are editable. Nothing is saved until you tap Apply.")
             }
 
             Section {
                 savingsRow(viewModel)
             } header: {
                 Text("Monthly Savings")
-            } footer: {
-                Text("Set aside for the month, sized to the gap between your income and spending. Applied as a budget on a “Savings” category.")
             }
 
             if let aiStatus = viewModel.aiStatus {

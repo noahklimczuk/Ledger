@@ -1,139 +1,218 @@
 import SwiftUI
 import SwiftData
 
-/// The screen for connecting a Wealthsimple **Cash** account directly, using the user's own
-/// Wealthsimple login. There's no aggregator and no API keys -- just email/password and, when
-/// prompted, a 2-step verification code. The resulting session is stored in the Keychain and used
-/// to sync accounts + activity (`IntegrationsViewModel` → `WealthsimpleSyncCoordinator`).
+/// Bloom-styled Wealthsimple connection sheet. Direct login, no aggregator. Your credentials go
+/// only to Wealthsimple; Ledger stores the resulting session token in the iOS Keychain.
 struct IntegrationsSettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @State private var viewModel: IntegrationsViewModel?
 
     var body: some View {
-        Group {
-            if let viewModel {
-                Form {
-                    Section {
-                        Text("Ledger connects directly to Wealthsimple with your own login to pull in your Wealthsimple Cash account and its transactions. Your email and password are sent only to Wealthsimple to sign in — Ledger keeps just the resulting secure token, in the iOS Keychain.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if viewModel.connectionState == .notConnected {
-                        signInSection(viewModel)
-                    }
-
-                    Section("Wealthsimple") {
-                        statusRow(viewModel)
-
-                        if viewModel.connectionState == .connected {
-                            lastSyncedRow(viewModel)
-                        }
-
-                        if viewModel.needsReauth {
-                            Label("Wealthsimple needs you to sign in again to keep syncing.", systemImage: "exclamationmark.triangle.fill")
-                                .font(.footnote)
-                                .foregroundStyle(Palette.amber)
-                        }
-
-                        if viewModel.connectionState == .connected {
-                            Button("Sync Now") {
-                                Task { await viewModel.sync() }
+        NavigationStack {
+            Group {
+                if let viewModel {
+                    ScrollView {
+                        VStack(spacing: Theme.sectionSpacing) {
+                            statusCard(viewModel)
+                            if viewModel.connectionState == .notConnected {
+                                signInCard(viewModel)
                             }
-                            .disabled(viewModel.isBusy)
-
-                            Button("Disconnect", role: .destructive) {
-                                viewModel.disconnect()
+                            if viewModel.connectionState == .connected {
+                                connectedActions(viewModel)
+                            }
+                            if let summary = viewModel.lastSyncSummary {
+                                syncSummaryCard(summary)
+                            }
+                            if let lastError = viewModel.lastError {
+                                errorBanner(lastError)
                             }
                         }
+                        .padding()
                     }
-
-                    if viewModel.connectionState == .connected {
-                        Section {
-                            Text("Ledger syncs automatically when you open the app (at most every few hours). Your manual edits are always kept — a re-sync never overwrites a transaction or account you've changed.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    if let summary = viewModel.lastSyncSummary {
-                        Section("Last Sync") {
-                            Text("\(summary.accountsCreated) accounts added, \(summary.transactionsCreated) new transactions, \(summary.transactionsSkipped) already up to date.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    if let lastError = viewModel.lastError {
-                        Section {
-                            Text(lastError)
-                                .foregroundStyle(Palette.expense)
-                                .font(.footnote)
-                        }
-                    }
+                    .background(Color.appBackground.ignoresSafeArea())
+                } else {
+                    LoadingView()
                 }
-            } else {
-                LoadingView()
+            }
+            .navigationTitle("Connect Wealthsimple")
+            .navigationBarTitleDisplayMode(.inline)
+            .accent(.accounts)
+            .accentWash(.accounts)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
             }
         }
-        .navigationTitle("Connect Wealthsimple")
-        .accent(.accounts)
-        .navigationBarTitleDisplayMode(.inline)
         .task {
             if viewModel == nil { viewModel = IntegrationsViewModel(modelContext: modelContext) }
         }
     }
 
-    @ViewBuilder
-    private func signInSection(_ viewModel: IntegrationsViewModel) -> some View {
-        Section("Sign in to Wealthsimple") {
+    // MARK: - Status
+
+    private func statusCard(_ viewModel: IntegrationsViewModel) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 14) {
+                IconBadge(systemName: "link", accent: .accounts, size: 46, filled: false)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Wealthsimple")
+                        .font(.appHeadline.weight(.heavy))
+                    Text(viewModel.connectionState == .connected ? "Connected" : "Not connected")
+                        .font(.appSubheadline)
+                        .foregroundStyle(viewModel.connectionState == .connected ? Palette.income : Palette.amber)
+                }
+                Spacer()
+            }
+
+            Text("Ledger signs in directly with your Wealthsimple login. Your password is sent only to Wealthsimple; Ledger stores just the secure session token in your Keychain.")
+                .font(.appFootnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Theme.cardPadding)
+        .card()
+    }
+
+    // MARK: - Sign in
+
+    private func signInCard(_ viewModel: IntegrationsViewModel) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Sign in")
+                .font(.appCaption2.weight(.heavy))
+                .tracking(0.4)
+                .foregroundStyle(.secondary)
+
             TextField("Email", text: Binding(get: { viewModel.email }, set: { viewModel.email = $0 }))
                 .textContentType(.username)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .padding(14)
+                .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous).strokeBorder(Color.appHairline, lineWidth: 1))
+
             SecureField("Password", text: Binding(get: { viewModel.password }, set: { viewModel.password = $0 }))
                 .textContentType(.password)
+                .padding(14)
+                .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous).strokeBorder(Color.appHairline, lineWidth: 1))
 
             if viewModel.needsOTP {
-                TextField("2-step verification code", text: Binding(get: { viewModel.otp }, set: { viewModel.otp = $0 }))
+                TextField("2-step code", text: Binding(get: { viewModel.otp }, set: { viewModel.otp = $0 }))
                     .textContentType(.oneTimeCode)
                     .keyboardType(.numberPad)
+                    .padding(14)
+                    .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous).strokeBorder(Color.appHairline, lineWidth: 1))
             }
 
             Button {
                 Task { await viewModel.connect() }
             } label: {
-                if viewModel.isBusy {
-                    ProgressView()
-                } else {
-                    Text(viewModel.needsOTP ? "Verify & Connect" : "Connect Wealthsimple")
+                HStack {
+                    if viewModel.isBusy {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .tint(.white)
+                    } else {
+                        Text(viewModel.needsOTP ? "Verify & Connect" : "Connect Wealthsimple")
+                    }
                 }
+                .font(.appSubheadline.weight(.black))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
             }
+            .buttonStyle(.borderedProminent)
             .disabled(viewModel.isBusy || viewModel.email.isEmpty || viewModel.password.isEmpty)
         }
+        .padding(Theme.cardPadding)
+        .card()
     }
 
-    private func statusRow(_ viewModel: IntegrationsViewModel) -> some View {
-        HStack {
-            Text("Status")
-            Spacer()
-            switch viewModel.connectionState {
-            case .notConnected:
-                Label("Not Connected", systemImage: "circle").foregroundStyle(Palette.amber)
-            case .connected:
-                Label("Connected", systemImage: "checkmark.circle.fill").foregroundStyle(Palette.income)
+    // MARK: - Connected actions
+
+    private func connectedActions(_ viewModel: IntegrationsViewModel) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if viewModel.needsReauth {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(Palette.amber)
+                    Text("Wealthsimple needs you to sign in again to keep syncing.")
+                        .font(.appSubheadline.weight(.semibold))
+                        .foregroundStyle(Palette.amberDeep)
+                }
+                .padding(14)
+                .background(Palette.amber.opacity(0.12), in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
+            }
+
+            if viewModel.connectionState == .connected {
+                HStack {
+                    Text("Last synced")
+                        .font(.appBodyMedium.weight(.semibold))
+                    Spacer()
+                    Text(viewModel.lastSyncedAt.map { $0.formatted(.relative(presentation: .named)) } ?? "Never")
+                        .font(.appBody)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    Task { await viewModel.sync() }
+                } label: {
+                    Label("Sync Now", systemImage: "arrow.clockwise")
+                        .font(.appSubheadline.weight(.black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isBusy)
+
+                Button {
+                    viewModel.disconnect()
+                } label: {
+                    Label("Disconnect", systemImage: "link.icloud.slash")
+                        .font(.appSubheadline.weight(.black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .foregroundStyle(Palette.coral)
+                }
+                .buttonStyle(.plain)
             }
         }
+        .padding(Theme.cardPadding)
+        .card()
     }
 
-    private func lastSyncedRow(_ viewModel: IntegrationsViewModel) -> some View {
-        HStack {
-            Text("Last Synced")
-            Spacer()
-            Text(viewModel.lastSyncedAt.map { $0.formatted(.relative(presentation: .named)) } ?? "Never")
+    // MARK: - Summary / error
+
+    private func syncSummaryCard(_ summary: IntegrationsViewModel.LastSyncSummary) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Last Sync")
+                .font(.appCaption2.weight(.heavy))
+                .tracking(0.4)
+                .foregroundStyle(.secondary)
+            Text("\(summary.accountsCreated) accounts added, \(summary.transactionsCreated) new transactions, \(summary.transactionsSkipped) already up to date.")
+                .font(.appSubheadline)
                 .foregroundStyle(.secondary)
         }
+        .padding(Theme.cardPadding)
+        .card()
+    }
+
+    private func errorBanner(_ message: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Palette.coral)
+            Text(message)
+                .font(.appSubheadline.weight(.semibold))
+                .foregroundStyle(Palette.coralDeep)
+        }
+        .padding(Theme.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.coral.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous).strokeBorder(Palette.coral.opacity(0.18), lineWidth: 1))
     }
 }
 

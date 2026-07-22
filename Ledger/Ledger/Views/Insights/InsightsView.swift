@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// The Insights tab: a short, refreshed-on-open list of on-device findings. Each card can be
+/// A short, refreshed-on-open list of on-device findings. Each card can be
 /// dismissed (gone for good) or snoozed (hidden for a week) via swipe. Everything is computed
 /// locally from the user's data — nothing is sent anywhere.
 struct InsightsView: View {
@@ -37,7 +37,7 @@ struct InsightsView: View {
                 LoadingView()
             }
         }
-        .navigationTitle("Ask Ledger")
+        .navigationTitle("Insights")
         .accentWash(.insights)
         .accent(.insights)
         .task {

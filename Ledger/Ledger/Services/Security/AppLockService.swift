@@ -21,6 +21,18 @@ final class AppLockService {
         state = .locked
     }
 
+    /// Authenticate with the device's passcode or password, skipping any biometric prompt.
+    @discardableResult
+    func authenticateWithPasscode() async -> Bool {
+        let context = LAContext()
+        var error: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+            state = .unavailable("No passcode or biometrics are set up on this device.")
+            return false
+        }
+        return await evaluate(context, policy: .deviceOwnerAuthentication)
+    }
+
     @discardableResult
     func authenticate() async -> Bool {
         let context = LAContext()

@@ -4,6 +4,7 @@ import SwiftData
 struct RecurringView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: RecurringViewModel?
+    @State private var isPresentingNewTransaction = false
 
     var body: some View {
         Group {
@@ -11,8 +12,10 @@ struct RecurringView: View {
                 if !viewModel.hasAnySeries {
                     EmptyStateView(
                         systemImage: "arrow.triangle.2.circlepath",
-                        title: "No Recurring Charges Found",
-                        message: "Once you have a few months of transactions, Ledger spots subscriptions and regular bills automatically."
+                        title: "No Subscriptions Yet",
+                        message: "Add a few transactions or import a statement and Ledger will detect your repeating bills and income.",
+                        actionTitle: "Add Transaction",
+                        action: { isPresentingNewTransaction = true }
                     )
                 } else {
                     List {
@@ -42,7 +45,7 @@ struct RecurringView: View {
                 LoadingView()
             }
         }
-        .navigationTitle("Recurring")
+        .navigationTitle("Subscriptions")
         .accentWash(.recurring)
         .accent(.recurring)
         .navigationDestination(for: RecurringSeries.self) { series in
@@ -50,13 +53,25 @@ struct RecurringView: View {
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
-                    viewModel?.load()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
+                HStack(spacing: 16) {
+                    Button {
+                        isPresentingNewTransaction = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Add Transaction")
+
+                    Button {
+                        viewModel?.load()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .accessibilityLabel("Rescan")
                 }
-                .accessibilityLabel("Rescan")
             }
+        }
+        .sheet(isPresented: $isPresentingNewTransaction, onDismiss: { viewModel?.load() }) {
+            TransactionEditView(transaction: nil)
         }
         .task {
             if viewModel == nil { viewModel = RecurringViewModel(modelContext: modelContext) }
@@ -182,8 +197,6 @@ struct RecurringView: View {
             }
         } header: {
             Text("Review")
-        } footer: {
-            Text("Ledger isn't fully sure these repeat. Confirm the real ones so they count toward your totals and forecast.")
         }
     }
 

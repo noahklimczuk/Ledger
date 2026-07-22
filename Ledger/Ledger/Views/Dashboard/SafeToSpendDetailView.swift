@@ -93,9 +93,6 @@ struct SafeToSpendDetailView: View {
                         }
                     }
                 )
-                Text("Tap a slice to see its transactions.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
             }
         }
     }

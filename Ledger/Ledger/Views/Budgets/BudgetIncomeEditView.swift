@@ -50,12 +50,12 @@ struct BudgetIncomeEditView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                } footer: {
-                    Text("Tracks deposits automatically as they arrive.")
                 }
             }
             .navigationTitle("Monthly Income")
             .accent(.budgets)
+            .accentWash(.budgets)
+            .scrollContentBackground(.hidden)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

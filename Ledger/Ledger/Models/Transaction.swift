@@ -6,6 +6,15 @@ enum TransactionSourceKind: String, Codable {
     case wealthsimple
     case csv
     case ofx
+
+    var displayName: String {
+        switch self {
+        case .manual: return "Manual"
+        case .wealthsimple: return "Wealthsimple"
+        case .csv: return "CSV Import"
+        case .ofx: return "OFX Import"
+        }
+    }
 }
 
 @Model

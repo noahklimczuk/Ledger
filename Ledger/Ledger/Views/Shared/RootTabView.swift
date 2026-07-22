@@ -1,40 +1,33 @@
 import SwiftUI
 import SwiftData
 
-/// The app's root: a native `TabView` over the five primary screens. On iOS 26 this renders as the
-/// system Liquid Glass tab bar — a floating, translucent pill that content scrolls underneath —
-/// identical to the App Store's, because it *is* the system bar. Each tab supplies its own
-/// `NavigationStack`, so large titles and back stacks stay per-tab.
-///
-/// This replaces an earlier hand-built floating bar layered over a horizontal `ScrollView` pager.
-/// That existed to keep a swipe-between-tabs gesture the paged `TabView` (`.tabViewStyle(.page)`, a
-/// `UIPageViewController`) couldn't provide without crashing on overlapping large-title nav bars —
-/// but the swipe was later disabled anyway, so the custom bar was fighting the system for nothing and
-/// still couldn't match the real glass bar (it drew a flat pill and reserved a strip instead of
-/// letting content pass under the glass). A *default* `TabView` uses `UITabBarController`, showing one
-/// tab at a time, so it never hits that nav-controller-nesting crash. The selected tab tints with the
-/// app's accent via the `.tint(.accentColor)` set on the scene in `LedgerApp`.
+/// The app's root: a native `TabView` over the five primary screens. The visual tab bar renders as
+/// a floating Liquid Glass pill with Home in the centre: Wellness · Budgets · Home · Activity ·
+/// More. Each tab supplies its own `NavigationStack`, so large titles and back stacks stay per-tab.
+/// Accounts and Recurring live under Home (via the balance card) and More, matching the `bloom-ios`
+/// rendering.
 struct RootTabView: View {
-    /// The selected tab index, bound so a horizontal swipe (below) can step between screens in
-    /// addition to tapping the bar.
-    @State private var selection = 0
+    /// The selected tab index. Visual bar order is Wellness(0), Budgets(1), Home(2), Activity(3), More(4)
+    /// so Home sits in the centre.
+    @State private var selection = 2
+    @State private var isPresentingAskLedger = false
     private static let tabCount = 5
 
     var body: some View {
         TabView(selection: $selection) {
-            Tab("Dashboard", systemImage: "house.fill", value: 0) {
-                DashboardView().toolbar(.hidden, for: .tabBar)
+            Tab("Wellness", systemImage: "leaf.fill", value: 0) {
+                FinancialWellnessView().toolbar(.hidden, for: .tabBar)
             }
-            Tab("Accounts", systemImage: "banknote.fill", value: 1) {
-                AccountListView().toolbar(.hidden, for: .tabBar)
-            }
-            Tab("Transactions", systemImage: "list.bullet", value: 2) {
-                TransactionListView().toolbar(.hidden, for: .tabBar)
-            }
-            Tab("Budgets", systemImage: "chart.pie.fill", value: 3) {
+            Tab("Budgets", systemImage: "chart.pie.fill", value: 1) {
                 BudgetListView().toolbar(.hidden, for: .tabBar)
             }
-            Tab("More", systemImage: "ellipsis.circle.fill", value: 4) {
+            Tab("Home", systemImage: "house.fill", value: 2) {
+                DashboardView().toolbar(.hidden, for: .tabBar)
+            }
+            Tab("Activity", systemImage: "chart.bar.xaxis", value: 3) {
+                TransactionListView().toolbar(.hidden, for: .tabBar)
+            }
+            Tab("More", systemImage: "square.grid.2x2.fill", value: 4) {
                 MoreView().toolbar(.hidden, for: .tabBar)
             }
         }
@@ -46,6 +39,14 @@ struct RootTabView: View {
         // old custom-pager bugs (zero-height pages, launch hang) can recur; only the bar is custom.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FloatingTabBar(selection: $selection)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            AskLedgerButton(isPresented: $isPresentingAskLedger)
+                .padding(.trailing, 16)
+                .padding(.bottom, 92)
+        }
+        .sheet(isPresented: $isPresentingAskLedger) {
+            AskLedgerView(month: .now)
         }
         .simultaneousGesture(swipeBetweenTabs)
     }
@@ -81,11 +82,13 @@ private struct FloatingTabBar: View {
     /// Ties the moving selection pill to one identity so it springs between tabs.
     @Namespace private var pill
 
+    /// Visual order: Wellness · Budgets · Home · Activity · More. Home sits in the centre as in the
+    /// Bloom rendering.
     private let items: [(title: String, icon: String, accent: Accent)] = [
-        ("Dashboard", "house.fill", .dashboard),
-        ("Accounts", "banknote.fill", .accounts),
-        ("Transactions", "list.bullet", .transactions),
+        ("Wellness", "leaf.fill", .wellness),
         ("Budgets", "chart.pie.fill", .budgets),
+        ("Home", "house.fill", .dashboard),
+        ("Activity", "chart.bar.xaxis", .transactions),
         ("More", "square.grid.2x2.fill", .insights),
     ]
 
@@ -148,7 +151,15 @@ private struct FloatingTabBar: View {
 }
 
 private struct MoreView: View {
+    @AppStorage("ledgerColorScheme") private var colorSchemeRaw = AppColorScheme.system.rawValue
     @State private var isPresentingCheckIn = false
+
+    private var colorScheme: Binding<AppColorScheme> {
+        Binding(
+            get: { AppColorScheme(rawValue: colorSchemeRaw) ?? .system },
+            set: { colorSchemeRaw = $0.rawValue }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -161,8 +172,7 @@ private struct MoreView: View {
                 } header: { sectionLabel("Routine") }
 
                 Section {
-                    moreLink("Financial Wellness", "leaf.fill", .wellness) { FinancialWellnessView() }
-                    moreLink("Ask Ledger", "sparkles", .insights) { InsightsView() }
+                    moreLink("Ask Ledger", "sparkles", .insights) { AskLedgerView() }
                     moreLink("Reports", "chart.bar.xaxis", .reports) { ReportsView() }
                     moreLink("Recurring", "arrow.triangle.2.circlepath", .recurring) { RecurringView() }
                 } header: { sectionLabel("Insights") }
@@ -181,6 +191,16 @@ private struct MoreView: View {
                     moreLink("Connect Wealthsimple", "link", .accounts) { IntegrationsSettingsView() }
                     moreLink("Import CSV / OFX", "square.and.arrow.down", .transactions) { CSVImportView() }
                 } header: { sectionLabel("Data Sources") }
+
+                Section {
+                    Picker("Appearance", selection: colorScheme) {
+                        ForEach(AppColorScheme.allCases) { scheme in
+                            Text(scheme.displayName).tag(scheme)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.vertical, 4)
+                } header: { sectionLabel("Appearance") }
             }
             .navigationTitle("More")
             .sheet(isPresented: $isPresentingCheckIn) {
@@ -213,6 +233,34 @@ private struct MoreView: View {
             Text(title).font(.appBodyMedium)
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// A persistent, floating Ask Ledger button. It lives above the custom tab bar on every screen,
+/// so the chat is reachable without changing tabs.
+private struct AskLedgerButton: View {
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        Button {
+            Haptics.tap(.soft)
+            isPresented = true
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(.white)
+                    .frame(width: 58, height: 58)
+                    .shadow(color: Accent.insights.base.opacity(0.45), radius: 14, y: 8)
+                Circle()
+                    .fill(Accent.insights.gradient)
+                    .frame(width: 54, height: 54)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .buttonStyle(.pressable)
+        .accessibilityLabel("Ask Ledger")
     }
 }
 
