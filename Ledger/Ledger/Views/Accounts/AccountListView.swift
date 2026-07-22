@@ -95,12 +95,18 @@ struct AccountListView: View {
         .padding(Theme.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            LinearGradient(
-                colors: [Palette.green.opacity(0.10), Color.appSurface],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .overlay(Color.appSurface.opacity(0.70))
+            ZStack {
+                Color.appSurface
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: Palette.green.opacity(0.14), location: 0),
+                        .init(color: Palette.green.opacity(0.05), location: 0.45),
+                        .init(color: Color.clear, location: 0.8)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
         )
         .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
         .overlay(
@@ -234,9 +240,7 @@ private struct AccountRow: View {
         } else {
             parts.append(account.type.displayName)
         }
-        if account.isLinked {
-            parts.append("linked")
-        }
+        parts.append(account.isLinked ? "linked" : "manual")
         return parts.joined(separator: " · ")
     }
 }

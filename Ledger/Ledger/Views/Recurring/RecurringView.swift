@@ -368,7 +368,7 @@ private struct RecurringRow: View {
             Spacer(minLength: 6)
             Text(CurrencyFormatter.string(from: series.averageAmount))
                 .font(.appSubheadline.weight(.heavy))
-                .foregroundStyle(series.isIncome ? Palette.income : Color.primary)
+                .foregroundStyle(series.isIncome ? Palette.income : Palette.expense)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
         }
