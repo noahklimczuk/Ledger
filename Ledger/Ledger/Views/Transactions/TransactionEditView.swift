@@ -123,11 +123,7 @@ struct TransactionEditView: View {
             .pickerStyle(.segmented)
             .frame(width: 220)
 
-            Text(displayAmount(for: viewModel))
-                .font(.appDisplay)
-                .foregroundStyle(viewModel.direction == .expense ? Color.primary : Palette.income)
-                .lineLimit(1)
-                .minimumScaleFactor(0.4)
+            amountHeroText(for: viewModel)
                 .padding(.horizontal, 24)
 
             BloomKeypad(value: Binding(
@@ -157,8 +153,26 @@ struct TransactionEditView: View {
 
     private func displayAmount(for viewModel: TransactionEditViewModel) -> String {
         let magnitude = abs(ImportValueParsing.decimal(from: viewModel.amountText) ?? 0)
-        let sign = viewModel.direction == .expense ? "−" : "+"
-        return "\(sign)\(CurrencyFormatter.string(from: magnitude))"
+        return CurrencyFormatter.string(from: magnitude)
+    }
+
+    private func amountHeroText(for viewModel: TransactionEditViewModel) -> some View {
+        let raw = displayAmount(for: viewModel)
+        let symbol = String(raw.prefix(1))
+        let digits = String(raw.dropFirst())
+        let digitColor = viewModel.direction == .expense ? Color.primary : Palette.income
+
+        return HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text(symbol)
+                .font(AppFont.scaled(32, relativeTo: .largeTitle, weight: .bold))
+                .foregroundStyle(Color.primary.opacity(0.6))
+                .baselineOffset(10)
+            Text(digits)
+                .font(.appDisplay)
+                .foregroundStyle(digitColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
+        }
     }
 
     // MARK: - Merchant
