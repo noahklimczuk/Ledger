@@ -27,9 +27,6 @@ struct TransactionDetailView: View {
         ScrollView {
             VStack(spacing: Theme.sectionSpacing) {
                 heroSection
-                if !isSplit {
-                    categorySection
-                }
                 metaCard
                 if isSplit {
                     splitsCard
@@ -119,42 +116,49 @@ struct TransactionDetailView: View {
         return .gray
     }
 
-    // MARK: - Category chip
+    // MARK: - Category
 
-    private var categorySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private var categoryRow: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "tag.fill")
+                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
+                .foregroundStyle(Color.secondary)
+                .frame(width: 24, height: 24)
+
             Text("Category")
                 .font(.appCaption2.weight(.heavy))
-                .tracking(0.4)
+                .tracking(0.3)
                 .foregroundStyle(.secondary)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    DetailCategoryChip(
-                        name: "Uncategorized",
-                        systemImage: "questionmark.circle.fill",
-                        color: .gray,
-                        isSelected: transaction.category == nil
-                    ) {
-                        applyCategory(nil)
-                    }
+            Spacer(minLength: 0)
 
-                    ForEach(categories, id: \.persistentModelID) { category in
-                        DetailCategoryChip(
-                            name: category.name,
-                            systemImage: category.sfSymbolName,
-                            color: Color(hex: category.colorHex),
-                            isSelected: transaction.category?.persistentModelID == category.persistentModelID
-                        ) {
-                            applyCategory(category)
-                        }
-                    }
+            Menu {
+                Button("Uncategorized") { applyCategory(nil) }
+                ForEach(categories, id: \.persistentModelID) { category in
+                    Button(category.name) { applyCategory(category) }
                 }
-                .padding(.horizontal, 2)
+            } label: {
+                HStack(spacing: 6) {
+                    let category = transaction.category
+                    let color = category.map { Color(hex: $0.colorHex) } ?? .gray
+                    Image(systemName: category?.sfSymbolName ?? "questionmark.circle.fill")
+                        .font(AppFont.scaled(13, relativeTo: .body, weight: .bold))
+                    Text(category?.name ?? "Uncategorized")
+                        .font(.appCaption.weight(.heavy))
+                        .lineLimit(1)
+                    Image(systemName: "chevron.right")
+                        .font(AppFont.scaled(10, relativeTo: .caption2, weight: .bold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background((transaction.category.map { Color(hex: $0.colorHex) } ?? .gray).opacity(0.92), in: Capsule())
             }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .menuIndicator(.hidden)
         }
-        .padding(Theme.cardPadding)
-        .card()
+        .padding(.vertical, 10)
     }
 
     // MARK: - Meta
@@ -163,6 +167,10 @@ struct TransactionDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
             DetailMetaRow(icon: transaction.account?.type.sfSymbolName ?? "banknote", label: "Account", value: transaction.account?.name ?? "—")
             Divider().padding(.leading, 38)
+            if !isSplit {
+                categoryRow
+                Divider().padding(.leading, 38)
+            }
             DetailMetaRow(icon: "calendar", label: "Date", value: DateFormatting.medium(transaction.date))
             Divider().padding(.leading, 38)
             DetailMetaRow(icon: transaction.isReviewed ? "checkmark.circle.fill" : "exclamationmark.circle.fill", label: "Status", value: transaction.isReviewed ? "Reviewed" : "Needs review")
@@ -329,38 +337,6 @@ struct TransactionDetailView: View {
 }
 
 // MARK: - Supporting views
-
-private struct DetailCategoryChip: View {
-    let name: String
-    let systemImage: String
-    let color: Color
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: isSelected ? 8 : 6) {
-                Image(systemName: systemImage)
-                    .font(AppFont.scaled(isSelected ? 22 : 18, relativeTo: .headline, weight: .bold))
-                    .symbolEffect(.bounce, value: isSelected)
-                    .foregroundStyle(isSelected ? .white : color)
-                Text(name)
-                    .font(isSelected ? .appCallout.weight(.heavy) : .appCaption.weight(.bold))
-                    .foregroundStyle(isSelected ? .white : Color.primary)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, isSelected ? 20 : 14)
-            .padding(.vertical, isSelected ? 12 : 9)
-            .background(isSelected ? color.opacity(0.92) : Color.appSurface, in: Capsule())
-            .overlay(
-                Capsule(style: .continuous)
-                    .strokeBorder(isSelected ? Color.clear : Color.appHairline, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: isSelected)
-    }
-}
 
 private struct DetailMetaRow: View {
     let icon: String
