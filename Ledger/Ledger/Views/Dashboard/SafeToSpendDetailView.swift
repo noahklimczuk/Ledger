@@ -127,7 +127,7 @@ struct SafeToSpendDetailView: View {
         let shown = viewModel.topCategories.reduce(Decimal(0)) { $0 + $1.amount }
         let other = viewModel.monthSpending - shown
         if other > 0 {
-            segments.append(DonutSegment(id: "other", label: "Other", value: other, color: Color(.systemGray3), isSelectable: false))
+            segments.append(DonutSegment(id: "other", label: "Other", value: other, color: Color.secondary.opacity(0.25), isSelectable: false))
         }
         return segments
     }

@@ -249,8 +249,8 @@ struct RecurringView: View {
                 .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
-                .foregroundStyle(prominent ? Color.white : Color.primary)
-                .background(prominent ? Color.accentColor : Color.secondary.opacity(0.15), in: Capsule())
+                .foregroundStyle(prominent ? Color.appBackground : Color.primary)
+                .background(prominent ? Color.accentColor : Color.appSurface, in: Capsule())
                 .contentShape(Capsule())
         }
         .buttonStyle(.borderless)

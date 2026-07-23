@@ -575,7 +575,7 @@ struct DashboardView: View {
         return InteractiveDonutChart(
             segments: [
                 DonutSegment(id: "spent", label: "Spent", value: spentPortion, color: isOver ? Palette.expense : .accentColor, isSelectable: false),
-                DonutSegment(id: "remaining", label: "Remaining", value: remaining, color: Color(.systemGray4), isSelectable: false)
+                DonutSegment(id: "remaining", label: "Remaining", value: remaining, color: Color.secondary.opacity(0.25), isSelectable: false)
             ],
             centerCaption: isOver ? "over budget" : "of budget spent",
             centerValueText: "\(percent)%",

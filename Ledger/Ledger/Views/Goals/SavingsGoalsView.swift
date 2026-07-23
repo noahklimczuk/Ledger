@@ -114,7 +114,7 @@ private struct PlantPot: View {
                 .trim(from: 0, to: min(max(progress, 0), 1))
                 .stroke(Accent.goals.gradient, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-            Text(emoji).font(.system(size: size * 0.42))
+            Text(emoji).font(AppFont.scaled(size * 0.42, relativeTo: .body))
         }
         .frame(width: size, height: size)
         .animation(Motion.smooth, value: progress)

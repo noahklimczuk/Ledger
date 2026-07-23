@@ -40,7 +40,7 @@ struct CategoryTransactionsView: View {
 
     private var title: String { category?.name ?? "Uncategorized" }
     private var symbol: String { category?.sfSymbolName ?? "questionmark.circle.fill" }
-    private var color: Color { category.map { Color(hex: $0.colorHex) } ?? Color(.systemGray) }
+    private var color: Color { category.map { Color(hex: $0.colorHex) } ?? Color.secondary }
 
     private var spent: Decimal {
         transactions.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
