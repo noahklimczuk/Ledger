@@ -205,6 +205,32 @@ struct GeminiService: Sendable {
         let summary: String?
     }
 
+    /// A transaction the model asked us to delete via the `delete_transaction` tool.
+    struct TransactionDeletion: Sendable {
+        let merchant: String
+        let amount: Decimal?
+        let date: String?
+        let summary: String?
+    }
+
+    /// An account the model asked us to delete via the `delete_account` tool.
+    struct AccountDeletion: Sendable {
+        let name: String
+        let summary: String?
+    }
+
+    /// A bill reminder the model asked us to delete via the `delete_bill` tool.
+    struct BillDeletion: Sendable {
+        let name: String
+        let summary: String?
+    }
+
+    /// A savings goal the model asked us to delete via the `delete_goal` tool.
+    struct GoalDeletion: Sendable {
+        let name: String
+        let summary: String?
+    }
+
     /// What one advisor round produced: text to show, and/or a budget plan to apply.
     struct AdvisorReply: Sendable {
         let text: String
@@ -226,6 +252,18 @@ struct GeminiService: Sendable {
         /// A goal the model asked us to add, if any.
         let goalPlan: GoalPlan?
         let goalArgsJSON: String?
+        /// A transaction the model asked us to delete, if any.
+        let transactionDeletion: TransactionDeletion?
+        let transactionDeletionArgsJSON: String?
+        /// An account the model asked us to delete, if any.
+        let accountDeletion: AccountDeletion?
+        let accountDeletionArgsJSON: String?
+        /// A bill the model asked us to delete, if any.
+        let billDeletion: BillDeletion?
+        let billDeletionArgsJSON: String?
+        /// A goal the model asked us to delete, if any.
+        let goalDeletion: GoalDeletion?
+        let goalDeletionArgsJSON: String?
         /// Gemini's reasoning token for this reply (from the function-call part when present, else the
         /// text part). Must be echoed back on the same part in the next request; see `ChatTurn.model`.
         let thoughtSignature: String?
@@ -234,8 +272,8 @@ struct GeminiService: Sendable {
     /// Freeform advisor reply for the multi-turn financial-advisor chat. `system` carries the
     /// advisor persona plus the financial snapshot (budget totals and recent transactions);
     /// `history` is the running exchange, oldest first, ending with the user's latest question or
-    /// our latest function response. The model may answer with text, a `create_budget` call, a
-    /// `delete_budget` call, or any combination.
+    /// our latest function response. The model may answer with text or call any of the available
+    /// budget/transaction/account/bill/goal creation or deletion tools.
     func advise(system: String, history: [ChatTurn], apiKey: String) async throws -> AdvisorReply {
         var contents: [[String: Any]] = []
         for turn in history {
@@ -272,7 +310,11 @@ struct GeminiService: Sendable {
                 Self.createTransactionDeclaration,
                 Self.createAccountDeclaration,
                 Self.createBillDeclaration,
-                Self.createGoalDeclaration
+                Self.createGoalDeclaration,
+                Self.deleteTransactionDeclaration,
+                Self.deleteAccountDeclaration,
+                Self.deleteBillDeclaration,
+                Self.deleteGoalDeclaration
             ]]]
         ]
         let parts = try await generateParts(body: body, apiKey: apiKey)
@@ -291,7 +333,11 @@ struct GeminiService: Sendable {
             Self.createTransactionToolName,
             Self.createAccountToolName,
             Self.createBillToolName,
-            Self.createGoalToolName
+            Self.createGoalToolName,
+            Self.deleteTransactionToolName,
+            Self.deleteAccountToolName,
+            Self.deleteBillToolName,
+            Self.deleteGoalToolName
         ]
         let callPart = parts.first { toolNames.contains($0.functionCall?.name ?? "") }
         let thoughtSignature = callPart?.thoughtSignature ?? parts.compactMap(\.thoughtSignature).last
@@ -303,6 +349,14 @@ struct GeminiService: Sendable {
         var billArgsJSON: String?
         var goalPlan: GoalPlan?
         var goalArgsJSON: String?
+        var transactionDeletion: TransactionDeletion?
+        var transactionDeletionArgsJSON: String?
+        var accountDeletion: AccountDeletion?
+        var accountDeletionArgsJSON: String?
+        var billDeletion: BillDeletion?
+        var billDeletionArgsJSON: String?
+        var goalDeletion: GoalDeletion?
+        var goalDeletionArgsJSON: String?
         if let call = callPart?.functionCall, let args = call.args {
             switch call.name {
             case Self.createBudgetToolName:
@@ -383,12 +437,37 @@ struct GeminiService: Sendable {
                     )
                     goalArgsJSON = Self.json(from: args)
                 }
+            case Self.deleteTransactionToolName:
+                if let merchant = args.merchant, !merchant.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    transactionDeletion = TransactionDeletion(
+                        merchant: merchant,
+                        amount: args.amount.map { Decimal($0) },
+                        date: args.date,
+                        summary: args.summary
+                    )
+                    transactionDeletionArgsJSON = Self.json(from: args)
+                }
+            case Self.deleteAccountToolName:
+                if let name = args.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    accountDeletion = AccountDeletion(name: name, summary: args.summary)
+                    accountDeletionArgsJSON = Self.json(from: args)
+                }
+            case Self.deleteBillToolName:
+                if let name = args.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    billDeletion = BillDeletion(name: name, summary: args.summary)
+                    billDeletionArgsJSON = Self.json(from: args)
+                }
+            case Self.deleteGoalToolName:
+                if let name = args.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    goalDeletion = GoalDeletion(name: name, summary: args.summary)
+                    goalDeletionArgsJSON = Self.json(from: args)
+                }
             default:
                 break
             }
         }
 
-        guard plan != nil || deletePlan != nil || transactionPlan != nil || accountPlan != nil || billPlan != nil || goalPlan != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard plan != nil || deletePlan != nil || transactionPlan != nil || accountPlan != nil || billPlan != nil || goalPlan != nil || transactionDeletion != nil || accountDeletion != nil || billDeletion != nil || goalDeletion != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ServiceError.emptyResponse
         }
         return AdvisorReply(
@@ -405,6 +484,14 @@ struct GeminiService: Sendable {
             billArgsJSON: billArgsJSON,
             goalPlan: goalPlan,
             goalArgsJSON: goalArgsJSON,
+            transactionDeletion: transactionDeletion,
+            transactionDeletionArgsJSON: transactionDeletionArgsJSON,
+            accountDeletion: accountDeletion,
+            accountDeletionArgsJSON: accountDeletionArgsJSON,
+            billDeletion: billDeletion,
+            billDeletionArgsJSON: billDeletionArgsJSON,
+            goalDeletion: goalDeletion,
+            goalDeletionArgsJSON: goalDeletionArgsJSON,
             thoughtSignature: thoughtSignature
         )
     }
@@ -415,6 +502,10 @@ struct GeminiService: Sendable {
     static let createAccountToolName = "create_account"
     static let createBillToolName = "create_bill"
     static let createGoalToolName = "create_goal"
+    static let deleteTransactionToolName = "delete_transaction"
+    static let deleteAccountToolName = "delete_account"
+    static let deleteBillToolName = "delete_bill"
+    static let deleteGoalToolName = "delete_goal"
 
     /// The tool the advisor can call to actually build the user's monthly budget. Gemini's
     /// function-declaration schema is the same OpenAPI 3.0 subset as `outputSchema`.
@@ -652,6 +743,94 @@ struct GeminiService: Sendable {
                 ]
             ] as [String: Any],
             "required": ["name", "targetAmount"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to delete a transaction.
+    private static let deleteTransactionDeclaration: [String: Any] = [
+        "name": deleteTransactionToolName,
+        "description": "Delete a transaction from Ledger. Call this when the user asks to remove, delete, or undo a recorded transaction. Use merchant and optionally amount/date to identify the right one.",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "merchant": [
+                    "type": "STRING",
+                    "description": "Merchant or description of the transaction to delete."
+                ],
+                "amount": [
+                    "type": "NUMBER",
+                    "description": "Optional exact amount to match."
+                ],
+                "date": [
+                    "type": "STRING",
+                    "description": "Optional date as \"YYYY-MM-DD\" to narrow the match."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was deleted."
+                ]
+            ] as [String: Any],
+            "required": ["merchant"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to delete a manual account.
+    private static let deleteAccountDeclaration: [String: Any] = [
+        "name": deleteAccountToolName,
+        "description": "Delete a manual account from Ledger. Call this when the user asks to remove, delete, or close an account.",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "name": [
+                    "type": "STRING",
+                    "description": "Exact name of the account to delete."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was deleted."
+                ]
+            ] as [String: Any],
+            "required": ["name"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to delete a bill reminder.
+    private static let deleteBillDeclaration: [String: Any] = [
+        "name": deleteBillToolName,
+        "description": "Delete a bill reminder from Ledger. Call this when the user asks to remove or cancel a bill or subscription reminder.",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "name": [
+                    "type": "STRING",
+                    "description": "Exact name of the bill to delete."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was deleted."
+                ]
+            ] as [String: Any],
+            "required": ["name"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to delete a savings goal.
+    private static let deleteGoalDeclaration: [String: Any] = [
+        "name": deleteGoalToolName,
+        "description": "Delete a savings goal from Ledger. Call this when the user asks to remove or abandon a goal.",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "name": [
+                    "type": "STRING",
+                    "description": "Exact name of the goal to delete."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was deleted."
+                ]
+            ] as [String: Any],
+            "required": ["name"]
         ] as [String: Any]
     ]
 
