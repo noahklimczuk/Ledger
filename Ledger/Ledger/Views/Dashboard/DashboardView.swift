@@ -37,7 +37,7 @@ struct DashboardView: View {
                 if let viewModel {
                     content(viewModel)
                 } else {
-                    LoadingView()
+                    LoadingView(message: "Syncing…")
                 }
             }
             .navigationTitle("Home")
