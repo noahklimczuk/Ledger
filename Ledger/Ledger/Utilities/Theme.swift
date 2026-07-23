@@ -95,7 +95,7 @@ extension Color {
     /// A raised card/surface — warm off-white in Day, a lifted plum in Dusk.
     static let appSurface = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.165, green: 0.141, blue: 0.173, alpha: 1)   // #2A242C
+            ? UIColor(red: 0.212, green: 0.180, blue: 0.224, alpha: 1)   // #362E39
             : UIColor(red: 0.984, green: 0.969, blue: 0.945, alpha: 1)   // #FBF7F1
     })
     /// Hairline separators/borders tuned to be barely-there in both appearances.
@@ -104,14 +104,14 @@ extension Color {
     /// the two-shadow "clay" extrusion (cast down-right).
     static let bloomShadow = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor.black.withAlphaComponent(0.55)
-            : UIColor(red: 0.55, green: 0.44, blue: 0.35, alpha: 0.20)
+            ? UIColor.black.withAlphaComponent(0.65)
+            : UIColor(red: 0.55, green: 0.44, blue: 0.35, alpha: 0.24)
     })
     /// The light side of the clay extrusion — a soft highlight cast up-left, so surfaces read as
     /// gently raised clay rather than flat cards. Barely-there in Dusk.
     static let bloomHighlight = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor.white.withAlphaComponent(0.05)
+            ? UIColor.white.withAlphaComponent(0.12)
             : UIColor.white.withAlphaComponent(0.9)
     })
 }
@@ -127,9 +127,26 @@ extension View {
                 RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                     .strokeBorder(Color.appHairline, lineWidth: 1)
             )
+            // A soft top sheen makes the card feel convex and tactile, like a clay tile lit from above.
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.white.opacity(0.10), location: 0),
+                                .init(color: Color.white.opacity(0.02), location: 0.45),
+                                .init(color: Color.clear, location: 0.7)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .blendMode(.overlay)
+                    .padding(.horizontal, 1)
+            )
             // Two shadows make the "clay" extrusion: a warm dark cast down-right and a soft light
             // highlight up-left, so every surface reads as gently raised on the ivory ground.
-            .shadow(color: Color.bloomShadow, radius: 18, y: 11)
-            .shadow(color: Color.bloomHighlight, radius: 12, x: -7, y: -7)
+            .shadow(color: Color.bloomShadow, radius: 20, y: 12)
+            .shadow(color: Color.bloomHighlight, radius: 14, x: -7, y: -7)
     }
 }

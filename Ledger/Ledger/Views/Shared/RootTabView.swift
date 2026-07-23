@@ -117,49 +117,64 @@ private struct FloatingTabBar: View {
         .animation(Motion.bouncy, value: selection)
     }
 
-    /// The centre Home tab as a raised FAB: a periwinkle gradient rounded square that floats above
-    /// the bar, just like the Bloom rendering's centre action button.
+    /// The centre Home tab as a raised brand button: a clay-gradient square that floats above the
+    /// bar with a strong top sheen and a soft drop shadow, matching the rendering's glass FAB.
     private var homeButton: some View {
         let isSelected = selection == 2
-        return Button {
+        Button {
             Haptics.tap(.soft)
             selection = 2
         } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color.appSurface.opacity(0.55))
-                    .frame(width: 58, height: 58)
-                RoundedRectangle(cornerRadius: 17, style: .continuous)
                     .fill(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 50, height: 50)
-                    .shadow(color: Palette.green.opacity(0.35), radius: 12, x: 0, y: 6)
+                    .frame(width: 56, height: 56)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.45), lineWidth: 0.5)
+                    )
+                    .overlay(
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.white.opacity(0.35), location: 0),
+                                .init(color: Color.white.opacity(0.08), location: 0.45),
+                                .init(color: Color.clear, location: 0.75)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .blendMode(.overlay)
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    )
                 Image(systemName: "house.fill")
-                    .font(AppFont.scaled(25, relativeTo: .title2, weight: .bold))
+                    .font(AppFont.scaled(24, relativeTo: .title2, weight: .bold))
                     .foregroundStyle(.white)
             }
-            .frame(width: 50, height: 50)
-            .offset(y: isSelected ? -24 : -18)
+            .frame(width: 56, height: 56)
+            .shadow(color: Palette.green.opacity(0.45), radius: 16, x: 0, y: 8)
+            .shadow(color: Color.black.opacity(0.35), radius: 14, x: 0, y: 10)
+            .offset(y: isSelected ? -28 : -22)
             .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Home")
     }
 
-    /// The Liquid Glass shell: a material blur tinted with the app surface, a soft top highlight,
-    /// and a translucent white edge so it reads as a raised clay bar over the content behind it.
+    /// A true Liquid Glass pill: material blur tinted with the app surface, a strong top sheen, a
+    /// subtle bottom shade, and a soft raised shadow so the shell floats above the page.
     private var glassBar: some View {
         ZStack {
             Capsule(style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(.thinMaterial)
             Capsule(style: .continuous)
-                .fill(Color.appSurface.opacity(0.55))
+                .fill(Color.appSurface.opacity(0.42))
             Capsule(style: .continuous)
                 .fill(
                     LinearGradient(
                         gradient: Gradient(stops: [
-                            .init(color: Color.white.opacity(0.22), location: 0),
-                            .init(color: Color.white.opacity(0.05), location: 0.4),
-                            .init(color: Color.clear, location: 1)
+                            .init(color: Color.white.opacity(0.32), location: 0),
+                            .init(color: Color.white.opacity(0.10), location: 0.35),
+                            .init(color: Color.clear, location: 0.75)
                         ]),
                         startPoint: .top,
                         endPoint: .bottom
@@ -167,10 +182,17 @@ private struct FloatingTabBar: View {
                 )
                 .blendMode(.overlay)
             Capsule(style: .continuous)
-                .strokeBorder(Color.white.opacity(0.32), lineWidth: 0.5)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.45), Color.black.opacity(0.18)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 0.5
+                )
         }
-        .shadow(color: selectedAccent.base.opacity(0.28), radius: 20, x: 0, y: 10)
-        .shadow(color: Color.black.opacity(0.14), radius: 10, x: 0, y: 5)
+        .shadow(color: selectedAccent.base.opacity(0.22), radius: 26, x: 0, y: 12)
+        .shadow(color: Color.bloomShadow, radius: 24, x: 0, y: 14)
     }
 
     /// One tab: an icon with a tiny label below it. The selected item gets a tinted pill behind it,
@@ -206,10 +228,10 @@ private struct FloatingTabBar: View {
 
     private func selectedPill(for item: (title: String, icon: String, accent: Accent)) -> some View {
         Capsule(style: .continuous)
-            .fill(item.accent.base.opacity(0.14))
+            .fill(item.accent.soft)
             .overlay(
                 Capsule(style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.38), lineWidth: 0.5)
+                    .strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5)
             )
             .matchedGeometryEffect(id: "pill", in: pill)
     }
