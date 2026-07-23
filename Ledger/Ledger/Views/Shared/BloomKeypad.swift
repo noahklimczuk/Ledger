@@ -13,11 +13,12 @@ struct BloomKeypad: View {
     ]
 
     var body: some View {
-        VStack(spacing: 10) {
+        Grid(horizontalSpacing: 10, verticalSpacing: 10) {
             ForEach(rows, id: \.self) { row in
-                HStack(spacing: 10) {
+                GridRow {
                     ForEach(row, id: \.self) { key in
                         KeyButton(key: key) { tap(key) }
+                            .gridCellColumns(key == "0" ? 2 : 1)
                     }
                 }
             }
@@ -69,7 +70,7 @@ private struct KeyButton: View {
 
                 Text(key)
                     .font(AppFont.scaled(isMut ? 20 : 22, relativeTo: .headline, weight: isMut ? .bold : .heavy))
-                    .foregroundStyle(Color.primary)
+                    .foregroundStyle(isMut ? Color.secondary : Color.primary)
             }
             .frame(maxWidth: .infinity, minHeight: 56)
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
