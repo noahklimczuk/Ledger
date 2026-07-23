@@ -231,6 +231,55 @@ struct GeminiService: Sendable {
         let summary: String?
     }
 
+    /// A transaction the model asked us to update via the `update_transaction` tool.
+    struct TransactionUpdate: Sendable {
+        let merchant: String
+        let amount: Decimal?
+        let date: String?
+        let newMerchant: String?
+        let newAmount: Decimal?
+        let newDate: String?
+        let newCategoryName: String?
+        let newAccountName: String?
+        let newNotes: String?
+        let newIsReviewed: Bool?
+        let summary: String?
+    }
+
+    /// An account the model asked us to update via the `update_account` tool.
+    struct AccountUpdate: Sendable {
+        let name: String
+        let newName: String?
+        let newAccountTypeRaw: String?
+        let newInstitutionName: String?
+        let newStartingBalance: Decimal?
+        let summary: String?
+    }
+
+    /// A bill reminder the model asked us to update via the `update_bill` tool.
+    struct BillUpdate: Sendable {
+        let name: String
+        let newName: String?
+        let newAmount: Decimal?
+        let newDueDate: String?
+        let newCadence: RecurrenceCadence?
+        let newNotifyDaysBefore: Int?
+        let summary: String?
+    }
+
+    /// A savings goal the model asked us to update via the `update_goal` tool.
+    struct GoalUpdate: Sendable {
+        let name: String
+        let newName: String?
+        let newTargetAmount: Decimal?
+        let newCurrentAmount: Decimal?
+        let newTargetDate: String?
+        let newAccountName: String?
+        let newSFSymbolName: String?
+        let newColorHex: String?
+        let summary: String?
+    }
+
     /// What one advisor round produced: text to show, and/or a budget plan to apply.
     struct AdvisorReply: Sendable {
         let text: String
@@ -264,6 +313,18 @@ struct GeminiService: Sendable {
         /// A goal the model asked us to delete, if any.
         let goalDeletion: GoalDeletion?
         let goalDeletionArgsJSON: String?
+        /// A transaction the model asked us to update, if any.
+        let transactionUpdate: TransactionUpdate?
+        let transactionUpdateArgsJSON: String?
+        /// An account the model asked us to update, if any.
+        let accountUpdate: AccountUpdate?
+        let accountUpdateArgsJSON: String?
+        /// A bill the model asked us to update, if any.
+        let billUpdate: BillUpdate?
+        let billUpdateArgsJSON: String?
+        /// A goal the model asked us to update, if any.
+        let goalUpdate: GoalUpdate?
+        let goalUpdateArgsJSON: String?
         /// Gemini's reasoning token for this reply (from the function-call part when present, else the
         /// text part). Must be echoed back on the same part in the next request; see `ChatTurn.model`.
         let thoughtSignature: String?
@@ -308,9 +369,13 @@ struct GeminiService: Sendable {
                 Self.createBudgetDeclaration,
                 Self.deleteBudgetDeclaration,
                 Self.createTransactionDeclaration,
+                Self.updateTransactionDeclaration,
                 Self.createAccountDeclaration,
+                Self.updateAccountDeclaration,
                 Self.createBillDeclaration,
+                Self.updateBillDeclaration,
                 Self.createGoalDeclaration,
+                Self.updateGoalDeclaration,
                 Self.deleteTransactionDeclaration,
                 Self.deleteAccountDeclaration,
                 Self.deleteBillDeclaration,
@@ -331,9 +396,13 @@ struct GeminiService: Sendable {
             Self.createBudgetToolName,
             Self.deleteBudgetToolName,
             Self.createTransactionToolName,
+            Self.updateTransactionToolName,
             Self.createAccountToolName,
+            Self.updateAccountToolName,
             Self.createBillToolName,
+            Self.updateBillToolName,
             Self.createGoalToolName,
+            Self.updateGoalToolName,
             Self.deleteTransactionToolName,
             Self.deleteAccountToolName,
             Self.deleteBillToolName,
@@ -357,6 +426,14 @@ struct GeminiService: Sendable {
         var billDeletionArgsJSON: String?
         var goalDeletion: GoalDeletion?
         var goalDeletionArgsJSON: String?
+        var transactionUpdate: TransactionUpdate?
+        var transactionUpdateArgsJSON: String?
+        var accountUpdate: AccountUpdate?
+        var accountUpdateArgsJSON: String?
+        var billUpdate: BillUpdate?
+        var billUpdateArgsJSON: String?
+        var goalUpdate: GoalUpdate?
+        var goalUpdateArgsJSON: String?
         if let call = callPart?.functionCall, let args = call.args {
             switch call.name {
             case Self.createBudgetToolName:
@@ -462,12 +539,69 @@ struct GeminiService: Sendable {
                     goalDeletion = GoalDeletion(name: name, summary: args.summary)
                     goalDeletionArgsJSON = Self.json(from: args)
                 }
+            case Self.updateTransactionToolName:
+                if let merchant = args.merchant, !merchant.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    transactionUpdate = TransactionUpdate(
+                        merchant: merchant,
+                        amount: args.amount.map { Decimal($0) },
+                        date: args.date,
+                        newMerchant: args.newMerchant?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        newAmount: args.newAmount.map { Decimal($0) },
+                        newDate: args.newDate,
+                        newCategoryName: args.newCategoryName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        newAccountName: args.newAccountName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        newNotes: args.newNotes,
+                        newIsReviewed: args.newIsReviewed,
+                        summary: args.summary
+                    )
+                    transactionUpdateArgsJSON = Self.json(from: args)
+                }
+            case Self.updateAccountToolName:
+                if let name = args.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    accountUpdate = AccountUpdate(
+                        name: name,
+                        newName: args.newName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        newAccountTypeRaw: args.newAccountType?.lowercased(),
+                        newInstitutionName: args.newInstitutionName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        newStartingBalance: args.newStartingBalance.map { Decimal($0) },
+                        summary: args.summary
+                    )
+                    accountUpdateArgsJSON = Self.json(from: args)
+                }
+            case Self.updateBillToolName:
+                if let name = args.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    billUpdate = BillUpdate(
+                        name: name,
+                        newName: args.newName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        newAmount: args.newAmount.map { Decimal($0) },
+                        newDueDate: args.newDueDate,
+                        newCadence: args.newCadence.flatMap { RecurrenceCadence(rawValue: $0.lowercased()) },
+                        newNotifyDaysBefore: args.newNotifyDaysBefore,
+                        summary: args.summary
+                    )
+                    billUpdateArgsJSON = Self.json(from: args)
+                }
+            case Self.updateGoalToolName:
+                if let name = args.name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    goalUpdate = GoalUpdate(
+                        name: name,
+                        newName: args.newName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        newTargetAmount: args.newTargetAmount.map { Decimal($0) },
+                        newCurrentAmount: args.newCurrentAmount.map { Decimal($0) },
+                        newTargetDate: args.newTargetDate,
+                        newAccountName: args.newAccountName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        newSFSymbolName: args.newSFSymbolName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        newColorHex: args.newColorHex?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        summary: args.summary
+                    )
+                    goalUpdateArgsJSON = Self.json(from: args)
+                }
             default:
                 break
             }
         }
 
-        guard plan != nil || deletePlan != nil || transactionPlan != nil || accountPlan != nil || billPlan != nil || goalPlan != nil || transactionDeletion != nil || accountDeletion != nil || billDeletion != nil || goalDeletion != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard plan != nil || deletePlan != nil || transactionPlan != nil || accountPlan != nil || billPlan != nil || goalPlan != nil || transactionDeletion != nil || accountDeletion != nil || billDeletion != nil || goalDeletion != nil || transactionUpdate != nil || accountUpdate != nil || billUpdate != nil || goalUpdate != nil || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ServiceError.emptyResponse
         }
         return AdvisorReply(
@@ -492,6 +626,14 @@ struct GeminiService: Sendable {
             billDeletionArgsJSON: billDeletionArgsJSON,
             goalDeletion: goalDeletion,
             goalDeletionArgsJSON: goalDeletionArgsJSON,
+            transactionUpdate: transactionUpdate,
+            transactionUpdateArgsJSON: transactionUpdateArgsJSON,
+            accountUpdate: accountUpdate,
+            accountUpdateArgsJSON: accountUpdateArgsJSON,
+            billUpdate: billUpdate,
+            billUpdateArgsJSON: billUpdateArgsJSON,
+            goalUpdate: goalUpdate,
+            goalUpdateArgsJSON: goalUpdateArgsJSON,
             thoughtSignature: thoughtSignature
         )
     }
@@ -502,6 +644,10 @@ struct GeminiService: Sendable {
     static let createAccountToolName = "create_account"
     static let createBillToolName = "create_bill"
     static let createGoalToolName = "create_goal"
+    static let updateTransactionToolName = "update_transaction"
+    static let updateAccountToolName = "update_account"
+    static let updateBillToolName = "update_bill"
+    static let updateGoalToolName = "update_goal"
     static let deleteTransactionToolName = "delete_transaction"
     static let deleteAccountToolName = "delete_account"
     static let deleteBillToolName = "delete_bill"
@@ -834,6 +980,186 @@ struct GeminiService: Sendable {
         ] as [String: Any]
     ]
 
+    /// The tool the advisor can call to update a transaction.
+    private static let updateTransactionDeclaration: [String: Any] = [
+        "name": updateTransactionToolName,
+        "description": "Update an existing transaction in Ledger. Call this when the user asks to change, edit, or correct a transaction (e.g. \"change the Starbucks charge to $15\", \"mark my paycheck as reviewed\").",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "merchant": [
+                    "type": "STRING",
+                    "description": "Current merchant/description of the transaction to update."
+                ],
+                "amount": [
+                    "type": "NUMBER",
+                    "description": "Optional current amount to narrow the match."
+                ],
+                "date": [
+                    "type": "STRING",
+                    "description": "Optional current date as \"YYYY-MM-DD\" to narrow the match."
+                ],
+                "newMerchant": [
+                    "type": "STRING",
+                    "description": "Optional new merchant/description."
+                ],
+                "newAmount": [
+                    "type": "NUMBER",
+                    "description": "Optional new positive amount."
+                ],
+                "newDate": [
+                    "type": "STRING",
+                    "description": "Optional new date as \"YYYY-MM-DD\"."
+                ],
+                "newCategoryName": [
+                    "type": "STRING",
+                    "description": "Optional exact category name to reassign the transaction to."
+                ],
+                "newAccountName": [
+                    "type": "STRING",
+                    "description": "Optional exact account name to move the transaction to."
+                ],
+                "newNotes": [
+                    "type": "STRING",
+                    "description": "Optional new notes."
+                ],
+                "newIsReviewed": [
+                    "type": "BOOLEAN",
+                    "description": "Optional reviewed flag."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was updated."
+                ]
+            ] as [String: Any],
+            "required": ["merchant"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to update an account.
+    private static let updateAccountDeclaration: [String: Any] = [
+        "name": updateAccountToolName,
+        "description": "Update a manual account in Ledger. Call this when the user asks to rename, change type, or adjust the starting balance of an account.",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "name": [
+                    "type": "STRING",
+                    "description": "Current exact name of the account to update."
+                ],
+                "newName": [
+                    "type": "STRING",
+                    "description": "Optional new account name."
+                ],
+                "newAccountType": [
+                    "type": "STRING",
+                    "description": "Optional new account type: chequing, savings, credit, investment."
+                ],
+                "newInstitutionName": [
+                    "type": "STRING",
+                    "description": "Optional new bank or institution name."
+                ],
+                "newStartingBalance": [
+                    "type": "NUMBER",
+                    "description": "Optional new starting balance."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was updated."
+                ]
+            ] as [String: Any],
+            "required": ["name"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to update a bill reminder.
+    private static let updateBillDeclaration: [String: Any] = [
+        "name": updateBillToolName,
+        "description": "Update a bill reminder in Ledger. Call this when the user asks to change the amount, due date, or cadence of a bill.",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "name": [
+                    "type": "STRING",
+                    "description": "Current exact name of the bill to update."
+                ],
+                "newName": [
+                    "type": "STRING",
+                    "description": "Optional new bill name."
+                ],
+                "newAmount": [
+                    "type": "NUMBER",
+                    "description": "Optional new positive amount."
+                ],
+                "newDueDate": [
+                    "type": "STRING",
+                    "description": "Optional new due date as \"YYYY-MM-DD\"."
+                ],
+                "newCadence": [
+                    "type": "STRING",
+                    "description": "Optional new cadence: weekly, biweekly, monthly, quarterly, yearly, or omit for one-time."
+                ],
+                "newNotifyDaysBefore": [
+                    "type": "INTEGER",
+                    "description": "Optional new notification lead days."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was updated."
+                ]
+            ] as [String: Any],
+            "required": ["name"]
+        ] as [String: Any]
+    ]
+
+    /// The tool the advisor can call to update a savings goal.
+    private static let updateGoalDeclaration: [String: Any] = [
+        "name": updateGoalToolName,
+        "description": "Update a savings goal in Ledger. Call this when the user asks to change the target, saved amount, linked account, icon, or color of a goal.",
+        "parameters": [
+            "type": "OBJECT",
+            "properties": [
+                "name": [
+                    "type": "STRING",
+                    "description": "Current exact name of the goal to update."
+                ],
+                "newName": [
+                    "type": "STRING",
+                    "description": "Optional new goal name."
+                ],
+                "newTargetAmount": [
+                    "type": "NUMBER",
+                    "description": "Optional new target amount."
+                ],
+                "newCurrentAmount": [
+                    "type": "NUMBER",
+                    "description": "Optional new manually tracked saved amount."
+                ],
+                "newTargetDate": [
+                    "type": "STRING",
+                    "description": "Optional new target date as \"YYYY-MM-DD\"."
+                ],
+                "newAccountName": [
+                    "type": "STRING",
+                    "description": "Optional exact active account name to link; omit to unlink."
+                ],
+                "newSFSymbolName": [
+                    "type": "STRING",
+                    "description": "Optional new SF Symbols icon name."
+                ],
+                "newColorHex": [
+                    "type": "STRING",
+                    "description": "Optional new hex color."
+                ],
+                "summary": [
+                    "type": "STRING",
+                    "description": "One sentence confirming what was updated."
+                ]
+            ] as [String: Any],
+            "required": ["name"]
+        ] as [String: Any]
+    ]
+
     // MARK: - Shared transport
 
     /// HTTP statuses worth retrying: the model was momentarily overloaded (503), the server hiccuped
@@ -1070,6 +1396,26 @@ struct GeminiService: Sendable {
         if let targetAmount = args.targetAmount { object["targetAmount"] = targetAmount }
         if let currentAmount = args.currentAmount { object["currentAmount"] = currentAmount }
         if let targetDate = args.targetDate { object["targetDate"] = targetDate }
+        // update fields
+        if let newMerchant = args.newMerchant { object["newMerchant"] = newMerchant }
+        if let newAmount = args.newAmount { object["newAmount"] = newAmount }
+        if let newDate = args.newDate { object["newDate"] = newDate }
+        if let newCategoryName = args.newCategoryName { object["newCategoryName"] = newCategoryName }
+        if let newAccountName = args.newAccountName { object["newAccountName"] = newAccountName }
+        if let newNotes = args.newNotes { object["newNotes"] = newNotes }
+        if let newIsReviewed = args.newIsReviewed { object["newIsReviewed"] = newIsReviewed }
+        if let newName = args.newName { object["newName"] = newName }
+        if let newAccountType = args.newAccountType { object["newAccountType"] = newAccountType }
+        if let newInstitutionName = args.newInstitutionName { object["newInstitutionName"] = newInstitutionName }
+        if let newStartingBalance = args.newStartingBalance { object["newStartingBalance"] = newStartingBalance }
+        if let newDueDate = args.newDueDate { object["newDueDate"] = newDueDate }
+        if let newCadence = args.newCadence { object["newCadence"] = newCadence }
+        if let newNotifyDaysBefore = args.newNotifyDaysBefore { object["newNotifyDaysBefore"] = newNotifyDaysBefore }
+        if let newTargetAmount = args.newTargetAmount { object["newTargetAmount"] = newTargetAmount }
+        if let newCurrentAmount = args.newCurrentAmount { object["newCurrentAmount"] = newCurrentAmount }
+        if let newTargetDate = args.newTargetDate { object["newTargetDate"] = newTargetDate }
+        if let newSFSymbolName = args.newSFSymbolName { object["newSFSymbolName"] = newSFSymbolName }
+        if let newColorHex = args.newColorHex { object["newColorHex"] = newColorHex }
         guard let data = try? JSONSerialization.data(withJSONObject: object) else { return "{}" }
         return String(decoding: data, as: UTF8.self)
     }
@@ -1137,6 +1483,29 @@ struct GeminiService: Sendable {
             let targetAmount: Double?
             let currentAmount: Double?
             let targetDate: String?
+            // update_transaction fields
+            let newMerchant: String?
+            let newAmount: Double?
+            let newDate: String?
+            let newCategoryName: String?
+            let newAccountName: String?
+            let newNotes: String?
+            let newIsReviewed: Bool?
+            // update_account fields
+            let newName: String?
+            let newAccountType: String?
+            let newInstitutionName: String?
+            let newStartingBalance: Double?
+            // update_bill fields
+            let newDueDate: String?
+            let newCadence: String?
+            let newNotifyDaysBefore: Int?
+            // update_goal fields
+            let newTargetAmount: Double?
+            let newCurrentAmount: Double?
+            let newTargetDate: String?
+            let newSFSymbolName: String?
+            let newColorHex: String?
         }
         let name: String
         let args: Args?
