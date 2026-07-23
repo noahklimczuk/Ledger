@@ -154,7 +154,7 @@ struct TransactionEditView: View {
         accent: Accent
     ) -> some View {
         let isSelected = viewModel.direction == direction
-        Button { viewModel.direction = direction } label: {
+        return Button { viewModel.direction = direction } label: {
             Text(direction.label)
                 .font(.appCaption.weight(.black))
                 .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(Color.secondary))

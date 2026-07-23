@@ -378,6 +378,78 @@ final class AskLedgerViewModel {
                         responseJSON: result.responseJSON
                     ))
                     systemInstruction = nil
+                } else if let update = reply.transactionUpdate {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.updateTransactionToolName,
+                            argsJSON: reply.transactionUpdateArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyUpdateTransaction(update)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.updateTransactionToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
+                } else if let update = reply.accountUpdate {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.updateAccountToolName,
+                            argsJSON: reply.accountUpdateArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyUpdateAccount(update)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.updateAccountToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
+                } else if let update = reply.billUpdate {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.updateBillToolName,
+                            argsJSON: reply.billUpdateArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyUpdateBill(update)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.updateBillToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
+                } else if let update = reply.goalUpdate {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.updateGoalToolName,
+                            argsJSON: reply.goalUpdateArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyUpdateGoal(update)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.updateGoalToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
                 } else {
                     if !replyText.isEmpty {
                         apiHistory.append(.model(text: replyText, functionCall: nil, thoughtSignature: reply.thoughtSignature))
@@ -823,6 +895,200 @@ final class AskLedgerViewModel {
         return (note, responseJSON)
     }
 
+    // MARK: - Update tools
+
+    /// Applies the model's `update_transaction` call by finding the closest matching transaction
+    /// and applying whichever new fields were provided.
+    private func applyUpdateTransaction(_ plan: GeminiService.TransactionUpdate) -> (note: String, responseJSON: String) {
+        let calendar = Calendar.current
+        let targetAmount = plan.amount
+        let targetDate = plan.date.flatMap { Self.transactionDateFormatter.date(from: $0) }
+
+        let allTransactions = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
+        let matches = allTransactions.filter { transaction in
+            let merchantMatch = transaction.merchant.localizedCaseInsensitiveContains(plan.merchant)
+            let amountMatch = targetAmount.map { abs(transaction.amount) == abs($0) } ?? true
+            let dateMatch = targetDate.map { calendar.isDate($0, inSameDayAs: transaction.date) } ?? true
+            return merchantMatch && amountMatch && dateMatch
+        }
+
+        guard let transaction = matches.sorted(by: { $0.date > $1.date }).first else {
+            let response = #"{"status":"no_match","error":"No matching transaction found."}"#
+            return ("I couldn't find a transaction matching \"\(plan.merchant)\" to update.", response)
+        }
+
+        if let newMerchant = plan.newMerchant, !newMerchant.isEmpty {
+            transaction.merchant = newMerchant
+        }
+
+        if let newAmount = plan.newAmount, newAmount > 0 {
+            let magnitude = abs(newAmount)
+            let isIncome: Bool
+            if transaction.amount == 0, let category = transaction.category {
+                isIncome = category.isIncome
+            } else {
+                isIncome = transaction.amount > 0
+            }
+            transaction.amount = isIncome ? magnitude : -magnitude
+        }
+
+        if let newDateString = plan.newDate, !newDateString.isEmpty,
+           let newDate = Self.transactionDateFormatter.date(from: newDateString) {
+            transaction.date = newDate
+        }
+
+        if let newCategoryName = plan.newCategoryName, !newCategoryName.isEmpty {
+            let categories = ((try? modelContext.fetch(FetchDescriptor<Category>())) ?? [])
+            transaction.category = categories.first { $0.name.trimmingCharacters(in: .whitespaces).localizedCaseInsensitiveContains(newCategoryName) }
+        }
+
+        if let newAccountName = plan.newAccountName, !newAccountName.isEmpty {
+            let accounts = ((try? modelContext.fetch(FetchDescriptor<Account>())) ?? []).filter { !$0.isArchived }
+            transaction.account = accounts.first { $0.name.trimmingCharacters(in: .whitespaces).localizedCaseInsensitiveContains(newAccountName) }
+        }
+
+        if let newNotes = plan.newNotes {
+            transaction.notes = newNotes
+        }
+
+        if let newIsReviewed = plan.newIsReviewed {
+            transaction.isReviewed = newIsReviewed
+        }
+
+        try? modelContext.save()
+
+        let note = "Updated \"\(transaction.merchant)\" transaction on \(DateFormatting.medium(transaction.date))."
+        let response: [String: Any] = [
+            "status": "updated",
+            "merchant": transaction.merchant,
+            "amount": (transaction.amount as NSDecimalNumber).doubleValue,
+            "date": Self.transactionDateFormatter.string(from: transaction.date)
+        ]
+        let responseJSON = (try? JSONSerialization.data(withJSONObject: response)).map { String(decoding: $0, as: UTF8.self) } ?? #"{"status":"updated"}"#
+        return (note, responseJSON)
+    }
+
+    /// Applies the model's `update_account` call by finding the account and applying new fields.
+    private func applyUpdateAccount(_ plan: GeminiService.AccountUpdate) -> (note: String, responseJSON: String) {
+        let accounts = ((try? modelContext.fetch(FetchDescriptor<Account>())) ?? [])
+        guard let account = accounts.first(where: { $0.name.trimmingCharacters(in: .whitespaces).localizedCaseInsensitiveContains(plan.name) }) else {
+            let response = #"{"status":"no_match","error":"No matching account found."}"#
+            return ("I couldn't find an account named \"\(plan.name)\" to update.", response)
+        }
+
+        if let newName = plan.newName, !newName.isEmpty {
+            account.name = newName
+        }
+        if let newTypeRaw = plan.newAccountTypeRaw, let newType = AccountType(rawValue: newTypeRaw) {
+            account.type = newType
+        }
+        if let newInstitutionName = plan.newInstitutionName {
+            account.institutionName = newInstitutionName
+        }
+        if let newStartingBalance = plan.newStartingBalance {
+            account.startingBalance = newStartingBalance
+        }
+
+        try? modelContext.save()
+
+        let note = "Updated \(account.type.displayName) account \"\(account.name)\"."
+        let response: [String: Any] = [
+            "status": "updated",
+            "name": account.name,
+            "accountType": account.type.rawValue
+        ]
+        let responseJSON = (try? JSONSerialization.data(withJSONObject: response)).map { String(decoding: $0, as: UTF8.self) } ?? #"{"status":"updated"}"#
+        return (note, responseJSON)
+    }
+
+    /// Applies the model's `update_bill` call by finding the bill reminder and applying new fields.
+    private func applyUpdateBill(_ plan: GeminiService.BillUpdate) -> (note: String, responseJSON: String) {
+        let bills = ((try? modelContext.fetch(FetchDescriptor<BillReminder>())) ?? [])
+        guard let bill = bills.first(where: { $0.name.trimmingCharacters(in: .whitespaces).localizedCaseInsensitiveContains(plan.name) }) else {
+            let response = #"{"status":"no_match","error":"No matching bill found."}"#
+            return ("I couldn't find a bill named \"\(plan.name)\" to update.", response)
+        }
+
+        if let newName = plan.newName, !newName.isEmpty {
+            bill.name = newName
+        }
+        if let newAmount = plan.newAmount, newAmount > 0 {
+            bill.amount = newAmount
+        }
+        if let newDueDateString = plan.newDueDate, !newDueDateString.isEmpty,
+           let newDueDate = Self.transactionDateFormatter.date(from: newDueDateString) {
+            bill.dueDate = newDueDate
+        }
+        if let newCadence = plan.newCadence {
+            bill.cadence = newCadence
+        }
+        if let newNotifyDaysBefore = plan.newNotifyDaysBefore {
+            bill.notifyDaysBefore = max(newNotifyDaysBefore, 0)
+        }
+
+        try? modelContext.save()
+
+        let note = "Updated bill reminder \"\(bill.name)\"."
+        let response: [String: Any] = [
+            "status": "updated",
+            "name": bill.name,
+            "amount": (bill.amount as NSDecimalNumber).doubleValue
+        ]
+        let responseJSON = (try? JSONSerialization.data(withJSONObject: response)).map { String(decoding: $0, as: UTF8.self) } ?? #"{"status":"updated"}"#
+        return (note, responseJSON)
+    }
+
+    /// Applies the model's `update_goal` call by finding the savings goal and applying new fields.
+    private func applyUpdateGoal(_ plan: GeminiService.GoalUpdate) -> (note: String, responseJSON: String) {
+        let goals = ((try? modelContext.fetch(FetchDescriptor<SavingsGoal>())) ?? [])
+        guard let goal = goals.first(where: { $0.name.trimmingCharacters(in: .whitespaces).localizedCaseInsensitiveContains(plan.name) }) else {
+            let response = #"{"status":"no_match","error":"No matching goal found."}"#
+            return ("I couldn't find a goal named \"\(plan.name)\" to update.", response)
+        }
+
+        if let newName = plan.newName, !newName.isEmpty {
+            goal.name = newName
+        }
+        if let newTargetAmount = plan.newTargetAmount, newTargetAmount > 0 {
+            goal.targetAmount = newTargetAmount
+        }
+        if let newCurrentAmount = plan.newCurrentAmount {
+            goal.currentAmount = newCurrentAmount
+        }
+        if let newTargetDateString = plan.newTargetDate, !newTargetDateString.isEmpty,
+           let newTargetDate = Self.transactionDateFormatter.date(from: newTargetDateString) {
+            goal.targetDate = newTargetDate
+        }
+        if let newSFSymbolName = plan.newSFSymbolName, !newSFSymbolName.isEmpty {
+            goal.sfSymbolName = newSFSymbolName
+        }
+        if let newColorHex = plan.newColorHex, !newColorHex.isEmpty {
+            goal.colorHex = newColorHex
+        }
+
+        if let newAccountName = plan.newAccountName {
+            let trimmed = newAccountName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                goal.account = nil
+            } else {
+                let accounts = ((try? modelContext.fetch(FetchDescriptor<Account>())) ?? []).filter { !$0.isArchived }
+                goal.account = accounts.first { $0.name.trimmingCharacters(in: .whitespaces).localizedCaseInsensitiveContains(trimmed) }
+            }
+        }
+
+        try? modelContext.save()
+
+        let note = "Updated savings goal \"\(goal.name)\"."
+        let response: [String: Any] = [
+            "status": "updated",
+            "name": goal.name,
+            "targetAmount": (goal.targetAmount as NSDecimalNumber).doubleValue,
+            "currentAmount": (goal.currentAmount as NSDecimalNumber).doubleValue
+        ]
+        let responseJSON = (try? JSONSerialization.data(withJSONObject: response)).map { String(decoding: $0, as: UTF8.self) } ?? #"{"status":"updated"}"#
+        return (note, responseJSON)
+    }
+
     // MARK: - Context
 
     /// The advisor persona plus a snapshot of the user's finances: this month's plan, recent
@@ -850,6 +1116,10 @@ final class AskLedgerViewModel {
         lines.append("Deleting accounts: when the user asks to remove, delete, or close an account, call the \(GeminiService.deleteAccountToolName) tool. Pass the exact `name`.")
         lines.append("Deleting bills: when the user asks to cancel or remove a bill reminder, call the \(GeminiService.deleteBillToolName) tool. Pass the exact `name`.")
         lines.append("Deleting goals: when the user asks to remove or abandon a savings goal, call the \(GeminiService.deleteGoalToolName) tool. Pass the exact `name`.")
+        lines.append("Updating transactions: when the user asks to change, edit, or correct a transaction (e.g. \"change the Starbucks charge to $15\", \"mark my paycheck as reviewed\"), call the \(GeminiService.updateTransactionToolName) tool. Pass `merchant` and optionally `amount`/`date` to identify the transaction, then any of `newMerchant`, `newAmount`, `newDate`, `newCategoryName`, `newAccountName`, `newNotes`, or `newIsReviewed` to update.")
+        lines.append("Updating accounts: when the user asks to rename, change type, or adjust the starting balance of an account, call the \(GeminiService.updateAccountToolName) tool. Pass the current `name` and the fields to update.")
+        lines.append("Updating bills: when the user asks to change the amount, due date, or cadence of a bill, call the \(GeminiService.updateBillToolName) tool. Pass the current `name` and the fields to update.")
+        lines.append("Updating goals: when the user asks to change the target, saved amount, linked account, icon, or color of a goal, call the \(GeminiService.updateGoalToolName) tool. Pass the current `name` and the fields to update.")
 
         let expenseCategoryNames = ((try? modelContext.fetch(FetchDescriptor<Category>())) ?? [])
             .filter { !$0.isIncome && !$0.isTransfer }
