@@ -121,7 +121,7 @@ private struct FloatingTabBar: View {
     /// bar with a strong top sheen and a soft drop shadow, matching the rendering's glass FAB.
     private var homeButton: some View {
         let isSelected = selection == 2
-        Button {
+        return Button {
             Haptics.tap(.soft)
             selection = 2
         } label: {
