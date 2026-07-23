@@ -232,7 +232,7 @@ struct BudgetSuggestionView: View {
                     .font(AppFont.scaled(13, relativeTo: .caption, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 30, height: 30)
-                    .background(Color(hex: "#00C7BE"), in: Circle())
+                    .background(Palette.income, in: Circle())
                     .opacity(viewModel.savingsIncluded ? 1 : 0.4)
                 Text("Savings")
                     .font(.appSubheadline.weight(.medium))

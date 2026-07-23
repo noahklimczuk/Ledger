@@ -230,7 +230,7 @@ struct TransactionEditView: View {
                     CategoryChip(
                         name: "Uncategorized",
                         systemImage: "questionmark.circle.fill",
-                        color: .gray,
+                        color: Color.secondary,
                         isSelected: viewModel.category == nil
                     ) {
                         viewModel.category = nil

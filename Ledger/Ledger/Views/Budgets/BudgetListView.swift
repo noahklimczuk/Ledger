@@ -414,7 +414,7 @@ struct BudgetListView: View {
                     } label: {
                         UnbudgetedRowView(
                             symbol: item.categorySymbolName,
-                            color: item.categoryColorHex.map { Color(hex: $0) } ?? .gray,
+                            color: item.categoryColorHex.map { Color(hex: $0) } ?? Color.secondary,
                             name: item.categoryName,
                             detail: "Tap to set a budget",
                             spent: item.spent,
@@ -425,7 +425,7 @@ struct BudgetListView: View {
                 } else {
                     UnbudgetedRowView(
                         symbol: "questionmark",
-                        color: .gray,
+                        color: Color.secondary,
                         name: "Uncategorized",
                         detail: "Categorize these transactions to budget them",
                         spent: item.spent,
