@@ -140,7 +140,6 @@ struct TransactionDetailView: View {
             } label: {
                 HStack(spacing: 6) {
                     let category = transaction.category
-                    let color = category.map { Color(hex: $0.colorHex) } ?? .gray
                     Image(systemName: category?.sfSymbolName ?? "questionmark.circle.fill")
                         .font(AppFont.scaled(13, relativeTo: .body, weight: .bold))
                     Text(category?.name ?? "Uncategorized")
@@ -149,10 +148,10 @@ struct TransactionDetailView: View {
                     Image(systemName: "chevron.right")
                         .font(AppFont.scaled(10, relativeTo: .caption2, weight: .bold))
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.greenDeep)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
-                .background((transaction.category.map { Color(hex: $0.colorHex) } ?? .gray).opacity(0.92), in: Capsule())
+                .background(Palette.green.opacity(0.15), in: Capsule())
             }
             .menuStyle(.button)
             .buttonStyle(.plain)
@@ -171,11 +170,12 @@ struct TransactionDetailView: View {
                 categoryRow
                 Divider().padding(.leading, 38)
             }
-            DetailMetaRow(icon: "calendar", label: "Date", value: DateFormatting.medium(transaction.date))
-            Divider().padding(.leading, 38)
-            DetailMetaRow(icon: transaction.isReviewed ? "checkmark.circle.fill" : "exclamationmark.circle.fill", label: "Status", value: transaction.isReviewed ? "Reviewed" : "Needs review")
-            Divider().padding(.leading, 38)
-            DetailMetaRow(icon: "arrow.down.circle", label: "Source", value: transaction.sourceKind.displayName)
+            DetailMetaRow(
+                icon: transaction.isReviewed ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
+                label: "Status",
+                value: transaction.isReviewed ? "Reviewed" : "Needs review",
+                tint: transaction.isReviewed ? Palette.greenDeep : Palette.coral
+            )
         }
         .padding(Theme.cardPadding)
         .card()
@@ -185,10 +185,8 @@ struct TransactionDetailView: View {
 
     private var splitsCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Split")
-                .font(.appCaption2.weight(.heavy))
-                .tracking(0.4)
-                .foregroundStyle(.secondary)
+            Text("Split across \(transaction.splits.count) categor\(transaction.splits.count == 1 ? "y" : "ies")")
+                .font(.appHeadline.weight(.heavy))
 
             VStack(spacing: 0) {
                 ForEach(Array(transaction.splits.enumerated()), id: \.element.persistentModelID) { index, split in
@@ -204,7 +202,7 @@ struct TransactionDetailView: View {
                             .font(.appBodyMedium.weight(.semibold))
 
                         Spacer()
-                        Text(CurrencyFormatter.string(from: split.amount, currencyCode: transaction.account?.currencyCode ?? "CAD"))
+                        Text(CurrencyFormatter.string(from: abs(split.amount), currencyCode: transaction.account?.currencyCode ?? "CAD"))
                             .font(.appBody.weight(.heavy))
                     }
                     .padding(.vertical, 10)
@@ -218,18 +216,25 @@ struct TransactionDetailView: View {
     // MARK: - Insights
 
     private var insightFooter: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "lightbulb.fill")
                     .font(.appCaption.weight(.bold))
                     .foregroundStyle(Palette.peri)
-            }
+                    .padding(.top, 2)
 
-            if relatedInsights.isEmpty {
-                Text("Changing the category here also teaches Ledger to auto-file future \(transaction.merchant) charges.")
+                Text("Changing the category here also ")
                     .font(.appSubheadline)
                     .foregroundStyle(.secondary)
-            } else {
+                + Text("teaches Ledger")
+                    .font(.appSubheadline.weight(.heavy))
+                    .foregroundStyle(Palette.greenDeep)
+                + Text(" to auto-file future \(transaction.merchant) charges.")
+                    .font(.appSubheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if !relatedInsights.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(relatedInsights, id: \.self) { insight in
                         HStack(alignment: .top, spacing: 8) {
@@ -248,11 +253,14 @@ struct TransactionDetailView: View {
         .padding(Theme.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            LinearGradient(
-                colors: [Palette.peri.opacity(0.10), Palette.peri.opacity(0.04)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            ZStack {
+                Color.appSurface
+                LinearGradient(
+                    colors: [Palette.peri.opacity(0.10), Palette.peri.opacity(0.04)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
         )
         .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
         .overlay(
@@ -342,12 +350,13 @@ private struct DetailMetaRow: View {
     let icon: String
     let label: String
     let value: String
+    var tint: Color? = nil
 
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: icon)
                 .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
-                .foregroundStyle(Color.secondary)
+                .foregroundStyle(tint ?? Color.secondary)
                 .frame(width: 24, height: 24)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -357,7 +366,7 @@ private struct DetailMetaRow: View {
                     .foregroundStyle(.secondary)
                 Text(value)
                     .font(.appBodyMedium.weight(.semibold))
-                    .foregroundStyle(Color.primary)
+                    .foregroundStyle(tint ?? Color.primary)
             }
 
             Spacer(minLength: 0)

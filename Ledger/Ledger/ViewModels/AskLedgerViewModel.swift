@@ -306,6 +306,78 @@ final class AskLedgerViewModel {
                         responseJSON: result.responseJSON
                     ))
                     systemInstruction = nil
+                } else if let deletion = reply.transactionDeletion {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.deleteTransactionToolName,
+                            argsJSON: reply.transactionDeletionArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyDeleteTransaction(deletion)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.deleteTransactionToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
+                } else if let deletion = reply.accountDeletion {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.deleteAccountToolName,
+                            argsJSON: reply.accountDeletionArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyDeleteAccount(deletion)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.deleteAccountToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
+                } else if let deletion = reply.billDeletion {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.deleteBillToolName,
+                            argsJSON: reply.billDeletionArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyDeleteBill(deletion)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.deleteBillToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
+                } else if let deletion = reply.goalDeletion {
+                    toolRounds += 1
+
+                    apiHistory.append(.model(
+                        text: replyText.isEmpty ? nil : replyText,
+                        functionCall: GeminiService.FunctionCallEcho(
+                            name: GeminiService.deleteGoalToolName,
+                            argsJSON: reply.goalDeletionArgsJSON ?? "{}"
+                        ),
+                        thoughtSignature: reply.thoughtSignature
+                    ))
+                    let result = applyDeleteGoal(deletion)
+                    appendMessage(Message(role: .assistant, kind: .actionNote, text: result.note))
+                    apiHistory.append(.functionResponse(
+                        name: GeminiService.deleteGoalToolName,
+                        responseJSON: result.responseJSON
+                    ))
+                    systemInstruction = nil
                 } else {
                     if !replyText.isEmpty {
                         apiHistory.append(.model(text: replyText, functionCall: nil, thoughtSignature: reply.thoughtSignature))
@@ -648,6 +720,109 @@ final class AskLedgerViewModel {
         return (note, responseJSON)
     }
 
+    // MARK: - Deletion tools
+
+    /// Applies the model's `delete_transaction` call by finding the closest matching transaction
+    /// (merchant, optional amount/date) and deleting it. Returns a chat-facing note and JSON result.
+    private func applyDeleteTransaction(_ plan: GeminiService.TransactionDeletion) -> (note: String, responseJSON: String) {
+        let calendar = Calendar.current
+        let targetAmount = plan.amount
+        let targetDate = plan.date.flatMap { Self.transactionDateFormatter.date(from: $0) }
+
+        let allTransactions = ((try? modelContext.fetch(FetchDescriptor<Transaction>())) ?? [])
+        let matches = allTransactions.filter { transaction in
+            let merchantMatch = transaction.merchant.localizedCaseInsensitiveContains(plan.merchant)
+            let amountMatch = targetAmount.map { abs(transaction.amount) == abs($0) } ?? true
+            let dateMatch = targetDate.map { calendar.isDate($0, inSameDayAs: transaction.date) } ?? true
+            return merchantMatch && amountMatch && dateMatch
+        }
+
+        guard let transaction = matches.sorted(by: { $0.date > $1.date }).first else {
+            let response = #"{"status":"no_match","error":"No matching transaction found."}"#
+            return ("I couldn't find a transaction matching \"\(plan.merchant)\" to delete.", response)
+        }
+
+        modelContext.delete(transaction)
+        try? modelContext.save()
+
+        let note = "Deleted \(CurrencyFormatter.string(from: abs(transaction.amount))) transaction for \"\(transaction.merchant)\" on \(DateFormatting.medium(transaction.date))."
+        let response: [String: Any] = [
+            "status": "deleted",
+            "merchant": transaction.merchant,
+            "amount": (transaction.amount as NSDecimalNumber).doubleValue,
+            "date": Self.transactionDateFormatter.string(from: transaction.date)
+        ]
+        let responseJSON = (try? JSONSerialization.data(withJSONObject: response)).map { String(decoding: $0, as: UTF8.self) } ?? #"{"status":"deleted"}"#
+        return (note, responseJSON)
+    }
+
+    /// Applies the model's `delete_account` call by matching the account name and deleting it.
+    private func applyDeleteAccount(_ plan: GeminiService.AccountDeletion) -> (note: String, responseJSON: String) {
+        let accounts = ((try? modelContext.fetch(FetchDescriptor<Account>())) ?? [])
+        let match = accounts.first { $0.name.trimmingCharacters(in: .whitespaces).localizedCaseInsensitiveContains(plan.name) }
+
+        guard let account = match else {
+            let response = #"{"status":"no_match","error":"No matching account found."}"#
+            return ("I couldn't find an account named \"\(plan.name)\" to delete.", response)
+        }
+
+        modelContext.delete(account)
+        try? modelContext.save()
+
+        let note = "Deleted \(account.type.displayName) account \"\(account.name)\"."
+        let response: [String: Any] = [
+            "status": "deleted",
+            "name": account.name,
+            "accountType": account.type.rawValue
+        ]
+        let responseJSON = (try? JSONSerialization.data(withJSONObject: response)).map { String(decoding: $0, as: UTF8.self) } ?? #"{"status":"deleted"}"#
+        return (note, responseJSON)
+    }
+
+    /// Applies the model's `delete_bill` call by matching the bill name and deleting it.
+    private func applyDeleteBill(_ plan: GeminiService.BillDeletion) -> (note: String, responseJSON: String) {
+        let bills = ((try? modelContext.fetch(FetchDescriptor<BillReminder>())) ?? [])
+        let match = bills.first { $0.name.trimmingCharacters(in: .whitespaces).localizedCaseInsensitiveContains(plan.name) }
+
+        guard let bill = match else {
+            let response = #"{"status":"no_match","error":"No matching bill found."}"#
+            return ("I couldn't find a bill named \"\(plan.name)\" to delete.", response)
+        }
+
+        modelContext.delete(bill)
+        try? modelContext.save()
+
+        let note = "Deleted bill reminder \"\(bill.name)\"."
+        let response: [String: Any] = [
+            "status": "deleted",
+            "name": bill.name
+        ]
+        let responseJSON = (try? JSONSerialization.data(withJSONObject: response)).map { String(decoding: $0, as: UTF8.self) } ?? #"{"status":"deleted"}"#
+        return (note, responseJSON)
+    }
+
+    /// Applies the model's `delete_goal` call by matching the goal name and deleting it.
+    private func applyDeleteGoal(_ plan: GeminiService.GoalDeletion) -> (note: String, responseJSON: String) {
+        let goals = ((try? modelContext.fetch(FetchDescriptor<SavingsGoal>())) ?? [])
+        let match = goals.first { $0.name.trimmingCharacters(in: .whitespaces).localizedCaseInsensitiveContains(plan.name) }
+
+        guard let goal = match else {
+            let response = #"{"status":"no_match","error":"No matching goal found."}"#
+            return ("I couldn't find a goal named \"\(plan.name)\" to delete.", response)
+        }
+
+        modelContext.delete(goal)
+        try? modelContext.save()
+
+        let note = "Deleted savings goal \"\(goal.name)\"."
+        let response: [String: Any] = [
+            "status": "deleted",
+            "name": goal.name
+        ]
+        let responseJSON = (try? JSONSerialization.data(withJSONObject: response)).map { String(decoding: $0, as: UTF8.self) } ?? #"{"status":"deleted"}"#
+        return (note, responseJSON)
+    }
+
     // MARK: - Context
 
     /// The advisor persona plus a snapshot of the user's finances: this month's plan, recent
@@ -671,6 +846,10 @@ final class AskLedgerViewModel {
         lines.append("Creating accounts: when the user asks to add, create, or track an account (e.g. \"add a savings account\", \"I opened a new chequing account\"), call the \(GeminiService.createAccountToolName) tool. Pass `name`, `accountType` (chequing, savings, credit, investment), optional `institutionName`, and optional `startingBalance`.")
         lines.append("Creating bills: when the user asks to add or be reminded about a bill or subscription (e.g. \"remind me about rent on the 1st\", \"add a $15 Netflix subscription\"), call the \(GeminiService.createBillToolName) tool. Pass `name`, positive `amount`, `dueDate` as \"YYYY-MM-DD\", optional `cadence` (weekly, biweekly, monthly, quarterly, yearly — omit for one-time), and optional `notifyDaysBefore`.")
         lines.append("Creating goals: when the user asks to save toward something (e.g. \"save $5,000 for a vacation\", \"goal for a new laptop $1,200\"), call the \(GeminiService.createGoalToolName) tool. Pass `name`, `targetAmount`, optional `currentAmount`, optional `targetDate` as \"YYYY-MM-DD\", and optional `accountName` from the active accounts below to link progress to that account.")
+        lines.append("Deleting transactions: when the user asks to remove, delete, or undo a transaction (e.g. \"delete the $12 Starbucks charge\", \"remove my paycheck\"), call the \(GeminiService.deleteTransactionToolName) tool. Pass `merchant` and optionally `amount` and `date` as \"YYYY-MM-DD\" to narrow the match. Confirm the deleted transaction in `summary`.")
+        lines.append("Deleting accounts: when the user asks to remove, delete, or close an account, call the \(GeminiService.deleteAccountToolName) tool. Pass the exact `name`.")
+        lines.append("Deleting bills: when the user asks to cancel or remove a bill reminder, call the \(GeminiService.deleteBillToolName) tool. Pass the exact `name`.")
+        lines.append("Deleting goals: when the user asks to remove or abandon a savings goal, call the \(GeminiService.deleteGoalToolName) tool. Pass the exact `name`.")
 
         let expenseCategoryNames = ((try? modelContext.fetch(FetchDescriptor<Category>())) ?? [])
             .filter { !$0.isIncome && !$0.isTransfer }

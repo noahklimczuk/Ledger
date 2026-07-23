@@ -102,9 +102,11 @@ private struct FloatingTabBar: View {
 
     var body: some View {
         HStack(spacing: 2) {
-            ForEach(items.indices, id: \.self) { index in
-                tabButton(index)
-            }
+            tabButton(0)
+            tabButton(1)
+            homeButton
+            tabButton(3)
+            tabButton(4)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 10)
@@ -113,6 +115,34 @@ private struct FloatingTabBar: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
         .animation(Motion.bouncy, value: selection)
+    }
+
+    /// The centre Home tab as a raised FAB: a periwinkle gradient rounded square that floats above
+    /// the bar, just like the Bloom rendering's centre action button.
+    private var homeButton: some View {
+        let isSelected = selection == 2
+        return Button {
+            Haptics.tap(.soft)
+            selection = 2
+        } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.appSurface.opacity(0.55))
+                    .frame(width: 58, height: 58)
+                RoundedRectangle(cornerRadius: 17, style: .continuous)
+                    .fill(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 50, height: 50)
+                    .shadow(color: Palette.green.opacity(0.35), radius: 12, x: 0, y: 6)
+                Image(systemName: "house.fill")
+                    .font(AppFont.scaled(25, relativeTo: .title2, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 50, height: 50)
+            .offset(y: isSelected ? -24 : -18)
+            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isSelected)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Home")
     }
 
     /// The Liquid Glass shell: a material blur tinted with the app surface, a soft top highlight,

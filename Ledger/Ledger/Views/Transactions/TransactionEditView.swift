@@ -29,6 +29,10 @@ struct TransactionEditView: View {
                             accountDateCards(viewModel)
                             splitsSection(viewModel)
                             notesSection(viewModel)
+                            BloomKeypad(value: Binding(
+                                get: { viewModel.amountText },
+                                set: { viewModel.amountText = $0 }
+                            ))
                         }
                         .padding()
                     }
@@ -36,7 +40,7 @@ struct TransactionEditView: View {
                     LoadingView()
                 }
             }
-            .navigationTitle(transaction == nil ? "New Transaction" : "Edit Transaction")
+            .navigationTitle(transaction == nil ? "New transaction" : "Edit transaction")
             .navigationBarTitleDisplayMode(.inline)
             .accent(.transactions)
             .accentWash(.transactions)
@@ -67,14 +71,16 @@ struct TransactionEditView: View {
                     } label: {
                         Text("Save")
                             .font(.appCaption.weight(.black))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(viewModel?.canSave == true ? AnyShapeStyle(Palette.greenDeep) : AnyShapeStyle(.secondary))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                             .background(
-                                viewModel?.canSave == true
-                                    ? AnyShapeStyle(Accent.transactions.gradient)
-                                    : AnyShapeStyle(Color.gray)
-                                , in: Capsule(style: .continuous)
+                                viewModel?.canSave == true ? AnyShapeStyle(Color.appSurface) : AnyShapeStyle(Color.gray.opacity(0.25)),
+                                in: Capsule(style: .continuous)
+                            )
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .strokeBorder(Color.appHairline, lineWidth: 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -111,44 +117,57 @@ struct TransactionEditView: View {
     // MARK: - Hero
 
     private func amountHero(_ viewModel: TransactionEditViewModel) -> some View {
-        VStack(spacing: 18) {
-            Picker("Type", selection: Binding(
-                get: { viewModel.direction },
-                set: { viewModel.direction = $0 }
-            )) {
-                ForEach(TransactionEditViewModel.Direction.allCases) { direction in
-                    Text(direction.label).tag(direction)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 220)
-
+        VStack(spacing: 14) {
             amountHeroText(for: viewModel)
                 .padding(.horizontal, 24)
 
-            BloomKeypad(value: Binding(
-                get: { viewModel.amountText },
-                set: { viewModel.amountText = $0 }
-            ))
-                .padding(.horizontal, 10)
+            directionPicker(viewModel)
         }
-        .padding(Theme.cardPadding)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
-        .background(
-            LinearGradient(
-                colors: [Palette.green.opacity(0.12), Color.appSurface],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+    }
+
+    private func directionPicker(_ viewModel: TransactionEditViewModel) -> some View {
+        HStack(spacing: 4) {
+            directionButton(
+                viewModel,
+                .expense,
+                accent: Accent(base: Palette.peach, deep: Palette.peachDeep)
             )
-            .overlay(Color.appSurface.opacity(0.60))
-        )
-        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+            directionButton(
+                viewModel,
+                .income,
+                accent: Accent(base: Palette.green, deep: Palette.greenDeep)
+            )
+        }
+        .padding(4)
+        .background(Color.appSurface.opacity(0.8), in: Capsule(style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+            Capsule(style: .continuous)
                 .strokeBorder(Color.appHairline, lineWidth: 1)
         )
-        .shadow(color: Color.bloomShadow, radius: 18, y: 11)
-        .shadow(color: Color.bloomHighlight, radius: 12, x: -7, y: -7)
+    }
+
+    private func directionButton(
+        _ viewModel: TransactionEditViewModel,
+        _ direction: TransactionEditViewModel.Direction,
+        accent: Accent
+    ) -> some View {
+        let isSelected = viewModel.direction == direction
+        Button { viewModel.direction = direction } label: {
+            Text(direction.label)
+                .font(.appCaption.weight(.black))
+                .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(Color.secondary))
+                .padding(.horizontal, 28)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .background(
+                    isSelected ? AnyShapeStyle(accent.gradient) : AnyShapeStyle(Color.clear),
+                    in: Capsule(style: .continuous)
+                )
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.direction)
     }
 
     private func displayAmount(for viewModel: TransactionEditViewModel) -> String {
@@ -160,7 +179,6 @@ struct TransactionEditView: View {
         let raw = displayAmount(for: viewModel)
         let symbol = String(raw.prefix(1))
         let digits = String(raw.dropFirst())
-        let digitColor = viewModel.direction == .expense ? Color.primary : Palette.income
 
         return HStack(alignment: .firstTextBaseline, spacing: 0) {
             Text(symbol)
@@ -169,7 +187,7 @@ struct TransactionEditView: View {
                 .baselineOffset(10)
             Text(digits)
                 .font(.appDisplay)
-                .foregroundStyle(digitColor)
+                .foregroundStyle(Color.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
         }
@@ -229,12 +247,9 @@ struct TransactionEditView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 8)
                 .padding(.vertical, 4)
             }
         }
-        .padding(Theme.cardPadding)
-        .card()
     }
 
     // MARK: - Account / Date
@@ -260,6 +275,7 @@ struct TransactionEditView: View {
                 )
             }
             .buttonStyle(.plain)
+            .menuIndicator(.hidden)
 
             Button { isPresentingDatePicker = true } label: {
                 ValueCard(
@@ -302,6 +318,7 @@ struct TransactionEditView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .menuIndicator(.hidden)
             }
         }
     }
@@ -348,7 +365,7 @@ private struct CategoryChip: View {
                 Image(systemName: systemImage)
                     .font(AppFont.scaled(isSelected ? 26 : 22, relativeTo: .headline, weight: .bold))
                     .symbolEffect(.bounce, value: isSelected)
-                    .foregroundStyle(isSelected ? .white : color)
+                    .foregroundStyle(isSelected ? .white : Color.primary)
                 Text(name)
                     .font(isSelected ? .appBody.weight(.heavy) : .appSubheadline.weight(.bold))
                     .foregroundStyle(isSelected ? .white : Color.primary)
@@ -356,11 +373,18 @@ private struct CategoryChip: View {
             }
             .padding(.horizontal, isSelected ? 26 : 18)
             .padding(.vertical, isSelected ? 16 : 12)
-            .background(isSelected ? color.opacity(0.92) : Color.appSurface, in: Capsule())
+            .background(
+                isSelected
+                    ? AnyShapeStyle(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    : AnyShapeStyle(Color.appSurface),
+                in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+            )
             .overlay(
-                Capsule(style: .continuous)
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
                     .strokeBorder(isSelected ? Color.clear : Color.appHairline, lineWidth: 1)
             )
+            .shadow(color: Color.bloomShadow, radius: 4, x: 2, y: 3)
+            .shadow(color: Color.bloomHighlight, radius: 3, x: -1, y: -1)
         }
         .buttonStyle(.plain)
         .animation(.spring(response: 0.35, dampingFraction: 0.75), value: isSelected)
@@ -374,19 +398,15 @@ private struct ValueCard: View {
     let accent: Accent
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                IconBadge(systemName: icon, accent: accent, size: 32, filled: false)
-                Spacer()
-                Image(systemName: "chevron.down")
-                    .font(.appCaption2.weight(.bold))
-                    .foregroundStyle(.tertiary)
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.appCaption2.weight(.heavy))
-                    .tracking(0.3)
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.appCaption2.weight(.heavy))
+                .tracking(0.3)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(AppFont.scaled(14, relativeTo: .subheadline, weight: .bold))
+                    .foregroundStyle(accent.base)
                 Text(value)
                     .font(.appBodyMedium.weight(.semibold))
                     .foregroundStyle(Color.primary)
@@ -395,15 +415,14 @@ private struct ValueCard: View {
             }
         }
         .padding(14)
-        .frame(maxWidth: .infinity, minHeight: 110, alignment: .leading)
-        .background(Color.appSurface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
+        .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                 .strokeBorder(Color.appHairline, lineWidth: 1)
         )
-        .shadow(color: Color.bloomShadow, radius: 10, y: 5)
-        .shadow(color: Color.bloomHighlight, radius: 8, x: -4, y: -4)
+        .shadow(color: Color.bloomShadow, radius: 6, y: 3)
+        .shadow(color: Color.bloomHighlight, radius: 5, x: -2, y: -3)
     }
 }
 
