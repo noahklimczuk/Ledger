@@ -87,7 +87,7 @@ struct AccountListView: View {
                         .frame(width: 8, height: 8)
                     Text("All synced · \(synced.formatted(.relative(presentation: .named)))")
                         .font(.appCaption.weight(.bold))
-                        .foregroundStyle(Palette.greenDeep)
+                        .foregroundStyle(Palette.emeraldDeep)
                 }
                 .padding(.top, 4)
             }

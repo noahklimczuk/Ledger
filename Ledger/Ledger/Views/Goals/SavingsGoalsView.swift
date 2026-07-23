@@ -149,7 +149,7 @@ private struct GoalCard: View {
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                     if goal.isComplete {
-                        Text("Fully grown 🎉").font(.appCaption2).foregroundStyle(Palette.green)
+                        Text("Fully grown 🎉").font(.appCaption2).foregroundStyle(Palette.income)
                     } else if let monthly = goal.requiredMonthlyContribution, let targetDate = goal.targetDate {
                         Text("\(CurrencyFormatter.string(from: monthly))/mo · by \(DateFormatting.medium(targetDate))")
                             .font(.appCaption2).foregroundStyle(.secondary)
