@@ -154,7 +154,7 @@ extension AnyTransition {
         @State private var text = ""
         @FocusState private var focused: Bool
         var body: some View {
-            Color(.systemBackground)
+            Color.appBackground
                 .ignoresSafeArea()
                 .searchBarRow(
                     isPresented: true,

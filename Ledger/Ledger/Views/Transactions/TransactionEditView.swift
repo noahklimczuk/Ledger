@@ -75,7 +75,7 @@ struct TransactionEditView: View {
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                             .background(
-                                viewModel?.canSave == true ? AnyShapeStyle(Color.appSurface) : AnyShapeStyle(Color.gray.opacity(0.25)),
+                                viewModel?.canSave == true ? AnyShapeStyle(Color.appSurface) : AnyShapeStyle(Color.secondary.opacity(0.12)),
                                 in: Capsule(style: .continuous)
                             )
                             .overlay(
@@ -132,12 +132,12 @@ struct TransactionEditView: View {
             directionButton(
                 viewModel,
                 .expense,
-                accent: Accent(base: Palette.peach, deep: Palette.peachDeep)
+                accent: Accent(base: Palette.expense, deep: Palette.coralDeep)
             )
             directionButton(
                 viewModel,
                 .income,
-                accent: Accent(base: Palette.green, deep: Palette.greenDeep)
+                accent: Accent(base: Palette.income, deep: Palette.emeraldDeep)
             )
         }
         .padding(4)

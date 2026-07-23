@@ -254,7 +254,7 @@ struct DailyCheckInView: View {
         } label: {
             HStack(spacing: 4) {
                 Circle()
-                    .fill(transaction.category.map { Color(hex: $0.colorHex) } ?? Color(.systemGray3))
+                    .fill(transaction.category.map { Color(hex: $0.colorHex) } ?? Color.secondary.opacity(0.5))
                     .frame(width: 7, height: 7)
                 Text(transaction.category?.name ?? "Set category")
                     .font(.appCaption.weight(.medium))
