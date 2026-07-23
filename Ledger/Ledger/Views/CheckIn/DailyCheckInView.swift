@@ -343,7 +343,7 @@ struct DailyCheckInView: View {
                         .font(AppFont.scaled(12, relativeTo: .caption, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 26, height: 26)
-                        .background(row.categoryColorHex.map { Color(hex: $0) } ?? .gray, in: Circle())
+                        .background(row.categoryColorHex.map { Color(hex: $0) } ?? Color.secondary, in: Circle())
                     Text(row.categoryName)
                         .font(.appSubheadline)
                         .lineLimit(1)

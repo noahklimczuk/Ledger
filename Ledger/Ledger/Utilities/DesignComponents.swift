@@ -55,7 +55,7 @@ struct IconBadge: View {
 
     var body: some View {
         Image(systemName: systemName)
-            .font(.system(size: size * 0.42, weight: .bold))
+            .font(AppFont.scaled(size * 0.42, relativeTo: .body, weight: .bold))
             .foregroundStyle(filled ? AnyShapeStyle(Color.white) : AnyShapeStyle(accent.base))
             .frame(width: size, height: size)
             .background {
@@ -77,7 +77,7 @@ struct Chip: View {
     var body: some View {
         HStack(spacing: 4) {
             if let systemName {
-                Image(systemName: systemName).font(.system(size: 10, weight: .black))
+                Image(systemName: systemName).font(AppFont.scaled(10, relativeTo: .caption2, weight: .black))
             }
             Text(text).font(.appCaption2.weight(.bold))
         }

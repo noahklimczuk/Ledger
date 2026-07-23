@@ -60,7 +60,7 @@ struct AppLockView: View {
                                 .frame(width: 150, height: 150)
 
                             Image(systemName: "faceid")
-                                .font(.system(size: 64, weight: .regular))
+                                .font(AppFont.scaled(64, relativeTo: .largeTitle, weight: .regular))
                                 .foregroundStyle(Palette.greenDeep)
                         }
                     }
