@@ -3,7 +3,7 @@ import SwiftData
 import Observation
 
 /// The app's root: a native `TabView` over the five primary screens. The visual tab bar renders as
-/// a floating Liquid Glass pill with Home in the centre: Wellness · Budgets · Home · Activity ·
+/// a floating Liquid Glass pill with Home in the centre: Wellness · Activity · Home · Budgets ·
 /// More. Each tab supplies its own `NavigationStack`, so large titles and back stacks stay per-tab.
 /// Accounts and Recurring live under Home (via the balance card) and More, matching the `bloom-ios`
 /// rendering.
@@ -46,10 +46,10 @@ struct RootTabView: View {
         .onChange(of: lockService.isUnlocked) { _, isUnlocked in
             if isUnlocked { selection = 2 }
         }
-        .overlay(alignment: .topTrailing) {
-            AskLedgerButton(isPresented: $isPresentingAskLedger, showLabel: selection != 2)
+        .overlay(alignment: .bottomTrailing) {
+            AskLedgerButton(isPresented: $isPresentingAskLedger)
                 .padding(.trailing, 16)
-                .padding(.top, 16)
+                .padding(.bottom, 110)
         }
         .sheet(isPresented: $isPresentingAskLedger) {
             AskLedgerView(month: .now)
@@ -88,7 +88,7 @@ private struct FloatingTabBar: View {
     /// Ties the moving selection pill to one identity so it springs between tabs.
     @Namespace private var pill
 
-    /// Visual order: Wellness · Budgets · Home · Activity · More. Home sits in the centre as in the
+    /// Visual order: Wellness · Activity · Home · Budgets · More. Home sits in the centre as in the
     /// Bloom rendering.
     private let items: [(title: String, icon: String, accent: Accent)] = [
         ("Wellness", "leaf.fill", .wellness),
@@ -360,58 +360,32 @@ private struct MoreDivider: View {
     }
 }
 
-/// A persistent, floating Ask Ledger button. Moved to the top-right so it doesn't compete with the
-/// custom tab bar, and kept compact so it fits beside navigation content. On non-Home tabs it shows
-/// an attached "Ask Ledger" glass pill so users know what the sparkle dot does.
+/// A persistent, floating Ask Ledger button. Sits above the custom tab bar in the bottom-right so
+/// it's reachable without fighting the navigation bar, and pulses to invite a tap.
 private struct AskLedgerButton: View {
     @Binding var isPresented: Bool
-    let showLabel: Bool
 
     var body: some View {
-        HStack(alignment: .center, spacing: 0) {
-            if showLabel {
-                labelPill
+        Button {
+            Haptics.tap(.soft)
+            isPresented = true
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(.white)
+                    .frame(width: 62, height: 62)
+                    .shadow(color: Accent.insights.base.opacity(0.45), radius: 14, x: 0, y: 8)
+                Circle()
+                    .fill(Accent.insights.gradient)
+                    .frame(width: 58, height: 58)
+                Image(systemName: "sparkles")
+                    .font(AppFont.scaled(26, relativeTo: .body, weight: .bold))
+                    .foregroundStyle(.white)
+                    .symbolEffect(.pulse, options: .repeating)
             }
-            Button {
-                Haptics.tap(.soft)
-                isPresented = true
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 40, height: 40)
-                        .shadow(color: Accent.insights.base.opacity(0.45), radius: 10, x: 0, y: 4)
-                    Circle()
-                        .fill(Accent.insights.gradient)
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "sparkles")
-                        .font(AppFont.scaled(17, relativeTo: .body, weight: .bold))
-                        .foregroundStyle(.white)
-                        .symbolEffect(.pulse, options: .repeating)
-                }
-            }
-            .buttonStyle(.pressable)
-            .zIndex(1)
         }
+        .buttonStyle(.pressable)
         .accessibilityLabel("Ask Ledger")
-    }
-
-    private var labelPill: some View {
-        Text("Ask Ledger")
-            .font(AppFont.scaled(10, relativeTo: .caption2, weight: .black))
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                ZStack {
-                    Capsule(style: .continuous)
-                        .fill(.ultraThinMaterial)
-                    Capsule(style: .continuous)
-                        .fill(Color.appSurface.opacity(0.55))
-                    Capsule(style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5)
-                }
-            )
     }
 }
 
