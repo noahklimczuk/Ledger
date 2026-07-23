@@ -367,7 +367,7 @@ struct DashboardView: View {
     /// The month's net change, as a green/coral pill under the balance figure.
     private func deltaPill(_ viewModel: DashboardViewModel) -> some View {
         let up = viewModel.monthNet >= 0
-        let color = up ? Palette.green : Palette.coral
+        let color = up ? Palette.income : Palette.expense
         return Text("\(up ? "▲" : "▼") \(CurrencyFormatter.string(from: abs(viewModel.monthNet))) this month")
             .font(.appCaption.weight(.bold))
             .foregroundStyle(color)

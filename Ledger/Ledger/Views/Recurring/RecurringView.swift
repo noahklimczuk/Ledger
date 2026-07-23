@@ -175,7 +175,7 @@ struct RecurringView: View {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [Palette.peri, Palette.green],
+                            colors: [Palette.peri, Palette.greenDeep],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
