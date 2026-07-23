@@ -50,7 +50,7 @@ nonisolated enum Palette {
     static let lime        = Color(hex: "57C88A")
 
     // Shared money semantics used on every screen, so income/expense read the same everywhere.
-    static let income  = Color(hex: "3E9E6E")
+    static let income  = emerald
     static let expense = coral
 }
 
