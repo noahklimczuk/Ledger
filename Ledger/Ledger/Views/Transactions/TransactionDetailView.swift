@@ -82,8 +82,8 @@ struct TransactionDetailView: View {
                     .shadow(color: Color.bloomShadow, radius: 15, x: 6, y: 6)
                     .shadow(color: Color.bloomHighlight, radius: 10, x: -4, y: -4)
 
-                Image(systemName: transaction.category?.sfSymbolName ?? "questionmark.circle.fill")
-                    .font(AppFont.scaled(26, relativeTo: .title, weight: .bold))
+                Text(transaction.category?.displayIcon ?? BloomEmoji.merchantEmoji(name: transaction.merchant))
+                    .font(.system(size: 26))
                     .foregroundStyle(heroIconColor)
             }
 
@@ -120,8 +120,8 @@ struct TransactionDetailView: View {
 
     private var categoryRow: some View {
         HStack(spacing: 14) {
-            Image(systemName: "tag.fill")
-                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
+            Text("🏷️")
+                .font(.system(size: 17))
                 .foregroundStyle(Color.secondary)
                 .frame(width: 24, height: 24)
 
@@ -140,8 +140,8 @@ struct TransactionDetailView: View {
             } label: {
                 HStack(spacing: 6) {
                     let category = transaction.category
-                    Image(systemName: category?.sfSymbolName ?? "questionmark.circle.fill")
-                        .font(AppFont.scaled(13, relativeTo: .body, weight: .bold))
+                    Text(category?.displayIcon ?? "❓")
+                        .font(.system(size: 14))
                     Text(category?.name ?? "Uncategorized")
                         .font(.appCaption.weight(.heavy))
                         .lineLimit(1)
@@ -164,7 +164,7 @@ struct TransactionDetailView: View {
 
     private var metaCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            DetailMetaRow(icon: transaction.account?.type.sfSymbolName ?? "banknote", label: "Account", value: transaction.account?.name ?? "—")
+            DetailMetaRow(icon: transaction.account?.displayIcon ?? "🏦", isEmoji: true, label: "Account", value: transaction.account?.name ?? "—")
             Divider().padding(.leading, 38)
             if !isSplit {
                 categoryRow
@@ -348,15 +348,27 @@ struct TransactionDetailView: View {
 
 private struct DetailMetaRow: View {
     let icon: String
+    var isEmoji: Bool = false
     let label: String
     let value: String
     var tint: Color? = nil
 
+    private var iconView: some View {
+        Group {
+            if isEmoji {
+                Text(icon)
+                    .font(.system(size: 17))
+            } else {
+                Image(systemName: icon)
+                    .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
+            }
+        }
+        .foregroundStyle(tint ?? Color.secondary)
+    }
+
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
-                .foregroundStyle(tint ?? Color.secondary)
+            iconView
                 .frame(width: 24, height: 24)
 
             VStack(alignment: .leading, spacing: 2) {

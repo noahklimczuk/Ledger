@@ -208,23 +208,11 @@ struct AccentButton: View {
 // MARK: - Surfaces
 
 extension View {
-    /// A soft accent wash behind a screen — a faint tint at the top melting into the app background —
-    /// so each area quietly carries its signature color. Pair with `.scrollContentBackground(.hidden)`
-    /// on List-based screens so it shows through.
+    /// The Bloom screen background is a uniform warm ground (`--bg`) so the clay cards on top own
+    /// the color and depth. Kept as a single modifier so every screen stays consistent.
     func accentWash(_ accent: Accent) -> some View {
-        background(
-            ZStack {
-                Color.appBackground
-                // Stronger at the top and carried all the way down (rather than fading out by
-                // mid-screen), so each screen clearly reads in its section color.
-                LinearGradient(
-                    colors: [accent.base.opacity(0.32), accent.base.opacity(0.06)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-            .ignoresSafeArea()
-        )
+        _ = accent
+        return background(Color.appBackground.ignoresSafeArea())
     }
 
     /// A tappable card: the standard card surface plus the springy press feel. Wrap the whole card in

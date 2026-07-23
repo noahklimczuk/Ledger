@@ -120,6 +120,13 @@ extension Color {
             ? UIColor.white.withAlphaComponent(0.045)
             : UIColor.white.withAlphaComponent(1.0)
     })
+
+    /// A secondary raised surface used for the small emoji icons in rows (`--surf2`).
+    static let appSurface2 = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.141, green: 0.122, blue: 0.149, alpha: 1)   // #241F26
+            : UIColor(red: 0.957, green: 0.933, blue: 0.902, alpha: 1)   // #F4EEE6
+    })
 }
 
 extension View {

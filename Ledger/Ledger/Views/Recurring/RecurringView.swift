@@ -345,17 +345,7 @@ private struct RecurringRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: series.isIncome ? "arrow.down.left" : "arrow.up.right")
-                .font(AppFont.scaled(16, relativeTo: .body, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
-                .background(
-                    LinearGradient(
-                        colors: series.isIncome ? [Palette.emerald, Palette.emeraldDeep] : [Palette.pink, Palette.pinkDeep],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    ),
-                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-                )
+            BloomRowIcon(emoji: series.displayIcon, size: 44)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(series.displayName)
