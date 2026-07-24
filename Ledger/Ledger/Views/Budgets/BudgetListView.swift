@@ -811,20 +811,18 @@ private struct GoalPot: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.appBackground)
+                .fill(Color.ink3.opacity(0.22))
             Circle()
                 .trim(from: 0, to: max(min(progress, 1), 0))
                 .stroke(
-                    AngularGradient(
-                        gradient: Gradient(colors: [Accent.wellness.base, Accent.wellness.deep, Accent.wellness.base]),
-                        center: .center,
-                        startAngle: .degrees(0),
-                        endAngle: .degrees(360)
-                    ),
+                    Accent.wellness.base,
                     style: StrokeStyle(lineWidth: 5, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
                 .padding(4)
+            Circle()
+                .fill(Color.appSurface)
+                .frame(width: size - 16, height: size - 16)
             Text(emoji)
                 .font(.system(size: 20))
         }

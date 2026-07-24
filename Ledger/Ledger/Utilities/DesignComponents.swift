@@ -245,13 +245,21 @@ struct WellnessRing: View {
 
     var body: some View {
         let fraction = min(max(Double(score) / 100, 0), 1)
+        let innerInset = lineWidth + 2
         ZStack {
             Circle()
-                .stroke(Color.primary.opacity(0.08), lineWidth: lineWidth)
+                .stroke(Color.ink3.opacity(0.22), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: fraction)
-                .stroke(accent.gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(accent.base, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+            Circle()
+                .fill(Color.appSurface)
+                .frame(width: size - innerInset * 2, height: size - innerInset * 2)
+                .overlay(
+                    Circle()
+                        .stroke(Color.bloomHighlight.opacity(0.6), lineWidth: 1)
+                )
             if showLabel {
                 VStack(spacing: 1) {
                     Text("\(score)")
