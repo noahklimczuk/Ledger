@@ -98,8 +98,8 @@ struct TransactionDetailView: View {
                 .multilineTextAlignment(.center)
 
             HStack(spacing: 6) {
-                Image(systemName: "clock")
-                    .font(.appCaption2)
+                Text("🕓")
+                    .font(.system(size: 12))
                 Text(DateFormatting.medium(transaction.date))
                     .font(.appCaption)
             }
@@ -145,8 +145,8 @@ struct TransactionDetailView: View {
                     Text(category?.name ?? "Uncategorized")
                         .font(.appCaption.weight(.heavy))
                         .lineLimit(1)
-                    Image(systemName: "chevron.right")
-                        .font(AppFont.scaled(10, relativeTo: .caption2, weight: .bold))
+                    Text("›")
+                        .font(AppFont.scaled(12, relativeTo: .caption2, weight: .bold))
                 }
                 .foregroundStyle(Palette.greenDeep)
                 .padding(.horizontal, 10)
@@ -171,7 +171,8 @@ struct TransactionDetailView: View {
                 Divider().padding(.leading, 38)
             }
             DetailMetaRow(
-                icon: transaction.isReviewed ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
+                icon: transaction.isReviewed ? "✅" : "⚠️",
+                isEmoji: true,
                 label: "Status",
                 value: transaction.isReviewed ? "Reviewed" : "Needs review",
                 tint: transaction.isReviewed ? Palette.greenDeep : Palette.coral
@@ -218,8 +219,8 @@ struct TransactionDetailView: View {
     private var insightFooter: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "lightbulb.fill")
-                    .font(.appCaption.weight(.bold))
+                Text("💡")
+                    .font(.system(size: 14))
                     .foregroundStyle(Palette.peri)
                     .padding(.top, 2)
 
@@ -238,8 +239,8 @@ struct TransactionDetailView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(relatedInsights, id: \.self) { insight in
                         HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "lightbulb.fill")
-                                .font(.appCaption2)
+                            Text("💡")
+                                .font(.system(size: 12))
                                 .foregroundStyle(Palette.peri)
                                 .padding(.top, 4)
                             Text(insight)

@@ -36,8 +36,8 @@ struct RecurringDetailView: View {
     private var headerSection: some View {
         Section {
             HStack(spacing: 14) {
-                Image(systemName: series.isIncome ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
-                    .font(AppFont.scaled(34, relativeTo: .title))
+                Text(series.isIncome ? "💰" : "💸")
+                    .font(.system(size: 34))
                     .foregroundStyle(series.isIncome ? Palette.income : Palette.amber)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
@@ -82,8 +82,8 @@ struct RecurringDetailView: View {
     private func priceChangeSection(_ change: RecurringSeries.PriceChange) -> some View {
         Section("Price Change") {
             HStack(spacing: 12) {
-                Image(systemName: change.isIncrease ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
-                    .font(.appTitle2)
+                Text(change.isIncrease ? "⬆️" : "⬇️")
+                    .font(.system(size: 28))
                     .foregroundStyle(change.isIncrease ? Palette.expense : Palette.income)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(CurrencyFormatter.string(from: change.previous)) → \(CurrencyFormatter.string(from: change.current))")
@@ -158,32 +158,37 @@ struct RecurringDetailView: View {
         Section {
             switch series.status {
             case .suggested:
-                actionButton("Confirm as Recurring", systemImage: "checkmark.circle.fill", tint: Palette.income) { viewModel?.confirm(series) }
-                actionButton("Not Recurring", systemImage: "xmark.circle", tint: Palette.expense) { viewModel?.ignore(series) }
+                actionButton("Confirm as Recurring", emoji: "✅", tint: Palette.income) { viewModel?.confirm(series) }
+                actionButton("Not Recurring", emoji: "🚫", tint: Palette.expense) { viewModel?.ignore(series) }
             case .active:
-                actionButton("Pause", systemImage: "pause.circle", tint: Palette.amber) { viewModel?.pause(series) }
-                actionButton("Mark as Ended", systemImage: "xmark.circle", tint: .secondary) { viewModel?.markEnded(series) }
-                actionButton("Ignore", systemImage: "bell.slash", tint: Palette.expense) { viewModel?.ignore(series) }
+                actionButton("Pause", emoji: "⏸️", tint: Palette.amber) { viewModel?.pause(series) }
+                actionButton("Mark as Ended", emoji: "🚫", tint: .secondary) { viewModel?.markEnded(series) }
+                actionButton("Ignore", emoji: "🔕", tint: Palette.expense) { viewModel?.ignore(series) }
             case .paused:
-                actionButton("Resume", systemImage: "play.circle", tint: Palette.income) { viewModel?.resume(series) }
-                actionButton("Ignore", systemImage: "bell.slash", tint: Palette.expense) { viewModel?.ignore(series) }
+                actionButton("Resume", emoji: "▶️", tint: Palette.income) { viewModel?.resume(series) }
+                actionButton("Ignore", emoji: "🔕", tint: Palette.expense) { viewModel?.ignore(series) }
             case .ended:
-                actionButton("Reactivate", systemImage: "arrow.clockwise", tint: Palette.income) { viewModel?.reactivate(series) }
-                actionButton("Ignore", systemImage: "bell.slash", tint: Palette.expense) { viewModel?.ignore(series) }
+                actionButton("Reactivate", emoji: "🔄", tint: Palette.income) { viewModel?.reactivate(series) }
+                actionButton("Ignore", emoji: "🔕", tint: Palette.expense) { viewModel?.ignore(series) }
             case .ignored:
-                actionButton("Restore", systemImage: "bell", tint: Palette.peri) { viewModel?.restore(series) }
+                actionButton("Restore", emoji: "🔔", tint: Palette.peri) { viewModel?.restore(series) }
             }
         }
     }
 
-    private func actionButton(_ title: String, systemImage: String, tint: Color, action: @escaping () -> Void) -> some View {
+    private func actionButton(_ title: String, emoji: String, tint: Color, action: @escaping () -> Void) -> some View {
         Button {
             action()
             dismiss()
         } label: {
-            Label(title, systemImage: systemImage).frame(maxWidth: .infinity)
+            HStack(spacing: 10) {
+                Text(emoji)
+                Text(title)
+                Spacer()
+            }
+            .font(.appSubheadline.weight(.semibold))
+            .foregroundStyle(tint)
         }
-        .tint(tint)
     }
 
     private func loadHistory() {

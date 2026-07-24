@@ -57,8 +57,8 @@ private struct InsightCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: insight.systemImage)
-                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
+            Text(insight.displayIcon)
+                .font(.system(size: 18))
                 .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
                 .background(

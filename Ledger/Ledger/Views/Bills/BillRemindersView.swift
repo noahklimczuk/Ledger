@@ -24,7 +24,7 @@ struct BillRemindersView: View {
                     List {
                         if viewModel.notificationsDenied {
                             Section {
-                                Label("Notifications are turned off. Enable them in Settings to get reminders.", systemImage: "exclamationmark.triangle")
+                                Text("⚠️ Notifications are turned off. Enable them in Settings to get reminders.")
                                     .font(.appFootnote)
                                     .foregroundStyle(Palette.amber)
                             }
@@ -69,7 +69,7 @@ struct BillRemindersView: View {
         .accent(.bills)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button { isPresentingNew = true } label: { Image(systemName: "plus") }
+                Button { isPresentingNew = true } label: { Text("➕").font(.system(size: 20)) }
                     .accessibilityLabel("Add Bill")
             }
         }

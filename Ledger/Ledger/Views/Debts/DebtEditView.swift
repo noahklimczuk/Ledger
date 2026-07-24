@@ -29,7 +29,7 @@ struct DebtEditView: View {
                     TextField("Name", text: $name)
                     Picker("Type", selection: $kind) {
                         ForEach(DebtKind.allCases) { kind in
-                            Label(kind.displayName, systemImage: kind.sfSymbolName).tag(kind)
+                            Text("\(kind.displayIcon)  \(kind.displayName)").tag(kind)
                         }
                     }
                 }

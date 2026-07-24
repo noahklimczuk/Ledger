@@ -269,8 +269,8 @@ struct CSVImportView: View {
                 Circle()
                     .fill(Palette.income.opacity(0.15))
                     .frame(width: 120, height: 120)
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.appDisplay)
+                Text("✅")
+                    .font(.system(size: 56))
                     .foregroundStyle(Palette.income)
             }
             Text("Import Complete")

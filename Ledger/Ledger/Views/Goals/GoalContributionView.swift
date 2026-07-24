@@ -83,11 +83,7 @@ struct GoalContributionView: View {
 
     private var header: some View {
         VStack(spacing: 8) {
-            Image(systemName: goal.sfSymbolName)
-                .font(.appTitle3.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 48, height: 48)
-                .background(Color(hex: goal.colorHex), in: Circle())
+            BloomRowIcon(emoji: "🎯", size: 48)
             Text(goal.name)
                 .font(.appHeadline)
             Text("\(CurrencyFormatter.string(from: goal.savedAmount)) of \(CurrencyFormatter.string(from: goal.targetAmount)) · \(CurrencyFormatter.string(from: goal.remaining)) to go")

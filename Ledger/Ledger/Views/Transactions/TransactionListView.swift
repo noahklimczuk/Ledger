@@ -159,7 +159,7 @@ struct TransactionListView: View {
                     // A visible filter button (not buried in the overflow menu) that fills in and
                     // tints when any filter is active, so it's obvious filtering is on.
                     Button { isPresentingFilters = true } label: {
-                        Image(systemName: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                        Text(filter.isActive ? "⚙️" : "⚙️").font(.system(size: 20))
                     }
                     .tint(filter.isActive ? .accentColor : nil)
                     .accessibilityLabel(filter.isActive ? "Filters active" : "Filter")
@@ -175,12 +175,12 @@ struct TransactionListView: View {
                                 isSearchExpanded = true
                             }
                         } label: {
-                            Image(systemName: "magnifyingglass")
+                            Text("🔍").font(.system(size: 20))
                         }
                         .tint(isSearchExpanded ? .accentColor : nil)
                         .accessibilityLabel("Search")
                         Button { isPresentingNewTransaction = true } label: {
-                            Image(systemName: "plus")
+                            Text("➕").font(.system(size: 20))
                         }
                         .accessibilityLabel("Add Transaction")
                     }

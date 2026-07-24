@@ -29,7 +29,7 @@ struct AccountEditView: View {
                     TextField("Name", text: $name)
                     Picker("Type", selection: $type) {
                         ForEach(AccountType.allCases) { type in
-                            Label(type.displayName, systemImage: type.sfSymbolName).tag(type)
+                            Text("\(BloomEmoji.accountEmoji(institution: nil, type: type.rawValue))  \(type.displayName)").tag(type)
                         }
                     }
                     TextField("Institution (optional)", text: $institutionName)
@@ -40,7 +40,7 @@ struct AccountEditView: View {
                 }
                 if account?.isLinked == true {
                     Section {
-                        Label(linkedSourceLabel, systemImage: "link")
+                        Text("🔗 \(linkedSourceLabel)")
                             .foregroundStyle(.secondary)
                             .font(.appFootnote)
                     }

@@ -33,7 +33,7 @@ struct AccountListView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { isPresentingNewAccount = true } label: {
-                    Image(systemName: "plus")
+                    Text("➕").font(.system(size: 20))
                 }
                 .accessibilityLabel("Add Account")
             }
@@ -70,7 +70,7 @@ struct AccountListView: View {
                 .lineLimit(1)
 
             HStack(spacing: 6) {
-                Image(systemName: viewModel.netWorthDeltaThisMonth >= 0 ? "arrow.up" : "arrow.down")
+                Text(viewModel.netWorthDeltaThisMonth >= 0 ? "↑" : "↓")
                     .font(.appCaption2.weight(.heavy))
                 Text(CurrencyFormatter.string(from: viewModel.netWorthDeltaThisMonth))
                     .font(.appCaption.weight(.heavy))
@@ -177,7 +177,7 @@ struct AccountListView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
+                Text("›")
                     .font(.appCaption.weight(.bold))
                     .foregroundStyle(.tertiary)
             }

@@ -81,7 +81,7 @@ struct SavingsGoalsView: View {
         .accent(.goals)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button { isPresentingNew = true } label: { Image(systemName: "plus") }
+                Button { isPresentingNew = true } label: { Text("➕").font(.system(size: 20)) }
                     .accessibilityLabel("Add Goal")
             }
         }
@@ -161,14 +161,14 @@ private struct GoalCard: View {
                 }
                 Spacer(minLength: 4)
                 if goal.isAccountTracked {
-                    Image(systemName: "link")
-                        .font(.appSubheadline.weight(.bold))
+                    Text("🔗")
+                        .font(.system(size: 18))
                         .foregroundStyle(Accent.goals.base)
                         .accessibilityLabel("Tracks an account automatically")
                 } else if !goal.isComplete {
                     Button(action: onAddMoney) {
-                        Image(systemName: "plus")
-                            .font(.appHeadline.weight(.bold))
+                        Text("➕")
+                            .font(.system(size: 18))
                             .foregroundStyle(.white)
                             .frame(width: 36, height: 36)
                             .background(Accent.goals.gradient, in: Circle())
@@ -179,7 +179,7 @@ private struct GoalCard: View {
             }
 
             if let account = goal.account {
-                Label("Tracks \(account.name) automatically", systemImage: "link")
+                Text("🔗 Tracks \(account.name) automatically")
                     .font(.appCaption)
                     .foregroundStyle(.secondary)
             }

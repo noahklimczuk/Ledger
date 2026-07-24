@@ -261,7 +261,7 @@ struct TransactionEditView: View {
                 )) {
                     Text("Select an account").tag(Account?.none)
                     ForEach(accounts, id: \.persistentModelID) { account in
-                        Text(account.name).tag(account as Account?)
+                        Text("\(account.displayIcon)  \(account.name)").tag(account as Account?)
                     }
                 }
             } label: {
@@ -280,7 +280,8 @@ struct TransactionEditView: View {
                 ValueCard(
                     title: "Date",
                     value: DateFormatting.medium(viewModel.date),
-                    icon: "calendar",
+                    icon: "🕓",
+                    isEmoji: true,
                     accent: .transactions
                 )
             }
@@ -305,14 +306,15 @@ struct TransactionEditView: View {
                     )) {
                         Text("None").tag(Debt?.none)
                         ForEach(debts, id: \.persistentModelID) { debt in
-                            Label(debt.name, systemImage: debt.kind.sfSymbolName).tag(debt as Debt?)
+                            Text("\(debt.kind.displayIcon)  \(debt.name)").tag(debt as Debt?)
                         }
                     }
                 } label: {
                     ValueCard(
                         title: "Debt",
                         value: viewModel.debt?.name ?? "None",
-                        icon: "creditcard",
+                        icon: "💳",
+                        isEmoji: true,
                         accent: .debt
                     )
                 }
