@@ -24,6 +24,9 @@ struct DashboardView: View {
     @State private var isCheckInDue = false
     @State private var isPresentingNewAccount = false
     @State private var isPresentingNewTransaction = false
+    @State private var isPresentingBudgetList = false
+    @State private var isBurnInfoPresented = false
+    @State private var editingAccount: Account?
     @State private var drilldown: CategoryDrilldown?
     @State private var flowDrilldown: MonthFlow?
     /// Whether the Total Balance card is expanded to reveal the per-account breakdown.
@@ -70,6 +73,17 @@ struct DashboardView: View {
             .sheet(isPresented: $isPresentingNewTransaction, onDismiss: { viewModel?.load() }) {
                 TransactionEditView(transaction: nil)
             }
+            .sheet(isPresented: $isPresentingBudgetList, onDismiss: { viewModel?.load() }) {
+                BudgetListView()
+            }
+            .sheet(item: $editingAccount, onDismiss: { viewModel?.load() }) { account in
+                AccountEditView(account: account)
+            }
+            .sheet(isPresented: $isBurnInfoPresented) {
+                if let viewModel {
+                    burnInfoSheet(viewModel)
+                }
+            }
             // Reload once a background refresh (sync + categorize) finishes, so balances and
             // recent transactions reflect the latest data without needing to re-open the tab.
             .onChange(of: refresh.refreshCount) { _, _ in viewModel?.load() }
@@ -91,6 +105,10 @@ struct DashboardView: View {
                         checkInCard
                     }
                     balanceCard(viewModel)
+                    if isBalanceExpanded {
+                        accountBreakdown(viewModel.accounts)
+                            .card()
+                    }
                     monthSummaryTiles(viewModel)
                     wellnessStrip(viewModel)
                     burnCard(viewModel)
@@ -213,8 +231,13 @@ struct DashboardView: View {
 
     private func statusPills(_ viewModel: DashboardViewModel) -> some View {
         HStack(spacing: 8) {
-            wellnessPill(viewModel)
-            FilterChip(text: "All accounts · \(DateFormatting.monthYear(.now))")
+            NavigationLink {
+                FinancialWellnessView()
+            } label: {
+                wellnessPill(viewModel)
+            }
+            .buttonStyle(.pressable)
+            FilterChip(text: "All accounts • \(DateFormatting.monthYear(.now))")
             Spacer()
         }
     }
@@ -225,7 +248,7 @@ struct DashboardView: View {
                 .fill(Palette.emerald)
                 .frame(width: 8, height: 8)
                 .shadow(color: Palette.emerald.opacity(0.6), radius: 6)
-            Text("\(viewModel.wellness.state) · \(viewModel.wellness.score)")
+            Text("\(viewModel.wellness.state) • \(viewModel.wellness.score)")
                 .font(.appCaption.weight(.heavy))
                 .foregroundStyle(Palette.emerald)
         }
@@ -253,33 +276,46 @@ struct DashboardView: View {
                 "Safe to spend",
                 value: viewModel.safeToSpend,
                 color: viewModel.safeToSpend >= 0 ? Palette.income : Palette.expense,
-                subtitle: safeToSpendSubtitle()
+                subtitle: safeToSpendSubtitle(),
+                action: { isPresentingBudgetList = true }
             )
             summaryTile(
                 "Income",
                 value: viewModel.monthIncome,
                 color: Palette.income,
-                subtitle: DateFormatting.monthYear(.now)
+                subtitle: DateFormatting.monthYear(.now),
+                action: { flowDrilldown = .income }
             )
             summaryTile(
                 "Spent",
                 value: viewModel.monthSpending,
                 color: Palette.peach,
-                subtitle: DateFormatting.monthYear(.now)
+                subtitle: DateFormatting.monthYear(.now),
+                action: { flowDrilldown = .expenses }
             )
         }
     }
 
-    private func summaryTile(_ label: String, value: Decimal, color: Color, subtitle: String) -> some View {
+    private func summaryTile(_ label: String, value: Decimal, color: Color, subtitle: String, action: (() -> Void)? = nil) -> some View {
+        let content = summaryTileCore(label, value: value, color: color, subtitle: subtitle)
+        if let action {
+            Button(action: action) { content }
+                .buttonStyle(.pressable)
+        } else {
+            content
+        }
+    }
+
+    private func summaryTileCore(_ label: String, value: Decimal, color: Color, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label.uppercased())
                 .font(.appCaption2.weight(.bold))
                 .tracking(0.8)
                 .foregroundStyle(.secondary)
             Text(CurrencyFormatter.string(from: value))
-                .font(.appTitle3.weight(.heavy))
+                .font(.appNumber)
                 .foregroundStyle(color)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.5)
                 .lineLimit(1)
                 .monospacedDigit()
                 .contentTransition(.numericText())
@@ -482,26 +518,32 @@ struct DashboardView: View {
     }
 
     /// Phone 1 hero balance card: blob with budget-used percent on the left and the total
-    /// balance + monthly delta on the right.
+    /// balance + monthly delta on the right. Tapping expands the per-account breakdown.
     private func balanceCard(_ viewModel: DashboardViewModel) -> some View {
-        HStack(spacing: 18) {
-            BalanceBlob(percent: viewModel.budgetUsedPercent)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("TOTAL BALANCE")
-                    .font(.appCaption.weight(.heavy))
-                    .tracking(1.2)
-                    .foregroundStyle(.secondary)
-                CountingCurrency(value: viewModel.totalBalance)
-                    .font(.appDisplay)
-                    .foregroundStyle(Color.primary)
-                    .minimumScaleFactor(0.4)
-                    .lineLimit(1)
-                deltaPill(viewModel)
+        Button {
+            Haptics.tap()
+            isBalanceExpanded.toggle()
+        } label: {
+            HStack(spacing: 18) {
+                BalanceBlob(percent: viewModel.budgetUsedPercent)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("TOTAL BALANCE")
+                        .font(.appCaption.weight(.heavy))
+                        .tracking(1.2)
+                        .foregroundStyle(.secondary)
+                    CountingCurrency(value: viewModel.totalBalance)
+                        .font(.appDisplay)
+                        .foregroundStyle(Color.primary)
+                        .minimumScaleFactor(0.4)
+                        .lineLimit(1)
+                    deltaPill(viewModel)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .card()
+        .buttonStyle(.pressable)
     }
 
     /// The month's net change, as a green/coral pill under the balance figure.
@@ -517,33 +559,38 @@ struct DashboardView: View {
     }
 
     /// The per-account rows shown when the balance card is expanded: account icon, name (with its
-    /// institution when known), and the account's own balance — styled in white to sit on the brand
-    /// gradient, separated by hairline dividers.
+    /// institution when known), and the account's own balance. Each row edits the account; the
+    /// "All accounts" link opens the full list.
     private func accountBreakdown(_ accounts: [Account]) -> some View {
         VStack(spacing: 0) {
-            Divider().padding(.vertical, 12)
             ForEach(Array(accounts.enumerated()), id: \.element.persistentModelID) { index, account in
                 if index > 0 {
                     Divider().padding(.vertical, 10)
                 }
-                HStack(spacing: 12) {
-                    BloomRowIcon(emoji: account.displayIcon, size: 30)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(account.name)
-                            .font(.appSubheadline.weight(.medium))
-                        if let institution = account.institutionName, !institution.isEmpty {
-                            Text(institution)
-                                .font(.appCaption2)
-                                .foregroundStyle(.secondary)
+                Button {
+                    Haptics.tap()
+                    editingAccount = account
+                } label: {
+                    HStack(spacing: 12) {
+                        BloomRowIcon(emoji: account.displayIcon, size: 30)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(account.name)
+                                .font(.appSubheadline.weight(.medium))
+                            if let institution = account.institutionName, !institution.isEmpty {
+                                Text(institution)
+                                    .font(.appCaption2)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        Spacer(minLength: 8)
+                        Text(CurrencyFormatter.string(from: account.currentBalance, currencyCode: account.currencyCode))
+                            .font(.appSubheadline.weight(.semibold))
+                            .minimumScaleFactor(0.6)
+                            .lineLimit(1)
                     }
-                    Spacer(minLength: 8)
-                    Text(CurrencyFormatter.string(from: account.currentBalance, currencyCode: account.currencyCode))
-                        .font(.appSubheadline.weight(.semibold))
-                        .minimumScaleFactor(0.6)
-                        .lineLimit(1)
+                    .accessibilityElement(children: .combine)
                 }
-                .accessibilityElement(children: .combine)
+                .buttonStyle(.pressable)
             }
             NavigationLink { AccountListView() } label: {
                 HStack {
@@ -556,7 +603,7 @@ struct DashboardView: View {
                 }
                 .padding(.top, 14)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
         }
     }
 
@@ -721,51 +768,113 @@ struct DashboardView: View {
     }
 
     /// Ember's burn-rate idea, in Bloom: a cool→hot meter with the month's average daily spend.
+    /// Tapping opens a sheet with a larger meter and a short explanation.
     private func burnCard(_ viewModel: DashboardViewModel) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("SPENDING BURN RATE")
-                    .font(.appCaption2.weight(.bold))
-                    .tracking(0.8)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(viewModel.dailyBurnText)
-                    .font(.appCaption.weight(.bold))
-                    .foregroundStyle(Palette.peachDeep)
-                    .contentTransition(.numericText())
-                    .animation(.smooth, value: viewModel.dailyBurnText)
+        Button {
+            Haptics.tap()
+            isBurnInfoPresented = true
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("SPENDING BURN RATE")
+                        .font(.appCaption2.weight(.bold))
+                        .tracking(0.8)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(viewModel.dailyBurnText)
+                        .font(.appCaption.weight(.bold))
+                        .foregroundStyle(Palette.peachDeep)
+                        .contentTransition(.numericText())
+                        .animation(.smooth, value: viewModel.dailyBurnText)
+                }
+                BurnMeter(position: viewModel.burnPosition)
+                HStack {
+                    Text("Cool").font(.appCaption2).foregroundStyle(.secondary)
+                    Spacer()
+                    Text("you · steady").font(.appCaption2).foregroundStyle(.secondary)
+                    Spacer()
+                    Text("Hot").font(.appCaption2).foregroundStyle(.secondary)
+                }
             }
-            BurnMeter(position: viewModel.burnPosition)
-            HStack {
-                Text("Cool").font(.appCaption2).foregroundStyle(.secondary)
-                Spacer()
-                Text("you · steady").font(.appCaption2).foregroundStyle(.secondary)
-                Spacer()
-                Text("Hot").font(.appCaption2).foregroundStyle(.secondary)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .card()
+        .buttonStyle(.pressable)
+    }
+
+    /// A sheet that explains the burn rate with a larger meter.
+    private func burnInfoSheet(_ viewModel: DashboardViewModel) -> some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.sectionSpacing) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Burn rate")
+                            .font(.appHeadline.weight(.heavy))
+                        Text("You're averaging \(viewModel.dailyBurnText) so far this month. Keep the marker in the “you · steady” zone and you'll finish the month within budget.")
+                            .font(.appBody)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .card()
+
+                    BurnMeter(position: viewModel.burnPosition)
+                        .frame(height: 20)
+                    HStack {
+                        Text("Cool").font(.appCaption2).foregroundStyle(.secondary)
+                        Spacer()
+                        Text("you · steady").font(.appCaption2).foregroundStyle(.secondary)
+                        Spacer()
+                        Text("Hot").font(.appCaption2).foregroundStyle(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding()
+            }
+            .accentWash(.dashboard)
+            .navigationTitle("Burn rate")
+            .navigationBarTitleDisplayMode(.inline)
+        }
     }
 
     /// The month's budgets as Bloom clay channels — the dashboard's headline budget view when
-    /// per-category budgets exist.
+    /// per-category budgets exist. Tapping a row drills into that category's transactions; the
+    /// "All" button opens the full budget list.
     private func budgetChannelsCard(_ viewModel: DashboardViewModel) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            SectionHeadline("This Month's Budgets")
-            ForEach(Array(viewModel.budgetRows.enumerated()), id: \.element.id) { index, row in
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(row.name)
-                            .font(.appSubheadline.weight(.semibold))
-                        Spacer(minLength: 8)
-                        Text("\(CurrencyFormatter.string(from: row.spent)) / \(CurrencyFormatter.string(from: row.allocated))")
-                            .font(.appCaption.weight(.semibold))
-                            .foregroundStyle(row.isOver ? Palette.coral : .secondary)
-                            .monospacedDigit()
-                    }
-                    ClayChannel(progress: row.progress, isOver: row.isOver, fillAccent: channelAccent(index))
+            SectionHeadline("This Month's Budgets") {
+                Button {
+                    Haptics.tap()
+                    isPresentingBudgetList = true
+                } label: {
+                    Text("All")
+                        .font(.appCaption.weight(.heavy))
+                        .foregroundStyle(Accent.dashboard.base)
                 }
+                .buttonStyle(.pressable)
+            }
+            ForEach(Array(viewModel.budgetRows.enumerated()), id: \.element.id) { index, row in
+                Button {
+                    Haptics.tap()
+                    if let category = row.category {
+                        drilldown = .category(category)
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(row.name)
+                                .font(.appSubheadline.weight(.semibold))
+                            Spacer(minLength: 8)
+                            Text("\(CurrencyFormatter.string(from: row.spent)) / \(CurrencyFormatter.string(from: row.allocated))")
+                                .font(.appCaption.weight(.semibold))
+                                .foregroundStyle(row.isOver ? Palette.coral : .secondary)
+                                .monospacedDigit()
+                        }
+                        ClayChannel(progress: row.progress, isOver: row.isOver, fillAccent: channelAccent(index))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.pressable)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

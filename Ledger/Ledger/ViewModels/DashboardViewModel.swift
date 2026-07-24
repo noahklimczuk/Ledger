@@ -21,6 +21,7 @@ final class DashboardViewModel {
         let symbol: String
         let spent: Decimal
         let allocated: Decimal
+        let category: Category?
 
         var id: String { name }
         var progress: Double {
@@ -200,7 +201,8 @@ final class DashboardViewModel {
                     name: category.name,
                     symbol: category.sfSymbolName,
                     spent: spent,
-                    allocated: budget.allocatedAmount
+                    allocated: budget.allocatedAmount,
+                    category: category
                 )
             }
             .sorted { lhs, rhs in

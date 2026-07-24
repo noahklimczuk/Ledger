@@ -282,24 +282,25 @@ struct WellnessRing: View {
 
 // MARK: - Balance blob
 
-/// The dashboard's soft "clay" budget blob — a warm peach→amber squircle showing how much of the
+/// The dashboard's soft "clay" budget blob — a periwinkle circle showing how much of the
 /// month's budget is used, sitting beside the balance. Bloom's most recognizable hero element.
 struct BalanceBlob: View {
     let percent: Int
     var size: CGFloat = 104
+    var accent: Accent = .dashboard
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.46, style: .continuous)
-                .fill(LinearGradient(colors: [Palette.peach, Palette.amber], startPoint: .topLeading, endPoint: .bottomTrailing))
+            Circle()
+                .fill(accent.gradient)
                 .overlay(
-                    RoundedRectangle(cornerRadius: size * 0.46, style: .continuous)
+                    Circle()
                         .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
                 )
-                .shadow(color: Palette.peach.opacity(0.5), radius: 16, y: 10)
+                .shadow(color: accent.base.opacity(0.5), radius: 16, y: 10)
             VStack(spacing: 2) {
                 Text("\(percent)%")
-                    .font(AppFont.scaled(size * 0.22, relativeTo: .largeTitle, weight: .heavy))
+                    .font(AppFont.scaled(size * 0.24, relativeTo: .largeTitle, weight: .heavy))
                     .foregroundStyle(.white)
                     .minimumScaleFactor(0.6)
                 Text("OF BUDGET")
