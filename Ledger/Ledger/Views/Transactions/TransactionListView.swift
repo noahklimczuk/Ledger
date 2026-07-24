@@ -4,57 +4,388 @@ import SwiftData
 struct TransactionListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppRefreshCoordinator.self) private var refresh
-    // Every other data screen re-fetches on `refresh.refreshCount` so a background/foreground sync
-    // shows up without re-opening the tab; this list used to rely on a bare live @Query instead,
-    // which didn't pick up those sync writes — so it was the one screen stuck on stale data. It now
-    // follows the same manual-load pattern: `load()` runs on appear, on every completed refresh, and
-    // after any local change (add via the sheet, delete, review toggle).
     @State private var allTransactions: [Transaction] = []
-    /// Gates the list behind a loading state until the first fetch lands, so the empty-state card
-    /// doesn't flash before the transactions load in.
     @State private var didLoad = false
 
     @State private var searchText = ""
-    /// Whether the toolbar search field is expanded. Collapsed, search is just a magnifying-glass
-    /// button sitting beside the filter and plus; tapping it slides the field open in place.
-    @State private var isSearchExpanded = false
     @FocusState private var isSearchFocused: Bool
     @State private var filter = TransactionFilter()
     @State private var isPresentingNewTransaction = false
     @State private var isPresentingFilters = false
-    /// Guards the one-time restore of the saved filter so it doesn't clobber later edits.
     @State private var didRestoreFilter = false
-    /// The list defaults to the last 12 months rather than the account's whole history. This opts
-    /// out of that window to show everything.
     @State private var showAllHistory = false
+
+    @State private var visibleTransactions: [Transaction] = []
+    @State private var hasHiddenOlderHistory = false
 
     private var isFiltering: Bool { !searchText.isEmpty || filter.isActive }
 
-    /// Floor for the default 12-month window (nil only if date math somehow fails).
     private static var twelveMonthsAgo: Date? {
         Calendar.current.date(byAdding: .month, value: -12, to: .now)
     }
 
-    /// The start date actually applied: an explicit Filters start date wins; otherwise the 12-month
-    /// window, unless the user chose to show all history.
     private var effectiveStartDate: Date? {
         if let start = filter.startDate { return start }
         return showAllHistory ? nil : Self.twelveMonthsAgo
     }
 
-    /// The filtered, searched, and ranked rows the list renders — precomputed into state by
-    /// `recompute()` rather than derived in `body`. The old computed property re-ran the whole
-    /// filter chain, search ranking, and sort on every body evaluation (often twice per pass — once
-    /// for the empty check, once for the `ForEach`) and on unrelated state changes, doing O(n log n)
-    /// main-thread work over the entire transaction history on each search keystroke.
-    @State private var visibleTransactions: [Transaction] = []
+    var body: some View {
+        NavigationStack {
+            Group {
+                if !didLoad {
+                    LoadingView()
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: Theme.sectionSpacing) {
+                            searchAndFiltersCard
+                            if visibleTransactions.isEmpty {
+                                emptyStateCard
+                            } else {
+                                spendingBreakdownCard
+                                transactionListGrouped
+                                showAllHistoryButton
+                            }
+                        }
+                        .padding()
+                    }
+                    .refreshable { await refresh.refresh(container: modelContext.container) }
+                }
+            }
+            .navigationTitle("")
+            .accentWash(.transactions)
+            .accent(.transactions)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Text("Activity · \(monthLabel(.now))")
+                        .font(.appHeadline.weight(.heavy))
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { isPresentingNewTransaction = true } label: {
+                        Text("+ Add")
+                            .font(.appCaption.weight(.heavy))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                LinearGradient(
+                                    colors: [Palette.peach, Palette.amber],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ),
+                                in: Capsule(style: .continuous)
+                            )
+                            .shadow(color: Palette.peach.opacity(0.4), radius: 10, x: 0, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Add Transaction")
+                }
+            }
+            .sheet(isPresented: $isPresentingNewTransaction, onDismiss: load) {
+                TransactionEditView(transaction: nil)
+            }
+            .sheet(isPresented: $isPresentingFilters) {
+                TransactionFilterView(filter: $filter)
+            }
+            .task {
+                load()
+                guard !didRestoreFilter else { return }
+                didRestoreFilter = true
+                guard let snapshot = TransactionFilterStore.load() else { return }
+                let accounts = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
+                let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
+                filter = TransactionFilter(snapshot: snapshot, accounts: accounts, categories: categories)
+            }
+            .onChange(of: refresh.refreshCount) { _, _ in load() }
+            .onChange(of: searchText) { _, _ in recompute() }
+            .onChange(of: showAllHistory) { _, _ in recompute() }
+            .onChange(of: filter) { _, newValue in
+                recompute()
+                guard didRestoreFilter else { return }
+                TransactionFilterStore.save(newValue.snapshot)
+            }
+            .onChange(of: isSearchFocused) { _, focused in
+                if !focused { dismissKeyboard() }
+            }
+        }
+    }
 
-    /// True when the default 12-month window is hiding older transactions the user could still reach.
-    /// Precomputed alongside `visibleTransactions` so the full-history scan doesn't run every render.
-    @State private var hasHiddenOlderHistory = false
+    // MARK: - Header
 
-    /// Rebuilds the derived list state from the current data, filter, search, and window. Runs after
-    /// a load and whenever a filter/search/window input changes, so `body` only reads stored arrays.
+    private func monthLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_CA")
+        formatter.setLocalizedDateFormatFromTemplate("MMMM")
+        return formatter.string(from: date)
+    }
+
+    // MARK: - Search + filters
+
+    private var searchAndFiltersCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SearchBar(
+                text: $searchText,
+                placeholder: "Search merchants",
+                isFocused: $isSearchFocused,
+                onCancel: { clearSearch() }
+            )
+            HStack(spacing: 8) {
+                FilterChip(
+                    title: "All",
+                    isSelected: filter.kind == .all && filter.reviewState == .all
+                ) {
+                    filter.kind = .all
+                    filter.reviewState = .all
+                }
+                FilterChip(
+                    title: "Expenses",
+                    isSelected: filter.kind == .expenses && filter.reviewState == .all
+                ) {
+                    filter.kind = .expenses
+                    filter.reviewState = .all
+                }
+                FilterChip(
+                    title: "Income",
+                    isSelected: filter.kind == .income && filter.reviewState == .all
+                ) {
+                    filter.kind = .income
+                    filter.reviewState = .all
+                }
+                FilterChip(
+                    title: "Needs review",
+                    isSelected: filter.reviewState == .needsReview
+                ) {
+                    filter.reviewState = filter.reviewState == .needsReview ? .all : .needsReview
+                }
+                Spacer()
+            }
+            Button { isPresentingFilters = true } label: {
+                HStack(spacing: 4) {
+                    Text(filter.isActive ? "Filters active" : "More filters")
+                        .font(.appCaption.weight(.heavy))
+                    Text("›")
+                        .font(.appCaption.weight(.bold))
+                }
+                .foregroundStyle(filter.isActive ? Accent.wellness.deep : .secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .card()
+    }
+
+    private func clearSearch() {
+        searchText = ""
+        isSearchFocused = false
+        dismissKeyboard()
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    private struct FilterChip: View {
+        let title: String
+        let isSelected: Bool
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                Text(title)
+                    .font(.appCaption2.weight(.heavy))
+                    .foregroundStyle(isSelected ? .white : .secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(
+                        isSelected
+                            ? AnyShapeStyle(Accent.wellness.base)
+                            : AnyShapeStyle(Color.appSurface),
+                        in: Capsule(style: .continuous)
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(isSelected ? Color.clear : Color.appHairline, lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: - Spending breakdown
+
+    private var spendingBreakdownCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Spending breakdown")
+                .font(.appCaption2.weight(.bold))
+                .tracking(0.8)
+                .foregroundStyle(.secondary)
+            InteractiveDonutChart(
+                segments: breakdownSegments,
+                centerCaption: "Total spent",
+                showLegend: true,
+                isInteractive: false
+            )
+        }
+        .card()
+    }
+
+    private var breakdownSegments: [DonutSegment] {
+        var totals: [String: (amount: Decimal, color: Color, category: Category?)] = [:]
+        for transaction in visibleTransactions {
+            let entries: [(category: Category?, amount: Decimal)] = transaction.isSplit
+                ? transaction.splits.map { ($0.category, $0.amount) }
+                : [(transaction.category, transaction.amount)]
+            for (category, amount) in entries {
+                guard amount < 0, category?.isTransfer != true else { continue }
+                let name = category?.name ?? "Uncategorized"
+                let color = category.map { Color(hex: $0.colorHex) } ?? Color.ink3
+                let existing = totals[name] ?? (0, color, category)
+                totals[name] = (existing.amount + (-amount), color, existing.category ?? category)
+            }
+        }
+
+        let sorted = totals
+            .map { DonutSegment(id: $0.key, label: $0.key, value: $0.value.amount, color: $0.value.color, isSelectable: false) }
+            .sorted { $0.value > $1.value }
+
+        if sorted.count <= 5 { return sorted }
+        let top = Array(sorted.prefix(4))
+        let other = sorted.dropFirst(4).reduce(Decimal(0)) { $0 + $1.value }
+        return top + [DonutSegment(id: "Other", label: "Other", value: other, color: Color.ink3, isSelectable: false)]
+    }
+
+    // MARK: - Grouped transaction list
+
+    private var transactionListGrouped: some View {
+        LazyVStack(pinnedViews: [.sectionHeaders], spacing: Theme.sectionSpacing) {
+            ForEach(grouped.keys.sorted(by: >), id: \.self) { day in
+                if let txs = grouped[day] {
+                    Section {
+                        VStack(spacing: 0) {
+                            ForEach(txs) { transaction in
+                                rowView(transaction)
+                                if transaction.persistentModelID != txs.last?.persistentModelID {
+                                    TransactionRowDivider()
+                                }
+                            }
+                        }
+                    } header: {
+                        dayHeader(day, transactions: txs)
+                    }
+                }
+            }
+        }
+    }
+
+    private var grouped: [Date: [Transaction]] {
+        let calendar = Calendar.current
+        return Dictionary(grouping: visibleTransactions) { calendar.startOfDay(for: $0.date) }
+    }
+
+    private func dayHeader(_ day: Date, transactions: [Transaction]) -> some View {
+        let total = transactions
+            .filter { !$0.isTransfer }
+            .reduce(Decimal(0)) { $0 + ($1.amount < 0 ? -$1.amount : 0) }
+        return HStack {
+            Text(DateFormatting.relativeDay(day))
+                .font(.appCaption2.weight(.heavy))
+                .foregroundStyle(.secondary)
+                .textCase(nil)
+            Spacer()
+            Text(CurrencyFormatter.string(from: total))
+                .font(.appCaption.weight(.heavy))
+                .foregroundStyle(Color.primary)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color.appSurface.opacity(0.85))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func rowView(_ transaction: Transaction) -> some View {
+        NavigationLink {
+            TransactionDetailView(transaction: transaction)
+        } label: {
+            TransactionRowView(transaction: transaction)
+                .padding(.vertical, 6)
+        }
+        .buttonStyle(.pressable)
+        .contextMenu {
+            Button {
+                toggleReviewed(transaction)
+            } label: {
+                Label(
+                    transaction.isReviewed ? "Mark Unreviewed" : "Mark Reviewed",
+                    systemImage: transaction.isReviewed ? "circle" : "checkmark.circle.fill"
+                )
+            }
+            Button(role: .destructive) {
+                delete(transaction)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    private var showAllHistoryButton: some View {
+        Group {
+            if hasHiddenOlderHistory {
+                Button {
+                    withAnimation { showAllHistory = true }
+                } label: {
+                    HStack {
+                        Spacer()
+                        Text("Show All History")
+                            .font(.appSubheadline.weight(.semibold))
+                        Spacer()
+                    }
+                    .padding(.vertical, 12)
+                    .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                            .strokeBorder(Color.appHairline, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    // MARK: - Empty state
+
+    private var emptyStateCard: some View {
+        VStack(spacing: 14) {
+            BloomRowIcon(emoji: "📋", size: 64)
+            Text(isFiltering ? "No Matches" : "No Transactions")
+                .font(.appTitle3.weight(.heavy))
+            Text(isFiltering ? "Try a different search or filter." : "Add a transaction to start tracking your spending.")
+                .font(.appSubheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            if !isFiltering {
+                Button { isPresentingNewTransaction = true } label: {
+                    Text("Add Transaction")
+                        .font(.appCaption.weight(.heavy))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(Accent.wellness.base, in: Capsule(style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .card()
+    }
+
+    // MARK: - Data
+
+    private func load() {
+        let descriptor = FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date, order: .reverse)])
+        allTransactions = (try? modelContext.fetch(descriptor)) ?? []
+        didLoad = true
+        recompute()
+    }
+
     private func recompute() {
         visibleTransactions = computeVisibleTransactions()
         hasHiddenOlderHistory = computeHasHiddenOlderHistory()
@@ -73,11 +404,13 @@ struct TransactionListView: View {
         case .expenses: result = result.filter { $0.amount < 0 }
         case .income: result = result.filter { $0.amount >= 0 }
         }
+
         switch filter.reviewState {
         case .all: break
         case .needsReview: result = result.filter { !$0.isReviewed }
         case .reviewed: result = result.filter(\.isReviewed)
         }
+
         if let account = filter.account {
             let id = account.persistentModelID
             result = result.filter { $0.account?.persistentModelID == id }
@@ -90,10 +423,6 @@ struct TransactionListView: View {
             result = result.filter { $0.date >= startDate }
         }
         if let endDate = filter.endDate {
-            // Inclusive of the entire end day. A `.date` picker hands back midnight, but imported
-            // transactions carry a real time of day, so a plain `<= endDate` would drop everything
-            // that happened after 00:00 on the chosen day. Compare against the start of the next day
-            // instead so the whole selected day counts.
             let endExclusive = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: endDate)) ?? endDate
             result = result.filter { $0.date < endExclusive }
         }
@@ -106,11 +435,6 @@ struct TransactionListView: View {
 
         let needle = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if !needle.isEmpty {
-            // Live search doesn't just filter — it re-sorts by how well each row matches, so the
-            // closest hits float to the top as the user types: merchants that start with the term
-            // first, then merchants that merely contain it, then notes-only matches. Newest wins
-            // within a tier, and the explicit date tiebreak keeps the order deterministic (Swift's
-            // sort isn't guaranteed stable).
             result = result
                 .compactMap { transaction -> (transaction: Transaction, rank: Int)? in
                     let merchant = transaction.merchant.lowercased()
@@ -124,213 +448,8 @@ struct TransactionListView: View {
                 }
                 .map(\.transaction)
         }
+
         return result
-    }
-
-    var body: some View {
-        NavigationStack {
-            Group {
-                if !didLoad {
-                    LoadingView()
-                } else {
-                    // The search field unfurls in below the nav bar as a row — not inside the
-                    // toolbar. A TextField embedded in the navigation bar grabs an unpredictable
-                    // width when focused (it sprawled across the title area), so the toolbar only
-                    // holds the button that toggles this row. `searchBarRow` renders the app's
-                    // standard pill search bar and drives the unfurl-from-the-button animation.
-                    transactionList
-                        .searchBarRow(
-                            isPresented: isSearchExpanded,
-                            text: $searchText,
-                            placeholder: "Search merchants",
-                            isFocused: $isSearchFocused,
-                            onCancel: collapseSearch
-                        )
-                }
-            }
-            .navigationTitle("Activity")
-            .accentWash(.transactions)
-            .accent(.transactions)
-            // Pull-to-refresh runs a real sync (not just a local re-read); the reload triggered off
-            // refreshCount then shows whatever the sync inserted.
-            .refreshable { await refresh.refresh(container: modelContext.container) }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    // A visible filter button (not buried in the overflow menu) that fills in and
-                    // tints when any filter is active, so it's obvious filtering is on.
-                    Button { isPresentingFilters = true } label: {
-                        Text(filter.isActive ? "⚙️" : "⚙️").font(.system(size: 20))
-                    }
-                    .tint(filter.isActive ? .accentColor : nil)
-                    .accessibilityLabel(filter.isActive ? "Filters active" : "Filter")
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    // Search and add sit together in the same toolbar-button style. Tapping search
-                    // toggles the field that unfurls out from under it (see `searchBarRow`).
-                    HStack(spacing: 16) {
-                        Button {
-                            if isSearchExpanded {
-                                collapseSearch()
-                            } else {
-                                isSearchExpanded = true
-                            }
-                        } label: {
-                            Text("🔍").font(.system(size: 20))
-                        }
-                        .tint(isSearchExpanded ? .accentColor : nil)
-                        .accessibilityLabel("Search")
-                        Button { isPresentingNewTransaction = true } label: {
-                            Text("➕").font(.system(size: 20))
-                        }
-                        .accessibilityLabel("Add Transaction")
-                    }
-                }
-            }
-            .onChange(of: isSearchExpanded) { _, expanded in
-                // Focus (raise the keyboard) only once the field actually exists in the hierarchy.
-                if expanded { isSearchFocused = true }
-            }
-            .sheet(isPresented: $isPresentingNewTransaction, onDismiss: load) {
-                TransactionEditView(transaction: nil)
-            }
-            .sheet(isPresented: $isPresentingFilters) {
-                TransactionFilterView(filter: $filter)
-            }
-            // Load the transactions, then restore the saved filter once. Accounts/categories are
-            // fetched synchronously here so resolving the saved references can't drop a valid saved
-            // account to nil. The filter restore is guarded to run only on first appearance.
-            .task {
-                load()
-                guard !didRestoreFilter else { return }
-                didRestoreFilter = true
-                guard let snapshot = TransactionFilterStore.load() else { return }
-                let accounts = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
-                let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
-                filter = TransactionFilter(snapshot: snapshot, accounts: accounts, categories: categories)
-            }
-            // Re-fetch once a background refresh (sync + categorize) finishes, so freshly imported
-            // transactions appear without needing to re-open the tab — matching every other screen.
-            .onChange(of: refresh.refreshCount) { _, _ in load() }
-            // Rebuild the visible rows when the search text or the show-all-history toggle changes,
-            // so the filter/sort work happens on the change — not on every body pass.
-            .onChange(of: searchText) { _, _ in recompute() }
-            .onChange(of: showAllHistory) { _, _ in recompute() }
-            // Persist every change (apply, reset) so the filter survives leaving the tab and
-            // relaunching. Skipped until the initial restore has run, so it can't save over the
-            // saved value with the default before it's loaded.
-            .onChange(of: filter) { _, newValue in
-                recompute()
-                guard didRestoreFilter else { return }
-                TransactionFilterStore.save(newValue.snapshot)
-            }
-        }
-    }
-
-    // MARK: - List
-
-    /// The empty states and the transaction list itself, below the (optional) search bar.
-    @ViewBuilder
-    private var transactionList: some View {
-        if visibleTransactions.isEmpty {
-            if hasHiddenOlderHistory && !isFiltering {
-                EmptyStateView(
-                    emoji: "🕓",
-                    systemImage: "clock.arrow.circlepath",
-                    title: "Nothing Recent",
-                    message: "No transactions in the last 12 months.",
-                    actionTitle: "Show All History"
-                ) {
-                    withAnimation { showAllHistory = true }
-                }
-            } else {
-                EmptyStateView(
-                    emoji: "📋",
-                    systemImage: "list.bullet",
-                    title: isFiltering ? "No Matches" : "No Transactions",
-                    message: isFiltering
-                        ? "Try a different search or filter."
-                        : "Add a transaction to start tracking your spending.",
-                    actionTitle: isFiltering ? nil : "Add Transaction"
-                ) {
-                    isPresentingNewTransaction = true
-                }
-            }
-        } else {
-            List {
-                ForEach(visibleTransactions) { transaction in
-                    NavigationLink {
-                        TransactionDetailView(transaction: transaction)
-                    } label: {
-                        TransactionRowView(transaction: transaction)
-                    }
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            delete(transaction)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                    .swipeActions(edge: .leading) {
-                        Button {
-                            toggleReviewed(transaction)
-                        } label: {
-                            Label(
-                                transaction.isReviewed ? "Unreview" : "Reviewed",
-                                systemImage: transaction.isReviewed ? "circle" : "checkmark.circle.fill"
-                            )
-                        }
-                        .tint(Palette.income)
-                    }
-                    // Long-press menu so delete/review stay reachable where the paged tab
-                    // swipe competes with row swipes.
-                    .contextMenu {
-                        Button {
-                            toggleReviewed(transaction)
-                        } label: {
-                            Label(
-                                transaction.isReviewed ? "Mark Unreviewed" : "Mark Reviewed",
-                                systemImage: transaction.isReviewed ? "circle" : "checkmark.circle.fill"
-                            )
-                        }
-                        Button(role: .destructive) {
-                            delete(transaction)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                }
-
-                if hasHiddenOlderHistory {
-                    Button {
-                        withAnimation { showAllHistory = true }
-                    } label: {
-                        Label("Show All History", systemImage: "clock.arrow.circlepath")
-                            .frame(maxWidth: .infinity)
-                            .font(.appSubheadline)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                }
-            }
-            .scrollContentBackground(.hidden)
-        }
-    }
-
-    // MARK: - Search
-
-    private func collapseSearch() {
-        isSearchExpanded = false
-        isSearchFocused = false
-        searchText = ""
-    }
-
-    /// Re-reads every transaction, newest first, then rebuilds the visible rows. `recompute()`
-    /// applies the active search, filters, and 12-month window on top.
-    private func load() {
-        let descriptor = FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date, order: .reverse)])
-        allTransactions = (try? modelContext.fetch(descriptor)) ?? []
-        didLoad = true
-        recompute()
     }
 
     private func delete(_ transaction: Transaction) {
@@ -345,6 +464,15 @@ struct TransactionListView: View {
         transaction.isReviewed.toggle()
         try? modelContext.save()
         load()
+    }
+}
+
+private struct TransactionRowDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(Color.appHairline)
+            .frame(height: 1)
+            .padding(.leading, 54)
     }
 }
 

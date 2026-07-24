@@ -126,6 +126,27 @@ extension Color {
             ? UIColor(red: 0.125, green: 0.114, blue: 0.173, alpha: 1)   // #201D2C
             : UIColor(red: 0.937, green: 0.925, blue: 0.988, alpha: 1)   // #EFECFC
     })
+
+    /// Bloom's primary text color (`--ink`): dark slate in Day, soft white in Dusk.
+    static let ink = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.945, green: 0.937, blue: 0.973, alpha: 1)   // #F1EFF8
+            : UIColor(red: 0.173, green: 0.165, blue: 0.267, alpha: 1)   // #2C2A44
+    })
+
+    /// Bloom's secondary text color (`--ink2`): muted purple in Day, dim lavender in Dusk.
+    static let ink2 = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.678, green: 0.651, blue: 0.753, alpha: 1)   // #ADA6C0
+            : UIColor(red: 0.420, green: 0.408, blue: 0.522, alpha: 1)   // #6B6885
+    })
+
+    /// Bloom's tertiary text color (`--ink3`): soft lavender in Day, deeper muted in Dusk.
+    static let ink3 = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.459, green: 0.431, blue: 0.549, alpha: 1)   // #756E8C
+            : UIColor(red: 0.635, green: 0.612, blue: 0.753, alpha: 1)   // #A29CC0
+    })
 }
 
 extension View {
