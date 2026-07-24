@@ -97,9 +97,9 @@ private struct FloatingTabBar: View {
 
     var body: some View {
         if #available(iOS 26, *) {
-            liquidGlassBody
+            AnyView(liquidGlassBody)
         } else {
-            legacyBody
+            AnyView(legacyBody)
         }
     }
 
