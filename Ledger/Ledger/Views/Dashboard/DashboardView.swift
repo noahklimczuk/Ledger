@@ -296,6 +296,7 @@ struct DashboardView: View {
         }
     }
 
+    @ViewBuilder
     private func summaryTile(_ label: String, value: Decimal, color: Color, subtitle: String, action: (() -> Void)? = nil) -> some View {
         let content = summaryTileCore(label, value: value, color: color, subtitle: subtitle)
         if let action {
@@ -673,14 +674,13 @@ struct DashboardView: View {
                             id: slice.id,
                             label: slice.name,
                             value: slice.amount,
-                            color: Color(hex: slice.colorHex)
+                            color: Color(hex: slice.colorHex),
+                            category: slice.category
                         )
                     },
                     centerCaption: "Spent",
                     onSelect: { segment in
-                        if let slice = viewModel.topCategories.first(where: { $0.id == segment.id }) {
-                            drilldown = slice.category.map(CategoryDrilldown.category) ?? .uncategorized
-                        }
+                        drilldown = segment.category.map(CategoryDrilldown.category) ?? .uncategorized
                     }
                 )
             }

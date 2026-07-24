@@ -176,7 +176,7 @@ struct AskLedgerView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.appSurface, in: Capsule())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .disabled(viewModel.isSending)
             }
         }
