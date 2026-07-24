@@ -77,10 +77,10 @@ struct RootTabView: View {
     }
 }
 
-/// A true Liquid Glass floating tab bar. Modeled on the App Store tab bar: a low, translucent
-/// frosted pill that lets the screen behind it show through, with a soft white top sheen and a
-/// hairline edge. The selected tab gets a subtle color-wash pill; the centre Home tab is a raised
-/// periwinkle rounded square so it still reads as the anchor.
+/// A true Liquid Glass floating tab bar. Modeled on the App Store tab bar: an extremely
+/// translucent frosted pill that lets the screen behind it show through, with the Bloom top sheen,
+/// a soft bottom inner glow, and a hairline edge. The selected tab uses the brand periwinkle wash;
+/// the centre Home tab is a raised rounded square with a surf ring.
 private struct FloatingTabBar: View {
     @Binding var selection: Int
     /// Ties the moving selection pill to one identity so it springs between tabs.
@@ -103,8 +103,8 @@ private struct FloatingTabBar: View {
             tabButton(3)
             tabButton(4)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
         .background(glassBar)
         .padding(.horizontal, 16)
@@ -112,8 +112,7 @@ private struct FloatingTabBar: View {
         .animation(Motion.bouncy, value: selection)
     }
 
-    /// The centre Home tab as a raised, rounded square brand button. Kept compact so it floats
-    /// just above the bar like a pebble.
+    /// The centre Home tab as a raised, rounded square brand button with a translucent surf ring.
     private var homeButton: some View {
         let isSelected = selection == 2
         return Button {
@@ -121,20 +120,20 @@ private struct FloatingTabBar: View {
             selection = 2
         } label: {
             ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.appSurface.opacity(0.55))
+                    .frame(width: 58, height: 58)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.appSurface.opacity(0.35))
-                    .frame(width: 50, height: 50)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 42, height: 42)
+                    .frame(width: 48, height: 48)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(
                                 LinearGradient(
                                     stops: [
                                         .init(color: Color.white.opacity(0.50), location: 0),
-                                        .init(color: Color.white.opacity(0.05), location: 0.45),
+                                        .init(color: Color.white.opacity(0.06), location: 0.45),
                                         .init(color: Color.clear, location: 0.75)
                                     ],
                                     startPoint: .top,
@@ -144,33 +143,48 @@ private struct FloatingTabBar: View {
                             .blendMode(.overlay)
                     )
                 Text("🏠")
-                    .font(.system(size: 22))
+                    .font(.system(size: 24))
                     .foregroundStyle(.white)
             }
-            .frame(width: 50, height: 50)
-            .shadow(color: Palette.green.opacity(0.45), radius: 10, x: 0, y: 6)
-            .offset(y: isSelected ? -20 : -16)
+            .frame(width: 58, height: 58)
+            .shadow(color: Palette.green.opacity(0.45), radius: 12, x: 0, y: 8)
+            .offset(y: isSelected ? -24 : -18)
             .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Home")
     }
 
-    /// App Store-style glass: mostly material blur, very little surface tint, a faint white sheen,
-    /// and a translucent hairline border with a soft drop shadow.
+    /// True Liquid Glass: material blur, a whisper of surf tint, a strong white top sheen,
+    /// a bottom inner glow, a translucent border, and the CSS shadow stack.
     private var glassBar: some View {
         ZStack {
             Capsule(style: .continuous)
                 .fill(.ultraThinMaterial)
             Capsule(style: .continuous)
-                .fill(Color.appSurface.opacity(0.14))
+                .fill(Color.appSurface.opacity(0.10))
+            // ::before top sheen (30% white -> transparent by 44%)
             Capsule(style: .continuous)
                 .fill(
                     LinearGradient(
                         stops: [
-                            .init(color: Color.white.opacity(0.18), location: 0),
-                            .init(color: Color.white.opacity(0.04), location: 0.45),
-                            .init(color: Color.clear, location: 0.75)
+                            .init(color: Color.white.opacity(0.30), location: 0),
+                            .init(color: Color.white.opacity(0.06), location: 0.44),
+                            .init(color: Color.clear, location: 0.70)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .blendMode(.overlay)
+            // bottom inner highlight (inset 0 -8px 18px var(--sl))
+            Capsule(style: .continuous)
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color.clear, location: 0),
+                            .init(color: Color.white.opacity(0.04), location: 0.55),
+                            .init(color: Color.white.opacity(0.10), location: 1)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -180,7 +194,8 @@ private struct FloatingTabBar: View {
             Capsule(style: .continuous)
                 .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
         }
-        .shadow(color: Color.black.opacity(0.12), radius: 18, x: 0, y: 10)
+        .shadow(color: Color.black.opacity(0.45), radius: 22, x: 0, y: 14)
+        .shadow(color: Color.bloomShadow.opacity(0.60), radius: 8, x: 0, y: 6)
     }
 
     private func tabButton(_ index: Int) -> some View {
@@ -197,13 +212,13 @@ private struct FloatingTabBar: View {
                 Text(item.title)
                     .font(AppFont.scaled(10, relativeTo: .caption2, weight: isSelected ? .heavy : .medium))
             }
-            .foregroundStyle(isSelected ? AnyShapeStyle(item.accent.deep) : AnyShapeStyle(Color.primary.opacity(0.55)))
+            .foregroundStyle(isSelected ? AnyShapeStyle(Accent.dashboard.deep) : AnyShapeStyle(Color.primary.opacity(0.55)))
             .frame(maxWidth: .infinity, minHeight: 44)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background {
                 if isSelected {
-                    selectedPill(for: item)
+                    selectedPill()
                 }
             }
             .contentShape(Capsule())
@@ -213,12 +228,12 @@ private struct FloatingTabBar: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
-    private func selectedPill(for item: (title: String, emoji: String, accent: Accent)) -> some View {
+    private func selectedPill() -> some View {
         Capsule(style: .continuous)
-            .fill(item.accent.base.opacity(0.16))
+            .fill(Accent.dashboard.base.opacity(0.16))
             .overlay(
                 Capsule(style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                    .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
             )
             .matchedGeometryEffect(id: "pill", in: pill)
     }
@@ -395,9 +410,9 @@ private struct MoreDivider: View {
     }
 }
 
-/// A compact, floating Ask Ledger dot. The "Ask Ledger" badge overlaps the top-right edge of the
-/// dot and sits tight in the bottom-right corner. Hidden on Home because the Dashboard already has
-/// a dedicated Ask Ledger card.
+/// A compact, floating Ask Ledger dot. The "Ask Ledger" badge is pinned to the top-right corner of
+/// the dot and offset so it overlaps the dot and extends into the screen corner. Hidden on Home
+/// because the Dashboard already has its own Ask Ledger card.
 private struct AskLedgerButton: View {
     @Binding var isPresented: Bool
 
@@ -406,34 +421,31 @@ private struct AskLedgerButton: View {
             Haptics.tap(.soft)
             isPresented = true
         } label: {
-            ZStack(alignment: .topTrailing) {
-                ZStack {
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 48, height: 48)
-                        .shadow(color: Accent.insights.base.opacity(0.35), radius: 10, x: 0, y: 5)
-                    Circle()
-                        .fill(Accent.insights.gradient)
-                        .frame(width: 44, height: 44)
-                    Text("✨")
-                        .font(.system(size: 20))
-                        .foregroundStyle(.white)
-                }
-
+            ZStack {
+                Circle()
+                    .fill(.white)
+                    .frame(width: 50, height: 50)
+                    .shadow(color: Accent.insights.base.opacity(0.35), radius: 10, x: 0, y: 5)
+                Circle()
+                    .fill(Accent.insights.gradient)
+                    .frame(width: 46, height: 46)
+                Text("✨")
+                    .font(.system(size: 22))
+                    .foregroundStyle(.white)
+            }
+            .overlay(alignment: .topTrailing) {
                 Text("Ask Ledger")
                     .font(.appCaption2.weight(.heavy))
                     .foregroundStyle(Color.primary)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
                     .background(Color.appSurface, in: Capsule(style: .continuous))
                     .overlay(
                         Capsule(style: .continuous)
                             .strokeBorder(Color.appHairline, lineWidth: 1)
                     )
                     .shadow(color: Color.bloomShadow, radius: 6, x: 0, y: 3)
-                    .alignmentGuide(.top) { d in d.height / 2 }
-                    .alignmentGuide(.trailing) { d in d.width / 2 }
-                    .offset(x: 10, y: -10)
+                    .offset(x: 6, y: -6)
             }
         }
         .buttonStyle(.pressable)
