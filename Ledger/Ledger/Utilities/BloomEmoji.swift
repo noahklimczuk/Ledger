@@ -87,23 +87,23 @@ nonisolated enum BloomEmoji {
 
 // MARK: - Model extensions
 
-extension Category {
+nonisolated extension Category {
     var bloomEmoji: String { BloomEmoji.categoryEmoji(name: name) }
     /// The icon the app should render for this category. Bloom uses emoji icons in the rendering.
     var displayIcon: String { bloomEmoji }
 }
 
-extension Account {
+nonisolated extension Account {
     var bloomEmoji: String { BloomEmoji.accountEmoji(institution: institutionName, type: type.rawValue) }
     var displayIcon: String { bloomEmoji }
 }
 
-extension RecurringSeries {
+nonisolated extension RecurringSeries {
     var bloomEmoji: String { BloomEmoji.recurringEmoji(name: displayName) }
     var displayIcon: String { bloomEmoji }
 }
 
-extension Insight {
+nonisolated extension Insight {
     var displayIcon: String {
         switch systemImage {
         case "chart.line.uptrend.xyaxis", "arrow.up.right.circle": return "📈"
@@ -116,7 +116,7 @@ extension Insight {
     }
 }
 
-extension DebtKind {
+nonisolated extension DebtKind {
     var displayIcon: String {
         switch self {
         case .creditCard, .lineOfCredit, .other: return "💳"
