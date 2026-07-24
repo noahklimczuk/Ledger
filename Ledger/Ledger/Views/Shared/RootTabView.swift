@@ -437,17 +437,6 @@ private struct AskLedgerButton: View {
     }
 }
 
-/// A UIKit `UIActivityViewController` wrapper so the More screen can share the exported CSV.
-private struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
 #Preview {
     RootTabView()
         .modelContainer(for: LedgerSchema.models, inMemory: true)
