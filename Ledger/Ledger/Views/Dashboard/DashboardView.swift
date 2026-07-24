@@ -33,6 +33,8 @@ struct DashboardView: View {
     @State private var isBalanceExpanded = false
     /// Rotates the Ask Ledger briefing card through a few different messages on Home.
     @State private var askLedgerTick = 0
+    /// Opens the Settings screen from the gradient avatar in the header.
+    @State private var isPresentingSettings = false
 
     var body: some View {
         NavigationStack {
@@ -46,6 +48,9 @@ struct DashboardView: View {
             .navigationTitle("")
             .toolbar(.hidden, for: .navigationBar)
             .accent(.dashboard)
+            .sheet(isPresented: $isPresentingSettings) {
+                SettingsView()
+            }
             .navigationDestination(item: $drilldown) { target in
                 switch target {
                 case .category(let category):
@@ -218,16 +223,22 @@ struct DashboardView: View {
                     .foregroundStyle(Color.primary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Palette.peach, Palette.peri],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+            Button {
+                Haptics.tap(.soft)
+                isPresentingSettings = true
+            } label: {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Palette.peach, Palette.peri],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
-                .frame(width: 46, height: 46)
-                .shadow(color: Color.bloomShadow, radius: 10, x: 4, y: 5)
+                    .frame(width: 46, height: 46)
+                    .shadow(color: Color.bloomShadow, radius: 10, x: 4, y: 5)
+            }
+            .buttonStyle(.pressable)
         }
     }
 
