@@ -81,8 +81,8 @@ struct BudgetSuggestionView: View {
                     Circle()
                         .fill(Palette.income.opacity(0.15))
                         .frame(width: 120, height: 120)
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.appDisplay)
+                    Text("✅")
+                        .font(.system(size: 54))
                         .foregroundStyle(Palette.income)
                 }
                 Text("Budget Applied")
@@ -151,7 +151,8 @@ struct BudgetSuggestionView: View {
     private func summaryCard(_ viewModel: BudgetSuggestionViewModel) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Image(systemName: "sparkles")
+                Text("✨")
+                    .font(.system(size: 17))
                     .foregroundStyle(LinearGradient.brand)
                 Text("Plan for \(DateFormatting.monthYear(viewModel.month))")
                     .font(.appHeadline)

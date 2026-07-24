@@ -102,19 +102,19 @@ struct BudgetListView: View {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button { activeSheet = .newBudget } label: {
-                            Label("Add Budget", systemImage: "plus")
+                            Label { Text("Add Budget") } icon: { Text("➕") }
                         }
                         Button { activeSheet = .income } label: {
-                            Label("Set Monthly Income", systemImage: "dollarsign.circle")
+                            Label { Text("Set Monthly Income") } icon: { Text("💰") }
                         }
                         Button { activeSheet = .suggestion } label: {
-                            Label("Suggest a Budget", systemImage: "sparkles")
+                            Label { Text("Suggest a Budget") } icon: { Text("✨") }
                         }
                         Button { isConfirmingAutoGenerate = true } label: {
-                            Label("Auto-Generate from Last 3 Months", systemImage: "wand.and.stars")
+                            Label { Text("Auto-Generate from Last 3 Months") } icon: { Text("🪄") }
                         }
                     } label: {
-                        Image(systemName: "plus")
+                        Text("➕")
                     }
                     .accessibilityLabel("Add to budget plan")
                 }
@@ -277,7 +277,8 @@ struct BudgetListView: View {
             HStack(spacing: 3) {
                 Text(label)
                 if showsChevron {
-                    Image(systemName: "pencil")
+                    Text("✎")
+                        .font(.appCaption2.weight(.bold))
                 }
             }
             .font(.appCaption2)
@@ -304,19 +305,19 @@ struct BudgetListView: View {
 
     private func monthPicker(_ viewModel: BudgetsViewModel) -> some View {
         HStack {
-            monthChevron("chevron.left") { shiftMonth(viewModel, by: -1) }
+            monthChevron("‹") { shiftMonth(viewModel, by: -1) }
             Spacer()
             Text(DateFormatting.monthYear(viewModel.selectedMonth))
                 .font(.appHeadline)
             Spacer()
-            monthChevron("chevron.right") { shiftMonth(viewModel, by: 1) }
+            monthChevron("›") { shiftMonth(viewModel, by: 1) }
         }
     }
 
     /// A 44pt hit area — the bare chevron glyph is far too small a tap target on its own.
-    private func monthChevron(_ systemImage: String, action: @escaping () -> Void) -> some View {
+    private func monthChevron(_ glyph: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: systemImage)
+            Text(glyph)
                 .font(.appBody.weight(.semibold))
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
