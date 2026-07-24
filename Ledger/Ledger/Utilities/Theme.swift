@@ -85,40 +85,54 @@ enum Theme {
 }
 
 extension Color {
-    /// Bloom's ground — a warm ivory in Day, a warm plum-charcoal in Dusk — so clay cards read as
-    /// raised, tactile surfaces above it.
+    /// Bloom's ground — the warm ivory (Day) and plum-charcoal (Dusk) from `bloom-ios.html`.
     static let appBackground = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
             ? UIColor(red: 0.126, green: 0.106, blue: 0.130, alpha: 1)   // #201B21
             : UIColor(red: 0.945, green: 0.922, blue: 0.890, alpha: 1)   // #F1EBE3
     })
-    /// A raised card/surface — warm off-white in Day, a lifted plum in Dusk.
+
+    /// A raised card/surface — warm off-white (Day) and lifted plum (Dusk) from `bloom-ios.html`.
     static let appSurface = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.212, green: 0.180, blue: 0.224, alpha: 1)   // #362E39
+            ? UIColor(red: 0.165, green: 0.141, blue: 0.173, alpha: 1)   // #2A242C
             : UIColor(red: 0.984, green: 0.969, blue: 0.945, alpha: 1)   // #FBF7F1
     })
-    /// Hairline separators/borders tuned to be barely-there in both appearances.
-    static let appHairline = Color.primary.opacity(0.06)
-    /// Bloom's soft clay drop shadow — a warm brown in Day, a deep shade in Dusk — the dark side of
-    /// the two-shadow "clay" extrusion (cast down-right).
+
+    /// The thin rim on clay cards. In Day it is a white 50% stroke, in Dusk it is a barely-there
+    /// white 2.25% stroke (`color-mix(--sl 50%, transparent)` from the CSS).
+    static let appHairline = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor.white.withAlphaComponent(0.025)
+            : UIColor.white.withAlphaComponent(0.50)
+    })
+
+    /// Bloom's clay drop shadow — warm brown in Day, deep black in Dusk (`--sd`).
     static let bloomShadow = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor.black.withAlphaComponent(0.65)
-            : UIColor(red: 0.55, green: 0.44, blue: 0.35, alpha: 0.24)
+            ? UIColor.black.withAlphaComponent(0.55)
+            : UIColor(red: 0.588, green: 0.471, blue: 0.373, alpha: 0.30)
     })
-    /// The light side of the clay extrusion — a soft highlight cast up-left, so surfaces read as
-    /// gently raised clay rather than flat cards. Barely-there in Dusk.
+
+    /// Bloom's clay top highlight — white in Day, a whisper in Dusk (`--sl`).
     static let bloomHighlight = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
-            ? UIColor.white.withAlphaComponent(0.12)
-            : UIColor.white.withAlphaComponent(0.9)
+            ? UIColor.white.withAlphaComponent(0.045)
+            : UIColor.white.withAlphaComponent(1.0)
+    })
+
+    /// A secondary raised surface used for the small emoji icons in rows (`--surf2`).
+    static let appSurface2 = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.141, green: 0.122, blue: 0.149, alpha: 1)   // #241F26
+            : UIColor(red: 0.957, green: 0.933, blue: 0.902, alpha: 1)   // #F4EEE6
     })
 }
 
 extension View {
-    /// The app's standard card surface: a rounded, softly-shadowed panel with a hairline edge. Using
-    /// one modifier everywhere keeps corner radius, fill, border, and shadow perfectly consistent.
+    /// A clay card matching the Bloom CSS exactly: a rounded surface, a 1px inset rim, a warm
+    /// down-right shadow, and a soft up-left highlight. Every card in the app uses this so the
+    /// tactile "Bloom" feel is identical on every screen.
     func card(padding: CGFloat = Theme.cardPadding) -> some View {
         self
             .padding(padding)
@@ -127,26 +141,8 @@ extension View {
                 RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                     .strokeBorder(Color.appHairline, lineWidth: 1)
             )
-            // A soft top sheen makes the card feel convex and tactile, like a clay tile lit from above.
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            stops: [
-                                .init(color: Color.white.opacity(0.10), location: 0),
-                                .init(color: Color.white.opacity(0.02), location: 0.45),
-                                .init(color: Color.clear, location: 0.7)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .blendMode(.overlay)
-                    .padding(.horizontal, 1)
-            )
-            // Two shadows make the "clay" extrusion: a warm dark cast down-right and a soft light
-            // highlight up-left, so every surface reads as gently raised on the ivory ground.
-            .shadow(color: Color.bloomShadow, radius: 20, y: 12)
-            .shadow(color: Color.bloomHighlight, radius: 14, x: -7, y: -7)
+            // Bloom CSS `.clay` shadow: 7px 7px 20px var(--sd), -6px -6px 14px var(--sl).
+            .shadow(color: Color.bloomShadow, radius: 20, x: 7, y: 7)
+            .shadow(color: Color.bloomHighlight, radius: 14, x: -6, y: -6)
     }
 }

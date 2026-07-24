@@ -88,14 +88,14 @@ private struct FloatingTabBar: View {
     /// Ties the moving selection pill to one identity so it springs between tabs.
     @Namespace private var pill
 
-    /// Visual order: Wellness · Activity · Home · Budgets · More. Home sits in the centre as in the
-    /// Bloom rendering.
-    private let items: [(title: String, icon: String, accent: Accent)] = [
-        ("Wellness", "leaf.fill", .wellness),
-        ("Activity", "chart.bar.xaxis", .transactions),
-        ("Home", "house.fill", .dashboard),
-        ("Budgets", "chart.pie.fill", .budgets),
-        ("More", "square.grid.2x2.fill", .insights),
+    /// Visual order: Wellness · Activity · Home · Budgets · More. Home sits in the centre and uses
+    /// the emoji icons from the `bloom-ios.html` rendering.
+    private let items: [(title: String, emoji: String, accent: Accent)] = [
+        ("Wellness", "🌿", .wellness),
+        ("Activity", "📊", .transactions),
+        ("Home", "🏠", .dashboard),
+        ("Budgets", "💰", .budgets),
+        ("More", "☰", .insights),
     ]
 
     private var selectedAccent: Accent { items[selection].accent }
@@ -109,7 +109,7 @@ private struct FloatingTabBar: View {
             tabButton(4)
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 10)
+        .padding(.vertical, 11)
         .frame(maxWidth: .infinity)
         .background(glassBar)
         .padding(.horizontal, 16)
@@ -117,8 +117,8 @@ private struct FloatingTabBar: View {
         .animation(Motion.bouncy, value: selection)
     }
 
-    /// The centre Home tab as a raised brand button: a clay-gradient square that floats above the
-    /// bar with a strong top sheen and a soft drop shadow, matching the rendering's glass FAB.
+    /// The centre Home tab as the Bloom FAB: a 50pt rounded square with a 5pt surf-colored outer ring,
+    /// a brand gradient, a top sheen, and a colored drop shadow. Matches `.navbar a.fab` in the CSS.
     private var homeButton: some View {
         let isSelected = selection == 2
         return Button {
@@ -126,77 +126,83 @@ private struct FloatingTabBar: View {
             selection = 2
         } label: {
             ZStack {
+                // 5pt outer ring (50 + 5*2 = 60) in surf at 55% opacity.
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.appSurface.opacity(0.55))
+                    .frame(width: 60, height: 60)
+                // Inner brand-gradient button.
+                RoundedRectangle(cornerRadius: 17, style: .continuous)
                     .fill(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 56, height: 56)
+                    .frame(width: 50, height: 50)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.45), lineWidth: 0.5)
+                        // inset top highlight
+                        RoundedRectangle(cornerRadius: 17, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: Color.white.opacity(0.55), location: 0),
+                                        .init(color: Color.white.opacity(0.08), location: 0.45),
+                                        .init(color: Color.clear, location: 0.75)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .blendMode(.overlay)
                     )
-                    .overlay(
-                        LinearGradient(
-                            stops: [
-                                .init(color: Color.white.opacity(0.35), location: 0),
-                                .init(color: Color.white.opacity(0.08), location: 0.45),
-                                .init(color: Color.clear, location: 0.75)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .blendMode(.overlay)
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    )
-                Image(systemName: "house.fill")
-                    .font(AppFont.scaled(24, relativeTo: .title2, weight: .bold))
+                Text("🏠")
+                    .font(.system(size: 25))
                     .foregroundStyle(.white)
             }
-            .frame(width: 56, height: 56)
-            .shadow(color: Palette.green.opacity(0.45), radius: 16, x: 0, y: 8)
-            .shadow(color: Color.black.opacity(0.35), radius: 14, x: 0, y: 10)
-            .offset(y: isSelected ? -28 : -22)
+            .frame(width: 60, height: 60)
+            .shadow(color: Palette.green.opacity(0.70), radius: 12, x: 0, y: 8)
+            .offset(y: isSelected ? -26 : -20)
             .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Home")
     }
 
-    /// A true Liquid Glass pill: material blur tinted with the app surface, a strong top sheen, a
-    /// subtle bottom shade, and a soft raised shadow so the shell floats above the page.
+    /// A Liquid Glass pill matching `.navbar` in `bloom-ios.html`: material blur, a 60% surf tint,
+    /// a strong top sheen, a translucent border, and inset/outer shadows.
     private var glassBar: some View {
         ZStack {
             Capsule(style: .continuous)
-                .fill(.thinMaterial)
+                .fill(.ultraThinMaterial)
             Capsule(style: .continuous)
-                .fill(Color.appSurface.opacity(0.42))
+                .fill(Color.appSurface.opacity(0.60))
+            // ::before top sheen + inset top/bottom highlights.
             Capsule(style: .continuous)
                 .fill(
                     LinearGradient(
-                        gradient: Gradient(stops: [
-                            .init(color: Color.white.opacity(0.32), location: 0),
-                            .init(color: Color.white.opacity(0.10), location: 0.35),
-                            .init(color: Color.clear, location: 0.75)
-                        ]),
+                        stops: [
+                            .init(color: Color.white.opacity(0.30), location: 0),
+                            .init(color: Color.white.opacity(0.06), location: 0.44),
+                            .init(color: Color.clear, location: 0.7)
+                        ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
                 .blendMode(.overlay)
             Capsule(style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.45), Color.black.opacity(0.18)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 0.5
-                )
+                .strokeBorder(glassBorder, lineWidth: 1)
         }
-        .shadow(color: selectedAccent.base.opacity(0.22), radius: 26, x: 0, y: 12)
-        .shadow(color: Color.bloomShadow, radius: 24, x: 0, y: 14)
+        // 0 22px 44px -16px rgba(0,0,0,.5), 0 6px 16px -8px var(--sd)
+        .shadow(color: Color.black.opacity(0.50), radius: 22, x: 0, y: 14)
+        .shadow(color: Color.bloomShadow, radius: 8, x: 0, y: 6)
     }
 
-    /// One tab: an icon with a tiny label below it. The selected item gets a tinted pill behind it,
-    /// and a gentle inset top highlight, matching the Liquid Glass tab bar in the Bloom rendering.
+    private var glassBorder: some ShapeStyle {
+        Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.03)
+                : UIColor.white.withAlphaComponent(0.65)
+        })
+    }
+
+    /// One tab: emoji icon above label, exactly like `.navbar a` in the CSS. The selected tab uses
+    /// an accent wash pill with an inset top highlight and a deeper accent color for text/icon.
     private func tabButton(_ index: Int) -> some View {
         let item = items[index]
         let isSelected = selection == index
@@ -204,15 +210,16 @@ private struct FloatingTabBar: View {
             Haptics.tap(.soft)
             selection = index
         } label: {
-            VStack(spacing: 3) {
-                Image(systemName: item.icon)
-                    .font(AppFont.scaled(19, relativeTo: .headline, weight: .bold))
-                    .symbolEffect(.bounce, value: isSelected)
+            VStack(spacing: 4) {
+                Text(item.emoji)
+                    .font(.system(size: 20))
+                    .opacity(isSelected ? 1 : 0.62)
                 Text(item.title)
                     .font(AppFont.scaled(10, relativeTo: .caption2, weight: .heavy))
             }
-            .foregroundStyle(isSelected ? AnyShapeStyle(item.accent.base) : AnyShapeStyle(Color.secondary.opacity(0.75)))
-            .frame(maxWidth: .infinity, minHeight: 48)
+            .foregroundStyle(isSelected ? AnyShapeStyle(item.accent.deep) : AnyShapeStyle(Color.secondary.opacity(0.80)))
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .padding(.horizontal, 11)
             .padding(.vertical, 5)
             .background {
                 if isSelected {
@@ -226,12 +233,23 @@ private struct FloatingTabBar: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
-    private func selectedPill(for item: (title: String, icon: String, accent: Accent)) -> some View {
+    private func selectedPill(for item: (title: String, emoji: String, accent: Accent)) -> some View {
         Capsule(style: .continuous)
-            .fill(item.accent.soft)
+            .fill(item.accent.base.opacity(0.15))
             .overlay(
+                // inset 0 1px 0 rgba(255,255,255,.4)
                 Capsule(style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5)
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.white.opacity(0.40), location: 0),
+                                .init(color: Color.clear, location: 0.5)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .blendMode(.overlay)
             )
             .matchedGeometryEffect(id: "pill", in: pill)
     }

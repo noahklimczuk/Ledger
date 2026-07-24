@@ -229,8 +229,7 @@ struct TransactionEditView: View {
                 HStack(spacing: 10) {
                     CategoryChip(
                         name: "Uncategorized",
-                        systemImage: "questionmark.circle.fill",
-                        color: Color.secondary,
+                        emoji: "❓",
                         isSelected: viewModel.category == nil
                     ) {
                         viewModel.category = nil
@@ -239,8 +238,7 @@ struct TransactionEditView: View {
                     ForEach(categories, id: \.persistentModelID) { category in
                         CategoryChip(
                             name: category.name,
-                            systemImage: category.sfSymbolName,
-                            color: Color(hex: category.colorHex),
+                            emoji: category.displayIcon,
                             isSelected: viewModel.category?.persistentModelID == category.persistentModelID
                         ) {
                             viewModel.category = category
@@ -270,7 +268,8 @@ struct TransactionEditView: View {
                 ValueCard(
                     title: "Account",
                     value: viewModel.account?.name ?? "Select",
-                    icon: viewModel.account?.type.sfSymbolName ?? "banknote",
+                    icon: viewModel.account?.displayIcon ?? "🏦",
+                    isEmoji: true,
                     accent: .accounts
                 )
             }
@@ -354,17 +353,16 @@ struct TransactionEditView: View {
 
 private struct CategoryChip: View {
     let name: String
-    let systemImage: String
-    let color: Color
+    let emoji: String
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: isSelected ? 10 : 7) {
-                Image(systemName: systemImage)
-                    .font(AppFont.scaled(isSelected ? 26 : 22, relativeTo: .headline, weight: .bold))
-                    .symbolEffect(.bounce, value: isSelected)
+                Text(emoji)
+                    .font(.system(size: isSelected ? 26 : 22))
+                    .scaleEffect(isSelected ? 1.08 : 1.0)
                     .foregroundStyle(isSelected ? .white : Color.primary)
                 Text(name)
                     .font(isSelected ? .appBody.weight(.heavy) : .appSubheadline.weight(.bold))
@@ -395,7 +393,21 @@ private struct ValueCard: View {
     let title: String
     let value: String
     let icon: String
+    var isEmoji: Bool = false
     let accent: Accent
+
+    private var iconView: some View {
+        Group {
+            if isEmoji {
+                Text(icon)
+                    .font(.system(size: 14))
+            } else {
+                Image(systemName: icon)
+                    .font(AppFont.scaled(14, relativeTo: .subheadline, weight: .bold))
+            }
+        }
+        .foregroundStyle(accent.base)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -404,9 +416,7 @@ private struct ValueCard: View {
                 .tracking(0.3)
                 .foregroundStyle(.secondary)
             HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(AppFont.scaled(14, relativeTo: .subheadline, weight: .bold))
-                    .foregroundStyle(accent.base)
+                iconView
                 Text(value)
                     .font(.appBodyMedium.weight(.semibold))
                     .foregroundStyle(Color.primary)

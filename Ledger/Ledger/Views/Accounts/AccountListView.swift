@@ -167,7 +167,7 @@ struct AccountListView: View {
     private var connectButton: some View {
         Button { isPresentingWealthsimple = true } label: {
             HStack(spacing: 12) {
-                IconBadge(systemName: "link", accent: .accounts, size: 38, filled: false)
+                BloomRowIcon(emoji: "🔗", size: 38)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Connect another institution")
                         .font(.appBodyMedium.weight(.semibold))
@@ -189,15 +189,6 @@ struct AccountListView: View {
 
 private struct AccountRow: View {
     let account: Account
-
-    private var accent: Accent {
-        switch account.type {
-        case .chequing: .accounts
-        case .savings: .goals
-        case .credit: .debt
-        case .investment: .insights
-        }
-    }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -224,13 +215,7 @@ private struct AccountRow: View {
     }
 
     private var accountIcon: some View {
-        Group {
-            if account.isLinked {
-                IconBadge(systemName: account.type.sfSymbolName, accent: accent, size: 44)
-            } else {
-                IconBadge(systemName: account.type.sfSymbolName, accent: accent, size: 44, filled: false)
-            }
-        }
+        BloomRowIcon(emoji: account.displayIcon, size: 44)
     }
 
     private var subtitle: String {
