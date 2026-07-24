@@ -25,8 +25,9 @@ struct SearchBar: View {
     /// The pill itself: leading magnifying glass, the text field, and a trailing accessory.
     private var field: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
+            Text("🔍")
                 .foregroundStyle(.secondary)
+                .font(.system(size: 16))
 
             TextField(placeholder, text: $text)
                 .textFieldStyle(.plain)
@@ -48,8 +49,9 @@ struct SearchBar: View {
     @ViewBuilder
     private var trailingAccessory: some View {
         if text.isEmpty {
-            Image(systemName: "mic.fill")
+            Text("🎤")
                 .foregroundStyle(.secondary)
+                .font(.system(size: 16))
                 .accessibilityHidden(true)
                 .transition(.scale.combined(with: .opacity))
         } else {
@@ -57,8 +59,9 @@ struct SearchBar: View {
                 text = ""
                 isFocused = true
             } label: {
-                Image(systemName: "xmark.circle.fill")
+                Text("❌")
                     .foregroundStyle(.secondary)
+                    .font(.system(size: 18))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Clear search")
@@ -69,7 +72,7 @@ struct SearchBar: View {
     /// The standalone circular cancel button that dismisses the search field.
     private var cancelButton: some View {
         Button(action: onCancel) {
-            Image(systemName: "xmark")
+            Text("❌")
                 .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .frame(width: 40, height: 40)

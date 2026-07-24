@@ -58,14 +58,14 @@ struct RecurringView: View {
                     Button {
                         isPresentingNewTransaction = true
                     } label: {
-                        Image(systemName: "plus")
+                        Text("➕").font(.system(size: 20))
                     }
                     .accessibilityLabel("Add Transaction")
 
                     Button {
                         viewModel?.load()
                     } label: {
-                        Image(systemName: "arrow.clockwise")
+                        Text("🔄").font(.system(size: 18))
                     }
                     .accessibilityLabel("Rescan")
                 }

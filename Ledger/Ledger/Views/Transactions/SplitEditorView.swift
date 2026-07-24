@@ -24,7 +24,7 @@ struct SplitEditorView: View {
                             Text(split.category?.name ?? "Select category")
                                 .font(.appBody.weight(.semibold))
                                 .foregroundStyle(Color.primary)
-                            Image(systemName: "chevron.down")
+                            Text("⌄")
                                 .font(.appCaption2.weight(.bold))
                                 .foregroundStyle(.tertiary)
                         }
@@ -45,9 +45,9 @@ struct SplitEditorView: View {
                     Button {
                         viewModel.removeSplit(split)
                     } label: {
-                        Image(systemName: "minus.circle.fill")
+                        Text("➖")
                             .foregroundStyle(Palette.coral)
-                            .font(.appTitle3)
+                            .font(.system(size: 24))
                     }
                     .buttonStyle(.plain)
                 }
@@ -56,7 +56,7 @@ struct SplitEditorView: View {
             Button {
                 viewModel.addSplit()
             } label: {
-                Label("Add Split", systemImage: "plus.circle")
+                Text("➕ Add Split")
                     .font(.appBodyMedium.weight(.semibold))
                     .foregroundStyle(Palette.greenDeep)
             }

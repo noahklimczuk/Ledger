@@ -27,7 +27,7 @@ struct SavingsGoalEditView: View {
                     Picker("Tracked From", selection: $trackedAccount) {
                         Text("Manual contributions").tag(Account?.none)
                         ForEach(accounts) { account in
-                            Label(account.name, systemImage: account.type.sfSymbolName)
+                            Text("\(account.displayIcon)  \(account.name)")
                                 .tag(Account?.some(account))
                         }
                     }

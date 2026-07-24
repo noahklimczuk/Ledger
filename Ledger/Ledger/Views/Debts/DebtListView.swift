@@ -55,7 +55,7 @@ struct DebtListView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { isPresentingNew = true } label: {
-                    Image(systemName: "plus")
+                    Text("➕").font(.system(size: 20))
                 }
                 .accessibilityLabel("Add Debt")
             }
@@ -109,7 +109,7 @@ private struct DebtRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            BloomRowIcon(emoji: "💳", size: 38)
+            BloomRowIcon(emoji: debt.kind.displayIcon, size: 38)
             VStack(alignment: .leading, spacing: 2) {
                 Text(debt.name).font(.appBodyMedium)
                 Text(subtitle)

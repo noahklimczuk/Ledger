@@ -103,6 +103,31 @@ extension RecurringSeries {
     var displayIcon: String { bloomEmoji }
 }
 
+extension Insight {
+    var displayIcon: String {
+        switch systemImage {
+        case "chart.line.uptrend.xyaxis", "arrow.up.right.circle": return "📈"
+        case "exclamationmark.triangle.fill", "creditcard.trianglebadge.exclamationmark": return "⚠️"
+        case "doc.on.doc": return "📑"
+        case "arrow.triangle.2.circlepath": return "🔄"
+        case "arrow.down.right.circle": return "📉"
+        default: return "✨"
+        }
+    }
+}
+
+extension DebtKind {
+    var displayIcon: String {
+        switch self {
+        case .creditCard, .lineOfCredit, .other: return "💳"
+        case .studentLoan: return "🎓"
+        case .carLoan: return "🚗"
+        case .mortgage: return "🏠"
+        case .personalLoan: return "👤"
+        }
+    }
+}
+
 // MARK: - Row icon
 
 /// The 44pt rounded emoji icon used in account and subscription rows, matching the `.row .ic` style

@@ -202,8 +202,8 @@ struct ReportsView: View {
                             .foregroundStyle(isUp ? Palette.expense : Palette.income)
                     }
                     Spacer()
-                    Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
-                        .font(.appTitle)
+                    Text(isUp ? "⬆️" : "⬇️")
+                        .font(.system(size: 28))
                         .foregroundStyle(isUp ? Palette.expense : Palette.income)
                 }
             }

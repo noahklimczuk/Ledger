@@ -136,7 +136,7 @@ struct IntegrationsSettingsView: View {
         VStack(alignment: .leading, spacing: 12) {
             if viewModel.needsReauth {
                 HStack(spacing: 10) {
-                    Image(systemName: "exclamationmark.triangle.fill")
+                    Text("⚠️")
                         .foregroundStyle(Palette.amber)
                     Text("Wealthsimple needs you to sign in again to keep syncing.")
                         .font(.appSubheadline.weight(.semibold))
@@ -159,7 +159,7 @@ struct IntegrationsSettingsView: View {
                 Button {
                     Task { await viewModel.sync() }
                 } label: {
-                    Label("Sync Now", systemImage: "arrow.clockwise")
+                    Text("🔄 Sync Now")
                         .font(.appSubheadline.weight(.black))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
@@ -170,7 +170,7 @@ struct IntegrationsSettingsView: View {
                 Button {
                     viewModel.disconnect()
                 } label: {
-                    Label("Disconnect", systemImage: "link.icloud.slash")
+                    Text("🔗 Disconnect")
                         .font(.appSubheadline.weight(.black))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
@@ -201,7 +201,7 @@ struct IntegrationsSettingsView: View {
 
     private func errorBanner(_ message: String) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
+            Text("⚠️")
                 .foregroundStyle(Palette.coral)
             Text(message)
                 .font(.appSubheadline.weight(.semibold))

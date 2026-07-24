@@ -72,7 +72,7 @@ struct TransactionFilterView: View {
                         startDate = Self.startOfYear
                         useEndDate = false
                     } label: {
-                        Label("Year to Date", systemImage: "calendar")
+                        Text("📅 Year to Date")
                     }
                 }
                 Section {
