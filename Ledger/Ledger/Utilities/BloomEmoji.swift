@@ -6,7 +6,7 @@ import SwiftUI
 /// `bloom-ios.html` rendering. Falls back to a sensible default for anything not in the map so
 /// user-defined items still get a readable icon.
 nonisolated enum BloomEmoji {
-    static func categoryEmoji(name: String) -> String {
+    nonisolated static func categoryEmoji(name: String) -> String {
         switch name.lowercased() {
         case "salary", "paycheque", "paycheck", "income": return "💵"
         case "interest": return "📈"
@@ -33,7 +33,7 @@ nonisolated enum BloomEmoji {
         }
     }
 
-    static func accountEmoji(institution: String?, type: String?) -> String {
+    nonisolated static func accountEmoji(institution: String?, type: String?) -> String {
         let name = (institution ?? "").lowercased()
         switch name {
         case let n where n.contains("wealthsimple"): return "🍁"
@@ -58,7 +58,7 @@ nonisolated enum BloomEmoji {
         }
     }
 
-    static func merchantEmoji(name: String) -> String {
+    nonisolated static func merchantEmoji(name: String) -> String {
         let lower = name.lowercased()
         if lower.contains("loblaws") || lower.contains("grocery") || lower.contains("metro") || lower.contains("sobeys") || lower.contains("costco") {
             return "🛒"
@@ -80,7 +80,7 @@ nonisolated enum BloomEmoji {
         return "💰"
     }
 
-    static func recurringEmoji(name: String) -> String {
+    nonisolated static func recurringEmoji(name: String) -> String {
         merchantEmoji(name: name)
     }
 }
