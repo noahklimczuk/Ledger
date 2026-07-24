@@ -5,7 +5,7 @@ import SwiftUI
 /// Maps Ledger's default category, account, and merchant names to the emoji icons used in the
 /// `bloom-ios.html` rendering. Falls back to a sensible default for anything not in the map so
 /// user-defined items still get a readable icon.
-enum BloomEmoji {
+nonisolated enum BloomEmoji {
     static func categoryEmoji(name: String) -> String {
         switch name.lowercased() {
         case "salary", "paycheque", "paycheck", "income": return "💵"

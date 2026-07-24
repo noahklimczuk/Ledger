@@ -188,11 +188,7 @@ struct BudgetSuggestionView: View {
     private func proposalRow(_ row: BudgetSuggestionViewModel.ProposalRow, viewModel: BudgetSuggestionViewModel) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
-                Image(systemName: row.category.sfSymbolName)
-                    .font(AppFont.scaled(13, relativeTo: .caption, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 30, height: 30)
-                    .background(Color(hex: row.category.colorHex), in: Circle())
+                BloomRowIcon(emoji: row.category.displayIcon, size: 32)
                     .opacity(row.isIncluded ? 1 : 0.4)
                 Text(row.category.name)
                     .font(.appSubheadline.weight(.medium))
@@ -228,11 +224,7 @@ struct BudgetSuggestionView: View {
     private func savingsRow(_ viewModel: BudgetSuggestionViewModel) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
-                Image(systemName: "banknote.fill")
-                    .font(AppFont.scaled(13, relativeTo: .caption, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 30, height: 30)
-                    .background(Palette.income, in: Circle())
+                BloomRowIcon(emoji: "💰", size: 32)
                     .opacity(viewModel.savingsIncluded ? 1 : 0.4)
                 Text("Savings")
                     .font(.appSubheadline.weight(.medium))

@@ -3,10 +3,6 @@ import SwiftUI
 struct TransactionRowView: View {
     let transaction: Transaction
 
-    private var categoryColor: Color {
-        transaction.category.map { Color(hex: $0.colorHex) } ?? Palette.indigo
-    }
-
     var body: some View {
         HStack(spacing: 12) {
             categoryIcon
@@ -48,19 +44,11 @@ struct TransactionRowView: View {
         .contentShape(Rectangle())
     }
 
-    /// A rounded-square badge tinted with the category's own color (a soft top-to-bottom gradient for
-    /// a little depth), matching the playful icon-badge language used across the redesign.
+    /// Bloom row icon: a neutral clay emoji badge sized to the transaction row.
     private var categoryIcon: some View {
-        let symbol = transaction.category?.sfSymbolName ?? "questionmark.circle.fill"
-        let color = categoryColor
-        return Image(systemName: symbol)
-            .font(AppFont.scaled(16, relativeTo: .body, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: 44, height: 44)
-            .background(
-                LinearGradient(colors: [color, color.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-            )
-            .accessibilityHidden(true)
+        BloomRowIcon(
+            emoji: transaction.category?.displayIcon ?? BloomEmoji.merchantEmoji(name: transaction.merchant),
+            size: 40
+        )
     }
 }

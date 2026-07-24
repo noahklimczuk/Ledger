@@ -47,7 +47,7 @@ struct RootTabView: View {
             if isUnlocked { selection = 2 }
         }
         .overlay(alignment: .bottomTrailing) {
-            AskLedgerButton(isPresented: $isPresentingAskLedger)
+            AskLedgerButton(isPresented: $isPresentingAskLedger, showLabel: selection != 2)
                 .padding(.trailing, 16)
                 .padding(.bottom, 110)
         }
@@ -431,27 +431,43 @@ private struct MoreDivider: View {
 }
 
 /// A persistent, floating Ask Ledger button. Sits above the custom tab bar in the bottom-right so
-/// it's reachable without fighting the navigation bar, and pulses to invite a tap.
+/// it's reachable without fighting the navigation bar, and carries an attached label on non-Home tabs.
 private struct AskLedgerButton: View {
     @Binding var isPresented: Bool
+    var showLabel: Bool = false
 
     var body: some View {
         Button {
             Haptics.tap(.soft)
             isPresented = true
         } label: {
-            ZStack {
-                Circle()
-                    .fill(.white)
-                    .frame(width: 62, height: 62)
-                    .shadow(color: Accent.insights.base.opacity(0.45), radius: 14, x: 0, y: 8)
-                Circle()
-                    .fill(Accent.insights.gradient)
-                    .frame(width: 58, height: 58)
-                Image(systemName: "sparkles")
-                    .font(AppFont.scaled(26, relativeTo: .body, weight: .bold))
-                    .foregroundStyle(.white)
-                    .symbolEffect(.pulse, options: .repeating)
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 62, height: 62)
+                        .shadow(color: Accent.insights.base.opacity(0.45), radius: 14, x: 0, y: 8)
+                    Circle()
+                        .fill(Accent.insights.gradient)
+                        .frame(width: 58, height: 58)
+                    Text("✨")
+                        .font(.system(size: 26))
+                        .foregroundStyle(.white)
+                }
+
+                if showLabel {
+                    Text("Ask Ledger")
+                        .font(.appCaption.weight(.heavy))
+                        .foregroundStyle(Color.primary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.appSurface, in: Capsule(style: .continuous))
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .strokeBorder(Color.appHairline, lineWidth: 1)
+                        )
+                        .shadow(color: Color.bloomShadow, radius: 8, x: 0, y: 4)
+                }
             }
         }
         .buttonStyle(.pressable)
