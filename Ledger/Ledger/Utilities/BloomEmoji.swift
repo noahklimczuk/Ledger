@@ -83,6 +83,14 @@ nonisolated enum BloomEmoji {
     nonisolated static func recurringEmoji(name: String) -> String {
         merchantEmoji(name: name)
     }
+
+    nonisolated static func goalEmoji(name: String) -> String {
+        let lower = name.lowercased()
+        if lower.contains("emerg") { return "🌳" }
+        if lower.contains("japan") || lower.contains("travel") || lower.contains("vacation") { return "🌿" }
+        if lower.contains("laptop") || lower.contains("tech") || lower.contains("computer") { return "🌱" }
+        return "🎯"
+    }
 }
 
 // MARK: - Model extensions

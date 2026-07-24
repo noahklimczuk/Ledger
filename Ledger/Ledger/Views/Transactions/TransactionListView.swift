@@ -282,7 +282,7 @@ struct TransactionListView: View {
 
     private func dayHeader(_ day: Date, transactions: [Transaction]) -> some View {
         let total = transactions
-            .filter { !$0.isTransfer }
+            .filter { $0.category?.isTransfer != true }
             .reduce(Decimal(0)) { $0 + ($1.amount < 0 ? -$1.amount : 0) }
         return HStack {
             Text(DateFormatting.relativeDay(day))
