@@ -59,7 +59,7 @@ struct EmptyStateView: View {
                 .padding(.horizontal, 30)
 
             if let actionTitle, let action {
-                AccentButton(title: actionTitle, systemName: systemImage, accent: .dashboard, action: action)
+                AccentButton(title: actionTitle, systemName: systemImage, emoji: emoji, accent: .dashboard, action: action)
                     .padding(.top, 6)
                     .padding(.horizontal, 40)
             }

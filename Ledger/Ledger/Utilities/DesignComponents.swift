@@ -186,13 +186,18 @@ struct AccentProgressBar: View {
 struct AccentButton: View {
     let title: String
     var systemName: String?
+    var emoji: String?
     var accent: Accent = .dashboard
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                if let systemName { Image(systemName: systemName).font(.appHeadline) }
+                if let emoji {
+                    Text(emoji).font(.appHeadline)
+                } else if let systemName {
+                    Image(systemName: systemName).font(.appHeadline)
+                }
                 Text(title).font(.appHeadline)
             }
             .frame(maxWidth: .infinity)
@@ -214,7 +219,9 @@ extension View {
     /// depth comes from the cards, not the background.
     func accentWash(_ accent: Accent) -> some View {
         _ = accent
-        return background(BloomBackground(), ignoresSafeAreaEdges: .all)
+        return background(alignment: .center, ignoresSafeAreaEdges: .all) {
+            BloomBackground()
+        }
     }
 
     /// A tappable card: the standard card surface plus the springy press feel. Wrap the whole card in

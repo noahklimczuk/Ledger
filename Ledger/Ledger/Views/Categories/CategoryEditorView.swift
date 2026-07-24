@@ -49,7 +49,7 @@ struct CategoryEditorView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { isPresentingNew = true } label: {
-                    Image(systemName: "plus")
+                    Text("➕").font(.system(size: 20))
                 }
                 .accessibilityLabel("Add Category")
             }
