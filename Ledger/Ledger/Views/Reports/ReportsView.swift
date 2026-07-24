@@ -80,8 +80,8 @@ struct ReportsView: View {
     private func summaryCards(_ viewModel: ReportsViewModel) -> some View {
         HStack(spacing: 10) {
             summaryTile("Income", value: viewModel.totalIncome, color: Palette.income)
-            summaryTile("Expenses", value: viewModel.totalExpense, color: Palette.expense)
-            summaryTile("Net", value: viewModel.net, color: viewModel.net < 0 ? Palette.expense : Palette.indigo)
+            summaryTile("Expenses", value: viewModel.totalExpense, color: Palette.peach)
+            summaryTile("Net", value: viewModel.net, color: viewModel.net < 0 ? Palette.peach : Palette.income)
         }
     }
 
