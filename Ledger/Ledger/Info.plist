@@ -36,10 +36,7 @@
 	</dict>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Inter-Regular.otf</string>
-		<string>Inter-Medium.otf</string>
-		<string>Inter-SemiBold.otf</string>
-		<string>Inter-Bold.otf</string>
+		<string>Fonts/InterVariable.ttf</string>
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>

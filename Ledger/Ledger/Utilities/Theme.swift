@@ -29,13 +29,11 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
 
 // MARK: - Typography
 
-/// The app's typeface, bundled as a custom font. Swap `family` (and add the matching files — see
-/// `Resources/Fonts/README.md`) to restyle the whole app's text in one place. Until the font files
-/// are added to the target, `Font.custom` falls back to the system font automatically, so the app
-/// still builds and runs — it just uses San Francisco until the files land.
+/// The app's typeface. The `InterVariable.ttf` file in `Ledger/Fonts` is registered under its
+/// PostScript name, and `.weight()` maps to the `wght` axis of the variable font.
 enum AppFont {
-    /// The font family / PostScript prefix. Change this one string to switch typeface app-wide.
-    static let family = "Inter"
+    /// The variable font's PostScript name as listed in `Info.plist` → `UIAppFonts`.
+    static let family = "InterVariable"
 
     /// A Dynamic-Type-scaled font in the app family at the given base size and weight.
     static func scaled(_ size: CGFloat, relativeTo style: Font.TextStyle, weight: Font.Weight = .regular) -> Font {
