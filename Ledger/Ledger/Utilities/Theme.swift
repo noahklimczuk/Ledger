@@ -43,24 +43,24 @@ enum AppFont {
 }
 
 extension Font {
-    // Display / headings — Clash Display
-    static let appLargeTitle = AppFont.scaled(34, relativeTo: .largeTitle, weight: .bold, display: true)
-    static let appTitle = AppFont.scaled(28, relativeTo: .title, weight: .bold, display: true)
-    static let appTitle2 = AppFont.scaled(22, relativeTo: .title2, weight: .semibold, display: true)
-    static let appTitle3 = AppFont.scaled(20, relativeTo: .title3, weight: .semibold, display: true)
-    static let appHeadline = AppFont.scaled(17, relativeTo: .headline, weight: .semibold, display: true)
-    static let appMoney = AppFont.scaled(44, relativeTo: .largeTitle, weight: .bold, display: true)
-    static let appDisplay = AppFont.scaled(56, relativeTo: .largeTitle, weight: .bold, display: true)
-    static let appNumber = AppFont.scaled(30, relativeTo: .title, weight: .bold, display: true)
+    // Display / headings — Clash Display. Bumped one weight heavier where possible.
+    static let appLargeTitle = AppFont.scaled(34, relativeTo: .largeTitle, weight: .heavy, display: true)
+    static let appTitle = AppFont.scaled(28, relativeTo: .title, weight: .heavy, display: true)
+    static let appTitle2 = AppFont.scaled(22, relativeTo: .title2, weight: .bold, display: true)
+    static let appTitle3 = AppFont.scaled(20, relativeTo: .title3, weight: .bold, display: true)
+    static let appHeadline = AppFont.scaled(17, relativeTo: .headline, weight: .bold, display: true)
+    static let appMoney = AppFont.scaled(44, relativeTo: .largeTitle, weight: .heavy, display: true)
+    static let appDisplay = AppFont.scaled(56, relativeTo: .largeTitle, weight: .heavy, display: true)
+    static let appNumber = AppFont.scaled(30, relativeTo: .title, weight: .heavy, display: true)
 
-    // Body text — General Sans
-    static let appBody = AppFont.scaled(17, relativeTo: .body, weight: .regular, display: false)
-    static let appBodyMedium = AppFont.scaled(17, relativeTo: .body, weight: .medium, display: false)
-    static let appCallout = AppFont.scaled(16, relativeTo: .callout, weight: .regular, display: false)
-    static let appSubheadline = AppFont.scaled(15, relativeTo: .subheadline, weight: .regular, display: false)
-    static let appFootnote = AppFont.scaled(13, relativeTo: .footnote, weight: .regular, display: false)
-    static let appCaption = AppFont.scaled(12, relativeTo: .caption, weight: .medium, display: false)
-    static let appCaption2 = AppFont.scaled(11, relativeTo: .caption2, weight: .medium, display: false)
+    // Body text — General Sans. Bumped one weight heavier for a punchier, more deliberate feel.
+    static let appBody = AppFont.scaled(17, relativeTo: .body, weight: .medium, display: false)
+    static let appBodyMedium = AppFont.scaled(17, relativeTo: .body, weight: .semibold, display: false)
+    static let appCallout = AppFont.scaled(16, relativeTo: .callout, weight: .medium, display: false)
+    static let appSubheadline = AppFont.scaled(15, relativeTo: .subheadline, weight: .medium, display: false)
+    static let appFootnote = AppFont.scaled(13, relativeTo: .footnote, weight: .medium, display: false)
+    static let appCaption = AppFont.scaled(12, relativeTo: .caption, weight: .semibold, display: false)
+    static let appCaption2 = AppFont.scaled(11, relativeTo: .caption2, weight: .semibold, display: false)
 }
 
 // MARK: - Surfaces & spacing
