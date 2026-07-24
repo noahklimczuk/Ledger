@@ -91,7 +91,7 @@ struct Chip: View {
 // MARK: - Section header
 
 /// A bold, editorial section header: a heavy title (optionally with a subtitle) and an optional
-/// trailing accessory. Sets the confident, big-type tone the redesign is going for.
+/// trailing accessory. Sized to the Bloom CSS `.h5` (17pt heavy) so it reads as a label, not a headline.
 struct SectionHeadline<Trailing: View>: View {
     let title: String
     var subtitle: String?
@@ -106,7 +106,7 @@ struct SectionHeadline<Trailing: View>: View {
     var body: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.appTitle3.weight(.heavy))
+                Text(title).font(.appHeadline.weight(.heavy))
                 if let subtitle {
                     Text(subtitle).font(.appFootnote).foregroundStyle(.secondary)
                 }
@@ -300,7 +300,7 @@ struct BalanceBlob: View {
                 .shadow(color: accent.base.opacity(0.5), radius: 16, y: 10)
             VStack(spacing: 2) {
                 Text("\(percent)%")
-                    .font(AppFont.scaled(size * 0.24, relativeTo: .largeTitle, weight: .heavy))
+                    .font(AppFont.scaled(size * 0.20, relativeTo: .largeTitle, weight: .heavy))
                     .foregroundStyle(.white)
                     .minimumScaleFactor(0.6)
                 Text("OF BUDGET")
