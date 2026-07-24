@@ -569,8 +569,8 @@ struct DashboardView: View {
                 // Income and Expenses drill into the month's matching transactions; Net is a
                 // derived figure with no single transaction set behind it, so it stays static.
                 summaryTile("Income", value: viewModel.monthIncome, color: Palette.income, icon: "arrow.down.right") { flowDrilldown = .income }
-                summaryTile("Expenses", value: viewModel.monthSpending, color: Palette.expense, icon: "arrow.up.right") { flowDrilldown = .expenses }
-                summaryTile("Net", value: viewModel.monthNet, color: viewModel.monthNet < 0 ? Palette.expense : Palette.indigo, icon: "equal")
+                summaryTile("Expenses", value: viewModel.monthSpending, color: Palette.peach, icon: "arrow.up.right") { flowDrilldown = .expenses }
+                summaryTile("Net", value: viewModel.monthNet, color: viewModel.monthNet < 0 ? Palette.peach : Palette.income, icon: "equal")
             }
         }
     }

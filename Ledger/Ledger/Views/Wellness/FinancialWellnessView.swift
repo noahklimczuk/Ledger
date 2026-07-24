@@ -84,7 +84,7 @@ struct FinancialWellnessView: View {
         .padding(Theme.cardPadding)
         .background(
             LinearGradient(
-                colors: [Palette.green.opacity(0.12), Color.appSurface],
+                colors: [Accent.wellness.base.opacity(0.12), Color.appSurface],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             ),
@@ -133,7 +133,7 @@ struct FinancialWellnessView: View {
                 Spacer(minLength: 8)
                 Text(factor.pointsLabel)
                     .font(.appCaption2.weight(.heavy))
-                    .foregroundStyle(factor.isHelping ? Palette.green : Palette.peachDeep)
+                    .foregroundStyle(factor.isHelping ? Accent.wellness.deep : Palette.peachDeep)
             }
             factorBar(factor)
             Text(factor.detail)
