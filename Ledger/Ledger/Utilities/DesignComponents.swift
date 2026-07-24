@@ -209,11 +209,12 @@ struct AccentButton: View {
 // MARK: - Surfaces
 
 extension View {
-    /// The Bloom screen background is a uniform warm ground (`--bg`) so the clay cards on top own
-    /// the color and depth. Kept as a single modifier so every screen stays consistent.
+    /// The Bloom screen background: the warm `--page` base plus two radial glows (top-trailing
+    /// amber/peach, bottom-leading green) from `bloom-mobile.html`. Clay cards sit on top so the
+    /// depth comes from the cards, not the background.
     func accentWash(_ accent: Accent) -> some View {
         _ = accent
-        return background(Color.appBackground.ignoresSafeArea())
+        return background(BloomBackground(), ignoresSafeAreaEdges: .all)
     }
 
     /// A tappable card: the standard card surface plus the springy press feel. Wrap the whole card in

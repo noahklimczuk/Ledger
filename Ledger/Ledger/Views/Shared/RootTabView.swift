@@ -77,31 +77,29 @@ struct RootTabView: View {
     }
 }
 
-/// A true Liquid Glass floating tab bar. Modeled on the App Store tab bar: an extremely
-/// translucent frosted pill that lets the screen behind it show through, with the Bloom top sheen,
-/// a soft bottom inner glow, and a hairline edge. The selected tab uses the brand periwinkle wash;
-/// the centre Home tab is a raised rounded square with a surf ring.
+/// A true Liquid Glass floating tab bar with five equal-width tabs.
+///
+/// Modeled on the App Store tab bar: an extremely translucent frosted pill that lets the screen
+/// behind it show through, with the Bloom top sheen, a soft bottom inner glow, and a hairline
+/// edge. The selected tab gets a periwinkle wash, bold weight, and a filled SF Symbol. There is no
+/// giant centre FAB — Home sits in the middle as a regular tab.
 private struct FloatingTabBar: View {
     @Binding var selection: Int
-    /// Ties the moving selection pill to one identity so it springs between tabs.
-    @Namespace private var pill
 
     /// Visual order: Wellness · Activity · Home · Budgets · More. Home sits in the centre.
-    private let items: [(title: String, emoji: String, accent: Accent)] = [
-        ("Wellness", "🌿", .wellness),
-        ("Activity", "📊", .transactions),
-        ("Home", "🏠", .dashboard),
-        ("Budgets", "💰", .budgets),
-        ("More", "☰", .insights),
+    private let items: [(title: String, icon: String, selected: String)] = [
+        ("Wellness", "heart", "heart.fill"),
+        ("Activity", "chart.bar", "chart.bar.fill"),
+        ("Home", "house", "house.fill"),
+        ("Budgets", "wallet.bifold", "wallet.bifold.fill"),
+        ("More", "ellipsis", "ellipsis"),
     ]
 
     var body: some View {
         HStack(spacing: 0) {
-            tabButton(0)
-            tabButton(1)
-            homeButton
-            tabButton(3)
-            tabButton(4)
+            ForEach(0..<items.count, id: \.self) { index in
+                tabButton(index)
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 10)
@@ -112,63 +110,18 @@ private struct FloatingTabBar: View {
         .animation(Motion.bouncy, value: selection)
     }
 
-    /// The centre Home tab as a raised, rounded square brand button with a translucent surf ring.
-    private var homeButton: some View {
-        let isSelected = selection == 2
-        return Button {
-            Haptics.tap(.soft)
-            selection = 2
-        } label: {
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.appSurface.opacity(0.55))
-                    .frame(width: 58, height: 58)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: Color.white.opacity(0.50), location: 0),
-                                        .init(color: Color.white.opacity(0.06), location: 0.45),
-                                        .init(color: Color.clear, location: 0.75)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .blendMode(.overlay)
-                    )
-                Text("🏠")
-                    .font(.system(size: 24))
-                    .foregroundStyle(.white)
-            }
-            .frame(width: 58, height: 58)
-            .shadow(color: Palette.green.opacity(0.45), radius: 12, x: 0, y: 8)
-            .offset(y: isSelected ? -24 : -18)
-            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isSelected)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Home")
-    }
-
-    /// True Liquid Glass: material blur, a whisper of surf tint, a strong white top sheen,
-    /// a bottom inner glow, a translucent border, and the CSS shadow stack.
     private var glassBar: some View {
         ZStack {
             Capsule(style: .continuous)
                 .fill(.ultraThinMaterial)
             Capsule(style: .continuous)
-                .fill(Color.appSurface.opacity(0.10))
+                .fill(Color.appSurface.opacity(0.06))
             // ::before top sheen (30% white -> transparent by 44%)
             Capsule(style: .continuous)
                 .fill(
                     LinearGradient(
                         stops: [
-                            .init(color: Color.white.opacity(0.30), location: 0),
+                            .init(color: Color.white.opacity(0.32), location: 0),
                             .init(color: Color.white.opacity(0.06), location: 0.44),
                             .init(color: Color.clear, location: 0.70)
                         ],
@@ -192,10 +145,9 @@ private struct FloatingTabBar: View {
                 )
                 .blendMode(.overlay)
             Capsule(style: .continuous)
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+                .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.5)
         }
-        .shadow(color: Color.black.opacity(0.45), radius: 22, x: 0, y: 14)
-        .shadow(color: Color.bloomShadow.opacity(0.60), radius: 8, x: 0, y: 6)
+        .shadow(color: Color.black.opacity(0.35), radius: 28, x: 0, y: 14)
     }
 
     private func tabButton(_ index: Int) -> some View {
@@ -206,22 +158,23 @@ private struct FloatingTabBar: View {
             selection = index
         } label: {
             VStack(spacing: 3) {
-                Text(item.emoji)
-                    .font(.system(size: isSelected ? 22 : 20))
-                    .scaleEffect(isSelected ? 1.08 : 1)
+                Image(systemName: isSelected ? item.selected : item.icon)
+                    .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
+                    .symbolVariant(isSelected ? .fill : .none)
                 Text(item.title)
-                    .font(AppFont.scaled(10, relativeTo: .caption2, weight: isSelected ? .heavy : .medium))
+                    .font(AppFont.scaled(10, relativeTo: .caption2, weight: isSelected ? .bold : .semibold))
             }
-            .foregroundStyle(isSelected ? AnyShapeStyle(Accent.dashboard.deep) : AnyShapeStyle(Color.primary.opacity(0.55)))
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .padding(.horizontal, 8)
+            .foregroundStyle(isSelected ? AnyShapeStyle(Accent.wellness.deep) : AnyShapeStyle(Color.primary.opacity(0.55)))
+            .frame(maxWidth: .infinity, minHeight: 46)
+            .padding(.horizontal, 6)
             .padding(.vertical, 4)
             .background {
                 if isSelected {
                     selectedPill()
                 }
             }
-            .contentShape(Capsule())
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(item.title)
@@ -230,89 +183,33 @@ private struct FloatingTabBar: View {
 
     private func selectedPill() -> some View {
         Capsule(style: .continuous)
-            .fill(Accent.dashboard.base.opacity(0.16))
+            .fill(Accent.wellness.base.opacity(0.13))
             .overlay(
                 Capsule(style: .continuous)
                     .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
             )
-            .matchedGeometryEffect(id: "pill", in: pill)
     }
 }
 
 private struct MoreView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(AppRefreshCoordinator.self) private var refresh
     @AppStorage("ledgerColorScheme") private var colorSchemeRaw = AppColorScheme.system.rawValue
     @State private var isPresentingCheckIn = false
-
-    private var colorScheme: Binding<AppColorScheme> {
-        Binding(
-            get: { AppColorScheme(rawValue: colorSchemeRaw) ?? .system },
-            set: { colorSchemeRaw = $0.rawValue }
-        )
-    }
+    @State private var isPresentingCSVImport = false
+    @State private var isPresentingExportShare = false
+    @State private var exportURL: URL?
+    @State private var isConfirmingReset = false
+    @State private var resetMessage: String?
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    MoreGroup(title: "Routine") {
-                        MoreButton(title: "Daily Check-In", icon: "✅") {
-                            isPresentingCheckIn = true
-                        }
-                    }
-
-                    MoreGroup(title: "Insights") {
-                        MoreLink(title: "Ask Ledger", icon: "✨") {
-                            AskLedgerView(month: .now)
-                        }
-                        MoreDivider()
-                        MoreLink(title: "Reports", icon: "📊") {
-                            ReportsView()
-                        }
-                        MoreDivider()
-                        MoreLink(title: "Recurring", icon: "🔄") {
-                            RecurringView()
-                        }
-                    }
-
-                    MoreGroup(title: "Planning") {
-                        MoreLink(title: "Savings Goals", icon: "🎯") {
-                            SavingsGoalsView()
-                        }
-                        MoreDivider()
-                        MoreLink(title: "Debt Tracker", icon: "💳") {
-                            DebtListView()
-                        }
-                        MoreDivider()
-                        MoreLink(title: "Bill Reminders", icon: "🔔") {
-                            BillRemindersView()
-                        }
-                    }
-
-                    MoreGroup(title: "Organize") {
-                        MoreLink(title: "Categories", icon: "🏷️") {
-                            CategoryEditorView()
-                        }
-                    }
-
-                    MoreGroup(title: "Data Sources") {
-                        MoreLink(title: "Connect Wealthsimple", icon: "🔗") {
-                            IntegrationsSettingsView()
-                        }
-                        MoreDivider()
-                        MoreLink(title: "Import CSV / OFX", icon: "📥") {
-                            CSVImportView()
-                        }
-                    }
-
-                    MoreGroup(title: "Appearance") {
-                        Picker("Appearance", selection: colorScheme) {
-                            ForEach(AppColorScheme.allCases) { scheme in
-                                Text(scheme.displayName).tag(scheme)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.vertical, 4)
-                    }
+                VStack(alignment: .leading, spacing: Theme.sectionSpacing) {
+                    profileCard
+                    appearanceCard
+                    dataCard
+                    aboutCard
                 }
                 .padding()
             }
@@ -322,29 +219,217 @@ private struct MoreView: View {
             .sheet(isPresented: $isPresentingCheckIn) {
                 DailyCheckInView()
             }
-        }
-    }
-}
-
-/// A titled, Bloom-styled group of More actions. The card holds the rows; the headline keeps the
-/// screen's editorial hierarchy.
-private struct MoreGroup<Content: View>: View {
-    let title: String
-    let content: Content
-
-    init(title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionHeadline(title)
-            VStack(spacing: 0) {
-                content
+            .sheet(isPresented: $isPresentingCSVImport) {
+                CSVImportView()
             }
-            .card()
+            .sheet(isPresented: $isPresentingExportShare) {
+                if let exportURL {
+                    ShareSheet(activityItems: [exportURL])
+                }
+            }
+            .alert("Reset Data", isPresented: $isConfirmingReset) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) { resetAllData() }
+            } message: {
+                Text("This will permanently delete all accounts, transactions, budgets, goals, and bills. This cannot be undone.")
+            }
+            .alert("Reset complete", isPresented: Binding(get: { resetMessage != nil }, set: { if !$0 { resetMessage = nil } })) {
+                Button("OK", role: .cancel) { resetMessage = nil }
+            } message: {
+                Text(resetMessage ?? "")
+            }
         }
+    }
+
+    // MARK: - Profile
+
+    private var profileCard: some View {
+        HStack(spacing: 16) {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Palette.peach, Palette.peri],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 60, height: 60)
+                .overlay(
+                    Text("🌿")
+                        .font(.system(size: 28))
+                )
+                .shadow(color: Color.bloomShadow, radius: 10, x: 4, y: 5)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Ledger for Noah")
+                    .font(.appHeadline.weight(.heavy))
+                    .foregroundStyle(Color.primary)
+                Text("Built for one account, blooming.")
+                    .font(.appCaption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .card()
+    }
+
+    // MARK: - Appearance
+
+    private var appearanceCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Appearance")
+                .font(.appCaption2.weight(.bold))
+                .tracking(0.8)
+                .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                ForEach(AppColorScheme.allCases) { scheme in
+                    Button { colorSchemeRaw = scheme.rawValue } label: {
+                        HStack(spacing: 6) {
+                            Text(appearanceIcon(scheme))
+                                .font(.system(size: 14))
+                            Text(scheme.displayName)
+                                .font(.appCaption2.weight(.heavy))
+                        }
+                        .foregroundStyle(colorSchemeRaw == scheme.rawValue ? .white : .secondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(
+                            colorSchemeRaw == scheme.rawValue
+                                ? AnyShapeStyle(Accent.wellness.base)
+                                : AnyShapeStyle(Color.appSurface2),
+                            in: Capsule(style: .continuous)
+                        )
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .strokeBorder(colorSchemeRaw == scheme.rawValue ? Color.clear : Color.appHairline, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer()
+            }
+        }
+        .card()
+    }
+
+    private func appearanceIcon(_ scheme: AppColorScheme) -> String {
+        switch scheme {
+        case .system: return "🌗"
+        case .light: return "☀️"
+        case .dark: return "🌙"
+        }
+    }
+
+    // MARK: - Data
+
+    private var dataCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Data")
+                .font(.appCaption2.weight(.bold))
+                .tracking(0.8)
+                .foregroundStyle(.secondary)
+            VStack(spacing: 0) {
+                MoreButton(title: "Import CSV / OFX", icon: "📥") {
+                    isPresentingCSVImport = true
+                }
+                MoreDivider()
+                MoreButton(title: "Export transactions", icon: "📤") {
+                    exportTransactions()
+                }
+                MoreDivider()
+                MoreButton(title: "Reset all data", icon: "🗑️") {
+                    isConfirmingReset = true
+                }
+            }
+        }
+        .card()
+    }
+
+    // MARK: - About
+
+    private var aboutCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("About")
+                .font(.appCaption2.weight(.bold))
+                .tracking(0.8)
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Ledger")
+                    .font(.appHeadline.weight(.heavy))
+                Text("A private, on-device money companion for Noah.")
+                    .font(.appCaption)
+                    .foregroundStyle(.secondary)
+                Text("Version \(appVersion())")
+                    .font(.appCaption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+            }
+        }
+        .card()
+    }
+
+    private func appVersion() -> String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
+        return "\(version) (\(build))"
+    }
+
+    // MARK: - Actions
+
+    private func exportTransactions() {
+        let all = (try? modelContext.fetch(FetchDescriptor<Transaction>(sortBy: [SortDescriptor(\.date, order: .reverse)]))) ?? []
+        var lines = ["Date,Merchant,Amount,Category,Account,Notes"]
+        for tx in all {
+            let date = DateFormatting.short(tx.date)
+            let merchant = "\"\(tx.merchant.replacingOccurrences(of: "\"", with: "\"\"))\"""
+            let amount = CurrencyFormatter.string(from: tx.amount)
+            let category = tx.category?.name ?? "Uncategorized"
+            let account = tx.account?.name ?? ""
+            let notes = "\"\((tx.notes ?? "").replacingOccurrences(of: "\"", with: "\"\"))\""
+            lines.append("\(date),\(merchant),\(amount),\(category),\(account),\(notes)")
+        }
+        let csv = lines.joined(separator: "\n")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("ledger-export.csv")
+        do {
+            try csv.write(to: url, atomically: true, encoding: .utf8)
+            exportURL = url
+            isPresentingExportShare = true
+        } catch {
+            resetMessage = "Could not create export file."
+        }
+    }
+
+    private func resetAllData() {
+        deleteAll(Account.self)
+        deleteAll(Transaction.self)
+        deleteAll(SplitAllocation.self)
+        deleteAll(Category.self)
+        deleteAll(Budget.self)
+        deleteAll(BudgetPeriod.self)
+        deleteAll(Tag.self)
+        deleteAll(CategorizationRule.self)
+        deleteAll(DebtRule.self)
+        deleteAll(RecurringSeries.self)
+        deleteAll(SavingsGoal.self)
+        deleteAll(BillReminder.self)
+        deleteAll(InsightState.self)
+        deleteAll(Debt.self)
+        deleteAll(AdvisorChat.self)
+        deleteAll(AdvisorChatMessage.self)
+
+        DefaultDataSeeder.resetSeed()
+        try? modelContext.save()
+
+        Task {
+            await refresh.refresh(container: modelContext.container)
+        }
+
+        resetMessage = "All data has been reset. Categories will re-seed on the next refresh."
+    }
+
+    private func deleteAll<T: PersistentModel>(_ type: T.Type) {
+        let descriptor = FetchDescriptor<T>()
+        let items = (try? modelContext.fetch(descriptor)) ?? []
+        for item in items { modelContext.delete(item) }
     }
 }
 
@@ -364,27 +449,6 @@ private struct MoreRow: View {
         }
         .padding(.vertical, 12)
         .contentShape(Rectangle())
-    }
-}
-
-private struct MoreLink<Destination: View>: View {
-    let title: String
-    let icon: String
-    let destination: Destination
-
-    init(title: String, icon: String, @ViewBuilder destination: () -> Destination) {
-        self.title = title
-        self.icon = icon
-        self.destination = destination()
-    }
-
-    var body: some View {
-        NavigationLink {
-            destination
-        } label: {
-            MoreRow(title: title, icon: icon)
-        }
-        .buttonStyle(.pressable)
     }
 }
 
@@ -451,6 +515,17 @@ private struct AskLedgerButton: View {
         .buttonStyle(.pressable)
         .accessibilityLabel("Ask Ledger")
     }
+}
+
+/// A UIKit `UIActivityViewController` wrapper so the More screen can share the exported CSV.
+private struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {

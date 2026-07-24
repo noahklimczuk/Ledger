@@ -26,8 +26,22 @@ struct FinancialWellnessView: View {
                 LoadingView()
             }
         }
-        .navigationTitle("Financial Wellness")
+        .navigationTitle("Financial wellness")
         .accent(.wellness)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Text("Today")
+                    .font(.appCaption2.weight(.heavy))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.appSurface, in: Capsule(style: .continuous))
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.appHairline, lineWidth: 1)
+                    )
+            }
+        }
         .task {
             if viewModel == nil { viewModel = WellnessViewModel(modelContext: modelContext) }
             viewModel?.load()
@@ -41,13 +55,9 @@ struct FinancialWellnessView: View {
             VStack(alignment: .leading, spacing: Theme.sectionSpacing) {
                 heroCard(result)
                 factorsGrid(result)
-                if !viewModel.trend.isEmpty {
-                    trendCard(viewModel.trend)
-                }
                 if !result.toTend.isEmpty {
                     tendCard(result.toTend)
                 }
-                askLedgerCard(result)
             }
             .padding()
         }
@@ -57,21 +67,42 @@ struct FinancialWellnessView: View {
     // MARK: Hero
 
     private func heroCard(_ result: WellnessResult) -> some View {
-        VStack(spacing: 14) {
-            WellnessRing(score: result.score, size: 168, lineWidth: 15)
+        VStack(spacing: 12) {
+            WellnessRing(score: result.score, size: 150, lineWidth: 14)
                 .padding(.top, 4)
             Text("\(result.state) \(result.stateEmoji)")
                 .font(.appTitle2.weight(.heavy))
                 .foregroundStyle(Accent.wellness.deep)
-            Text(result.summary)
+            Text(heroSummary(for: result))
                 .font(.appSubheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8)
         }
         .frame(maxWidth: .infinity)
-        .padding(6)
-        .card()
+        .padding(Theme.cardPadding)
+        .background(
+            LinearGradient(
+                colors: [Palette.green.opacity(0.12), Color.appSurface],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .strokeBorder(Color.appHairline, lineWidth: 1)
+        )
+        .shadow(color: Color.bloomShadow, radius: 20, x: 7, y: 7)
+        .shadow(color: Color.bloomHighlight, radius: 14, x: -6, y: -6)
+    }
+
+    private func heroSummary(for result: WellnessResult) -> String {
+        if let tend = result.toTend.first {
+            return "You save more than you spend and your emergency fund is nearly full. One thing to tend: \(tend.name.lowercased())."
+        }
+        return result.summary
     }
 
     // MARK: Factors
@@ -79,7 +110,7 @@ struct FinancialWellnessView: View {
     private func factorsGrid(_ result: WellnessResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeadline("What's behind it")
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            VStack(spacing: 12) {
                 ForEach(result.factors) { factor in
                     factorCard(factor)
                 }
@@ -89,29 +120,43 @@ struct FinancialWellnessView: View {
 
     private func factorCard(_ factor: WellnessFactor) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                Text(factor.name.uppercased())
-                    .font(.appCaption2.weight(.bold))
-                    .tracking(0.6)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 4)
+            Text(factor.name.uppercased())
+                .font(.appCaption2.weight(.bold))
+                .tracking(0.8)
+                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text(factor.valueText)
+                    .font(.appTitle3.weight(.heavy))
+                    .foregroundStyle(Color.primary)
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
                 Text(factor.pointsLabel)
                     .font(.appCaption2.weight(.heavy))
                     .foregroundStyle(factor.isHelping ? Palette.green : Palette.peachDeep)
             }
-            Text(factor.valueText)
-                .font(.appTitle3.weight(.heavy))
-                .foregroundStyle(factor.isHelping ? Color.primary : Palette.peachDeep)
-                .minimumScaleFactor(0.6)
-                .lineLimit(1)
-            AccentProgressBar(fraction: factor.fraction, accent: factor.isHelping ? .wellness : .budgets, height: 8)
+            factorBar(factor)
             Text(factor.detail)
                 .font(.appCaption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .card()
+    }
+
+    private func factorBar(_ factor: WellnessFactor) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.primary.opacity(0.08))
+                Capsule()
+                    .fill(factor.isHelping ? AnyShapeStyle(Accent.wellness.gradient) : AnyShapeStyle(Accent.budgets.gradient))
+                    .frame(width: max(geo.size.width * factor.fraction, 10))
+            }
+        }
+        .frame(height: 8)
+        .animation(Motion.snappy, value: factor.fraction)
     }
 
     // MARK: Trend

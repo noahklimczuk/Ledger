@@ -20,6 +20,14 @@ enum DefaultDataSeeder {
         UserDefaults.standard.set(DefaultCategoryCatalog.version, forKey: seedVersionKey)
     }
 
+    /// Forces the built-in catalog to be re-seeded on the next `seedIfNeeded` call. Used by the
+    /// "Reset all data" flow so the app doesn't end up with a stale seeded-version flag but no
+    /// categories.
+    static func resetSeed() {
+        UserDefaults.standard.removeObject(forKey: seedVersionKey)
+        UserDefaults.standard.removeObject(forKey: legacyDidSeedKey)
+    }
+
     private static func storedVersion() -> Int {
         let defaults = UserDefaults.standard
         let stored = defaults.integer(forKey: seedVersionKey)
