@@ -113,7 +113,7 @@ struct TransactionDetailView: View {
         if let category = transaction.category {
             return Color(hex: category.colorHex)
         }
-        return .gray
+        return Color.ink3
     }
 
     // MARK: - Category
@@ -193,7 +193,7 @@ struct TransactionDetailView: View {
                     }
                     HStack(spacing: 10) {
                         RoundedRectangle(cornerRadius: 3, style: .continuous)
-                            .fill(split.category.map { Color(hex: $0.colorHex) } ?? .gray)
+                            .fill(split.category.map { Color(hex: $0.colorHex) } ?? Color.ink3)
                             .frame(width: 10, height: 10)
 
                         Text(split.category?.name ?? "Uncategorized")
