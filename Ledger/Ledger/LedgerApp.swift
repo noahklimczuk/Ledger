@@ -15,6 +15,10 @@ struct LedgerApp: App {
     }
 
     init() {
+        // Register the bundled custom fonts explicitly so `Font.custom(...)` resolves them
+        // regardless of `UIAppFonts` path quirks.
+        FontRegistration.registerAll()
+
         // Budget guardrail alerts fire while the app is foregrounded (the sync loop only runs
         // then); the delegate lets them present as banners instead of arriving silently.
         UNUserNotificationCenter.current().delegate = NotificationCenterDelegate.shared
