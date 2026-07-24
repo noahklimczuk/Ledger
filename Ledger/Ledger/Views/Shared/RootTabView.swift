@@ -96,6 +96,15 @@ private struct FloatingTabBar: View {
     ]
 
     var body: some View {
+        if #available(iOS 26, *) {
+            liquidGlassBody
+        } else {
+            legacyBody
+        }
+    }
+
+    @ViewBuilder
+    private var legacyBody: some View {
         HStack(spacing: 0) {
             ForEach(0..<items.count, id: \.self) { index in
                 tabButton(index)
@@ -188,6 +197,49 @@ private struct FloatingTabBar: View {
                 Capsule(style: .continuous)
                     .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
             )
+    }
+
+    @available(iOS 26, *)
+    @ViewBuilder
+    private var liquidGlassBody: some View {
+        GlassEffectContainer(spacing: 0) {
+            HStack(spacing: 0) {
+                ForEach(0..<items.count, id: \.self) { index in
+                    modernTabButton(index)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
+    }
+
+    @available(iOS 26, *)
+    private func modernTabButton(_ index: Int) -> some View {
+        let item = items[index]
+        let isSelected = selection == index
+        return Button {
+            Haptics.tap(.soft)
+            selection = index
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: isSelected ? item.selected : item.icon)
+                    .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
+                    .symbolVariant(isSelected ? .fill : .none)
+                Text(item.title)
+                    .font(AppFont.scaled(10, relativeTo: .caption2, weight: isSelected ? .bold : .semibold))
+            }
+            .foregroundStyle(isSelected ? AnyShapeStyle(Accent.dashboard.deep) : AnyShapeStyle(Color.primary.opacity(0.55)))
+            .frame(maxWidth: .infinity, minHeight: 46)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(isSelected ? .regular.tint(Accent.dashboard.base).interactive() : .regular.interactive(), in: .capsule)
+        .accessibilityLabel(item.title)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
 
