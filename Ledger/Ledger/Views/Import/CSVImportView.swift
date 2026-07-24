@@ -57,6 +57,7 @@ struct CSVImportView: View {
         VStack(spacing: 20) {
             if viewModel.accounts.isEmpty {
                 EmptyStateView(
+                    emoji: "📥",
                     systemImage: "tray.and.arrow.down",
                     title: "Add an Account First",
                     message: "Imported transactions need an account to land in. Create one under Accounts, then come back."
@@ -64,6 +65,7 @@ struct CSVImportView: View {
             } else {
                 VStack(spacing: 16) {
                     EmptyStateView(
+                        emoji: "📄",
                         systemImage: "doc.text.magnifyingglass",
                         title: "Import Transactions",
                         message: "Choose a CSV or OFX/QFX export from your bank. Transactions are deduplicated automatically.",

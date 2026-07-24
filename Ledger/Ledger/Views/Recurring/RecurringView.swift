@@ -11,6 +11,7 @@ struct RecurringView: View {
             if let viewModel {
                 if !viewModel.hasAnySeries {
                     EmptyStateView(
+                        emoji: "🔄",
                         systemImage: "arrow.triangle.2.circlepath",
                         title: "No Subscriptions Yet",
                         message: "Add a few transactions or import a statement and Ledger will detect your repeating bills and income.",

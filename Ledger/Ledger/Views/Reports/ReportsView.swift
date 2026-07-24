@@ -22,6 +22,7 @@ struct ReportsView: View {
                             monthOverMonthCard(viewModel)
                         } else {
                             EmptyStateView(
+                                emoji: "📊",
                                 systemImage: "chart.bar.xaxis",
                                 title: "No Data in This Range",
                                 message: "Add transactions or pick a wider date range to see your spending reports."

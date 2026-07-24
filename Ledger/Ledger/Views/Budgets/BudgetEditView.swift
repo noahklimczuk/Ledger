@@ -45,7 +45,7 @@ struct BudgetEditView: View {
                     Picker("Category", selection: $category) {
                         Text("Select a category").tag(Category?.none)
                         ForEach(pickerCategories) { cat in
-                            Label(cat.name, systemImage: cat.sfSymbolName)
+                            Text("\(cat.displayIcon)  \(cat.name)")
                                 .tag(Category?.some(cat))
                         }
                     }

@@ -40,7 +40,8 @@ struct AskLedgerView: View {
                             Button {
                                 viewModel.newChat()
                             } label: {
-                                Image(systemName: "square.and.pencil")
+                                Text("📝")
+                                    .font(.system(size: 20))
                             }
                             .accessibilityLabel("New Chat")
                         }
@@ -74,7 +75,8 @@ struct AskLedgerView: View {
                 }
             }
         } label: {
-            Image(systemName: "clock.arrow.circlepath")
+            Text("🕓")
+                .font(.system(size: 20))
         }
         .accessibilityLabel("Chat history")
     }
@@ -103,9 +105,11 @@ struct AskLedgerView: View {
                             typingIndicator.id(Self.typingID)
                         }
                         if let errorText = viewModel.errorText {
-                            Label(errorText, systemImage: "exclamationmark.triangle")
-                                .font(.appFootnote)
-                                .foregroundStyle(Palette.amber)
+                            Label {
+                                Text(errorText).font(.appFootnote).foregroundStyle(Palette.amber)
+                            } icon: {
+                                Text("⚠️")
+                            }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
@@ -131,9 +135,8 @@ struct AskLedgerView: View {
 
     private var intro: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "bubble.left.and.bubble.right.fill")
-                .font(AppFont.scaled(16, relativeTo: .body, weight: .semibold))
-                .foregroundStyle(.white)
+            Text("✨")
+                .font(.system(size: 20))
                 .frame(width: 36, height: 36)
                 .background(LinearGradient.brand, in: Circle())
             VStack(alignment: .leading, spacing: 4) {
@@ -165,7 +168,7 @@ struct AskLedgerView: View {
                             .font(.appSubheadline)
                             .multilineTextAlignment(.leading)
                         Spacer()
-                        Image(systemName: "arrow.up.circle")
+                        Text("⬆️")
                             .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 10)
@@ -207,8 +210,8 @@ struct AskLedgerView: View {
         Form {
             Section {
                 VStack(spacing: 10) {
-                    Image(systemName: "bubble.left.and.bubble.right.fill")
-                        .font(.appDisplay)
+                    Text("✨")
+                        .font(.system(size: 56))
                         .foregroundStyle(LinearGradient.brand)
                     Text("Meet Ask Ledger")
                         .font(.appHeadline)
@@ -267,8 +270,8 @@ private struct AdvisorInputBar: View {
             Button {
                 submit()
             } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.appMoney)
+                Text("⬆️")
+                    .font(.system(size: 32))
                     .foregroundStyle(canSend ? AnyShapeStyle(LinearGradient.brand) : AnyShapeStyle(Color.secondary))
             }
             .disabled(!canSend)
@@ -293,8 +296,11 @@ private struct ActionNote: View {
     let text: String
 
     var body: some View {
-        Label(text, systemImage: "checkmark.circle.fill")
-            .font(.appFootnote.weight(.medium))
+        Label {
+            Text(text).font(.appFootnote.weight(.medium))
+        } icon: {
+            Text("✅")
+        }
             .foregroundStyle(.secondary)
             .padding(.vertical, 6)
             .padding(.horizontal, 12)

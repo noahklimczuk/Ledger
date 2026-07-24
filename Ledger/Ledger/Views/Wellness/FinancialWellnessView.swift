@@ -14,6 +14,7 @@ struct FinancialWellnessView: View {
             if let viewModel {
                 if viewModel.result.factors.isEmpty {
                     EmptyStateView(
+                        emoji: "🌱",
                         systemImage: "leaf.fill",
                         title: "Your Score Is Growing",
                         message: "Add an account and a few transactions and your Financial Wellness score will bloom here — one number for how healthy your money is."
@@ -135,13 +136,24 @@ struct FinancialWellnessView: View {
 
     // MARK: What to tend
 
+    private func wellnessEmoji(for systemImage: String) -> String {
+        switch systemImage {
+        case "leaf.fill": return "🌱"
+        case "shield.fill": return "🛡️"
+        case "creditcard.fill": return "💳"
+        case "chart.pie.fill": return "📊"
+        case "speedometer": return "⏱️"
+        default: return "✨"
+        }
+    }
+
     private func tendCard(_ items: [WellnessFactor]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeadline("What to tend")
             VStack(spacing: 0) {
                 ForEach(items) { factor in
                     HStack(alignment: .top, spacing: 12) {
-                        IconBadge(systemName: factor.systemImage, accent: .budgets, size: 40, filled: false)
+                        BloomRowIcon(emoji: wellnessEmoji(for: factor.systemImage), size: 40)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(factor.name)
                                 .font(.appSubheadline.weight(.semibold))
@@ -168,7 +180,7 @@ struct FinancialWellnessView: View {
     private func askLedgerCard(_ result: WellnessResult) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                IconBadge(systemName: "sparkles", accent: .insights, size: 26)
+                BloomRowIcon(emoji: "✨", size: 26)
                 Text("ASK LEDGER")
                     .font(.appCaption2.weight(.black))
                     .tracking(1)

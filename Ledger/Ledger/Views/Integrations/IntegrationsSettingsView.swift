@@ -54,7 +54,7 @@ struct IntegrationsSettingsView: View {
     private func statusCard(_ viewModel: IntegrationsViewModel) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
-                IconBadge(systemName: "link", accent: .accounts, size: 46, filled: false)
+                BloomRowIcon(emoji: "🔗", size: 46)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Wealthsimple")
                         .font(.appHeadline.weight(.heavy))

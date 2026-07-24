@@ -13,6 +13,7 @@ struct InsightsView: View {
             if let viewModel {
                 if viewModel.insights.isEmpty {
                     EmptyStateView(
+                        emoji: "✨",
                         systemImage: "sparkles",
                         title: "You're All Caught Up",
                         message: "As you add and categorize more transactions, Ledger surfaces spending trends, budget warnings, and subscription tips here."

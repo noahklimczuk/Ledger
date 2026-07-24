@@ -271,51 +271,51 @@ private struct MoreView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     MoreGroup(title: "Routine") {
-                        MoreButton(title: "Daily Check-In", icon: "checklist", accent: .checkIn) {
+                        MoreButton(title: "Daily Check-In", icon: "✅") {
                             isPresentingCheckIn = true
                         }
                     }
 
                     MoreGroup(title: "Insights") {
-                        MoreLink(title: "Ask Ledger", icon: "sparkles", accent: .insights) {
+                        MoreLink(title: "Ask Ledger", icon: "✨") {
                             AskLedgerView(month: .now)
                         }
                         MoreDivider()
-                        MoreLink(title: "Reports", icon: "chart.bar.xaxis", accent: .reports) {
+                        MoreLink(title: "Reports", icon: "📊") {
                             ReportsView()
                         }
                         MoreDivider()
-                        MoreLink(title: "Recurring", icon: "arrow.triangle.2.circlepath", accent: .recurring) {
+                        MoreLink(title: "Recurring", icon: "🔄") {
                             RecurringView()
                         }
                     }
 
                     MoreGroup(title: "Planning") {
-                        MoreLink(title: "Savings Goals", icon: "target", accent: .goals) {
+                        MoreLink(title: "Savings Goals", icon: "🎯") {
                             SavingsGoalsView()
                         }
                         MoreDivider()
-                        MoreLink(title: "Debt Tracker", icon: "creditcard.trianglebadge.exclamationmark", accent: .debt) {
+                        MoreLink(title: "Debt Tracker", icon: "💳") {
                             DebtListView()
                         }
                         MoreDivider()
-                        MoreLink(title: "Bill Reminders", icon: "bell.badge", accent: .bills) {
+                        MoreLink(title: "Bill Reminders", icon: "🔔") {
                             BillRemindersView()
                         }
                     }
 
                     MoreGroup(title: "Organize") {
-                        MoreLink(title: "Categories", icon: "tag.fill", accent: .categories) {
+                        MoreLink(title: "Categories", icon: "🏷️") {
                             CategoryEditorView()
                         }
                     }
 
                     MoreGroup(title: "Data Sources") {
-                        MoreLink(title: "Connect Wealthsimple", icon: "link", accent: .accounts) {
+                        MoreLink(title: "Connect Wealthsimple", icon: "🔗") {
                             IntegrationsSettingsView()
                         }
                         MoreDivider()
-                        MoreLink(title: "Import CSV / OFX", icon: "square.and.arrow.down", accent: .transactions) {
+                        MoreLink(title: "Import CSV / OFX", icon: "📥") {
                             CSVImportView()
                         }
                     }
@@ -367,11 +367,10 @@ private struct MoreGroup<Content: View>: View {
 private struct MoreRow: View {
     let title: String
     let icon: String
-    let accent: Accent
 
     var body: some View {
         HStack(spacing: 14) {
-            IconBadge(systemName: icon, accent: accent, size: 40)
+            BloomRowIcon(emoji: icon, size: 40)
             Text(title)
                 .font(.appSubheadline.weight(.semibold))
             Spacer()
@@ -387,13 +386,11 @@ private struct MoreRow: View {
 private struct MoreLink<Destination: View>: View {
     let title: String
     let icon: String
-    let accent: Accent
     let destination: Destination
 
-    init(title: String, icon: String, accent: Accent, @ViewBuilder destination: () -> Destination) {
+    init(title: String, icon: String, @ViewBuilder destination: () -> Destination) {
         self.title = title
         self.icon = icon
-        self.accent = accent
         self.destination = destination()
     }
 
@@ -401,7 +398,7 @@ private struct MoreLink<Destination: View>: View {
         NavigationLink {
             destination
         } label: {
-            MoreRow(title: title, icon: icon, accent: accent)
+            MoreRow(title: title, icon: icon)
         }
         .buttonStyle(.pressable)
     }
@@ -410,12 +407,11 @@ private struct MoreLink<Destination: View>: View {
 private struct MoreButton: View {
     let title: String
     let icon: String
-    let accent: Accent
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            MoreRow(title: title, icon: icon, accent: accent)
+            MoreRow(title: title, icon: icon)
         }
         .buttonStyle(.pressable)
     }

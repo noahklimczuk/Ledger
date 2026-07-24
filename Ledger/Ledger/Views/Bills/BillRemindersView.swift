@@ -12,6 +12,7 @@ struct BillRemindersView: View {
             if let viewModel {
                 if viewModel.reminders.isEmpty {
                     EmptyStateView(
+                        emoji: "🔔",
                         systemImage: "bell.badge",
                         title: "No Bill Reminders",
                         message: "Add a bill and Ledger will remind you before it's due with a local notification.",
@@ -91,11 +92,7 @@ private struct BillRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            IconBadge(
-                systemName: reminder.isOverdue ? "exclamationmark" : "bell.fill",
-                accent: reminder.isOverdue ? .debt : .bills,
-                size: 38
-            )
+            BloomRowIcon(emoji: reminder.isOverdue ? "⚠️" : "🔔", size: 38)
             VStack(alignment: .leading, spacing: 2) {
                 Text(reminder.name).font(.appBodyMedium)
                 HStack(spacing: 4) {

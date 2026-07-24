@@ -12,6 +12,7 @@ struct DebtListView: View {
             if let viewModel {
                 if viewModel.debts.isEmpty {
                     EmptyStateView(
+                        emoji: "💳",
                         systemImage: "creditcard.trianglebadge.exclamationmark",
                         title: "No Debts Tracked",
                         message: "Add a credit card, loan, or line of credit to track what you owe and estimate a payoff timeline.",
@@ -108,7 +109,7 @@ private struct DebtRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            IconBadge(systemName: debt.kind.sfSymbolName, accent: .debt, size: 38)
+            BloomRowIcon(emoji: "💳", size: 38)
             VStack(alignment: .leading, spacing: 2) {
                 Text(debt.name).font(.appBodyMedium)
                 Text(subtitle)

@@ -234,6 +234,7 @@ struct TransactionListView: View {
         if visibleTransactions.isEmpty {
             if hasHiddenOlderHistory && !isFiltering {
                 EmptyStateView(
+                    emoji: "🕓",
                     systemImage: "clock.arrow.circlepath",
                     title: "Nothing Recent",
                     message: "No transactions in the last 12 months.",
@@ -243,6 +244,7 @@ struct TransactionListView: View {
                 }
             } else {
                 EmptyStateView(
+                    emoji: "📋",
                     systemImage: "list.bullet",
                     title: isFiltering ? "No Matches" : "No Transactions",
                     message: isFiltering
