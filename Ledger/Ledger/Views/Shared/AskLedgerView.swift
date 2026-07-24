@@ -272,7 +272,7 @@ private struct AdvisorInputBar: View {
             } label: {
                 Text("⬆️")
                     .font(.system(size: 32))
-                    .foregroundStyle(canSend ? AnyShapeStyle(LinearGradient.brand) : AnyShapeStyle(Color.secondary))
+                    .foregroundStyle(canSend ? AnyShapeStyle(Accent.dashboard.gradient) : AnyShapeStyle(Color.secondary))
             }
             .disabled(!canSend)
         }
