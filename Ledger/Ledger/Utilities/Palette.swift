@@ -86,15 +86,15 @@ nonisolated struct Accent: Equatable {
     static let transactions = Accent(base: Palette.peri,   deep: Palette.periDeep)
     static let budgets      = Accent(base: Palette.amber,  deep: Palette.peachDeep)
     static let reports      = Accent(base: Palette.peri,   deep: Palette.periDeep)
-    static let goals        = Accent(base: Palette.green,  deep: Palette.greenDeep)
+    static let goals        = Accent(base: Palette.emerald,  deep: Palette.emeraldDeep)
     static let debt         = Accent(base: Palette.coral,  deep: Palette.coralDeep)
     static let bills        = Accent(base: Palette.amber,  deep: Palette.amberDeep)
     static let recurring    = Accent(base: Palette.peach,  deep: Palette.peachDeep)
     static let insights     = Accent(base: Palette.peri,   deep: Palette.periDeep)
-    static let checkIn      = Accent(base: Palette.green,  deep: Palette.greenDeep)
+    static let checkIn      = Accent(base: Palette.peri,   deep: Palette.periDeep)
     static let categories   = Accent(base: Palette.peri,   deep: Palette.periDeep)
-    /// Financial Wellness — Bloom's heart, in the brand periwinkle accent.
-    static let wellness     = Accent(base: Palette.green,  deep: Palette.greenDeep)
+    /// Financial Wellness — Bloom's vitality, in the living green accent.
+    static let wellness     = Accent(base: Palette.emerald,  deep: Palette.emeraldDeep)
 }
 
 nonisolated private struct AccentEnvironmentKey: EnvironmentKey {

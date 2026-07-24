@@ -164,7 +164,7 @@ private struct FloatingTabBar: View {
                 Text(item.title)
                     .font(AppFont.scaled(10, relativeTo: .caption2, weight: isSelected ? .bold : .semibold))
             }
-            .foregroundStyle(isSelected ? AnyShapeStyle(Accent.wellness.deep) : AnyShapeStyle(Color.primary.opacity(0.55)))
+            .foregroundStyle(isSelected ? AnyShapeStyle(Accent.dashboard.deep) : AnyShapeStyle(Color.primary.opacity(0.55)))
             .frame(maxWidth: .infinity, minHeight: 46)
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
@@ -183,7 +183,7 @@ private struct FloatingTabBar: View {
 
     private func selectedPill() -> some View {
         Capsule(style: .continuous)
-            .fill(Accent.wellness.base.opacity(0.13))
+            .fill(Accent.dashboard.base.opacity(0.13))
             .overlay(
                 Capsule(style: .continuous)
                     .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
@@ -294,7 +294,7 @@ private struct MoreView: View {
                         .padding(.vertical, 10)
                         .background(
                             colorSchemeRaw == scheme.rawValue
-                                ? AnyShapeStyle(Accent.wellness.base)
+                                ? AnyShapeStyle(Accent.dashboard.base)
                                 : AnyShapeStyle(Color.appSurface2),
                             in: Capsule(style: .continuous)
                         )

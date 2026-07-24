@@ -343,7 +343,7 @@ struct BurnMeter: View {
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(LinearGradient(
-                        colors: [Palette.green.opacity(0.55), Palette.amber, Palette.peach, Palette.coral],
+                        colors: [Palette.emerald.opacity(0.55), Palette.amber, Palette.peach, Palette.coral],
                         startPoint: .leading, endPoint: .trailing))
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                     .fill(Color.primary)
