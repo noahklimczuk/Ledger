@@ -480,7 +480,7 @@ extension RecurringViewModel.Insight {
     var tint: Color {
         switch kind {
         case .needsReview: Palette.peri
-        case .likelyCancelled: .gray
+        case .likelyCancelled: Color.ink3
         case .priceIncrease: Palette.expense
         case .priceDecrease: Palette.income
         case .dueThisWeek: Palette.amber
