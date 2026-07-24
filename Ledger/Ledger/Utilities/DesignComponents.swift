@@ -198,8 +198,9 @@ struct AccentButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
             .foregroundStyle(.white)
-            .background(accent.gradient, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
-            .shadow(color: accent.base.opacity(0.45), radius: 14, y: 8)
+            .background(accent.gradient, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .shadow(color: Color.bloomShadow, radius: 16, x: 6, y: 6)
+            .shadow(color: Color.bloomHighlight, radius: 10, x: -3, y: -3)
         }
         .buttonStyle(.pressable)
     }
