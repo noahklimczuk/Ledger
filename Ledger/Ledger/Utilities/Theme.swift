@@ -181,7 +181,7 @@ struct BloomBackground: View {
                     .ignoresSafeArea()
                 // Top-trailing amber/peach glow
                 RadialGradient(
-                    gradient: Gradient(stops: [
+                    Gradient(stops: [
                         .init(color: Palette.peach.opacity(0.22), location: 0),
                         .init(color: Palette.amber.opacity(0.10), location: 0.5),
                         .init(color: Color.clear, location: 1.0)
@@ -193,7 +193,7 @@ struct BloomBackground: View {
                 .offset(x: size * 0.15, y: -size * 0.15)
                 // Bottom-leading green glow
                 RadialGradient(
-                    gradient: Gradient(stops: [
+                    Gradient(stops: [
                         .init(color: Palette.emerald.opacity(0.14), location: 0),
                         .init(color: Palette.emerald.opacity(0.05), location: 0.55),
                         .init(color: Color.clear, location: 1.0)

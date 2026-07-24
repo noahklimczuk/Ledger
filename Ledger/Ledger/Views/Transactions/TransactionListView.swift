@@ -255,7 +255,7 @@ struct TransactionListView: View {
     // MARK: - Grouped transaction list
 
     private var transactionListGrouped: some View {
-        LazyVStack(pinnedViews: [.sectionHeaders], spacing: Theme.sectionSpacing) {
+        LazyVStack(spacing: Theme.sectionSpacing, pinnedViews: [.sectionHeaders]) {
             ForEach(grouped.keys.sorted(by: >), id: \.self) { day in
                 if let txs = grouped[day] {
                     Section {
