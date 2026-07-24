@@ -20,6 +20,8 @@ Static TTFs are bundled in `Ledger/Fonts/` and registered in `Info.plist` → `U
 
 `AppFont.scaled(..., display: true)` uses `Clash Display`; `display: false` (the default) uses `General Sans`. `Font.custom` with `.weight()` selects the closest available static weight from the registered family.
 
+Fonts are registered at runtime from `Ledger/Utilities/FontRegistration.swift`, so they do not need to be listed in `UIAppFonts`.
+
 ## Switching fonts
 
-Update `AppFont.displayFamily` / `AppFont.bodyFamily` and add the matching TTFs to `Ledger/Fonts/` plus `Info.plist` → `UIAppFonts`.
+Update `AppFont.displayFamily` / `AppFont.bodyFamily` and add the matching TTFs to `Ledger/Fonts/`.
