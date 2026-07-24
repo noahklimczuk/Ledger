@@ -380,11 +380,11 @@ private struct MoreView: View {
         var lines = ["Date,Merchant,Amount,Category,Account,Notes"]
         for tx in all {
             let date = DateFormatting.short(tx.date)
-            let merchant = "\"\(tx.merchant.replacingOccurrences(of: "\"", with: "\"\"))\"""
+            let merchant = csvField(tx.merchant)
             let amount = CurrencyFormatter.string(from: tx.amount)
             let category = tx.category?.name ?? "Uncategorized"
             let account = tx.account?.name ?? ""
-            let notes = "\"\((tx.notes ?? "").replacingOccurrences(of: "\"", with: "\"\"))\""
+            let notes = csvField(tx.notes ?? "")
             lines.append("\(date),\(merchant),\(amount),\(category),\(account),\(notes)")
         }
         let csv = lines.joined(separator: "\n")
@@ -396,6 +396,11 @@ private struct MoreView: View {
         } catch {
             resetMessage = "Could not create export file."
         }
+    }
+
+    private func csvField(_ value: String) -> String {
+        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
+        return "\"\(escaped)\""
     }
 
     private func resetAllData() {
