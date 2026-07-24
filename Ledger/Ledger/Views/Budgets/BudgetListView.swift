@@ -222,7 +222,7 @@ struct BudgetListView: View {
                         showsChevron: true
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 planTile(label: "Assigned", value: viewModel.totalAllocated, color: .primary)
                 planTile(label: "Spent", value: viewModel.totalSpent + viewModel.totalUnbudgetedSpent, color: Palette.expense)
             }

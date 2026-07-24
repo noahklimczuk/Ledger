@@ -10,6 +10,8 @@ struct DonutSegment: Identifiable {
     /// When false the slice/row still shows but isn't tappable — e.g. an "Uncategorized" or
     /// "Other" bucket that has no single category to drill into.
     var isSelectable: Bool = true
+    /// The SwiftData category behind this slice, so drill-down views can route directly to it.
+    var category: Category? = nil
 }
 
 /// A reusable interactive doughnut (Swift Charts `SectorMark` + angle selection). Tapping a slice

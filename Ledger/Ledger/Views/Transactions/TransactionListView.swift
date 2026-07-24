@@ -1,6 +1,11 @@
 import SwiftUI
 import SwiftData
 
+private enum CategoryDrilldown: Hashable {
+    case category(Category)
+    case uncategorized
+}
+
 struct TransactionListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppRefreshCoordinator.self) private var refresh
@@ -14,6 +19,7 @@ struct TransactionListView: View {
     @State private var isPresentingFilters = false
     @State private var didRestoreFilter = false
     @State private var showAllHistory = false
+    @State private var drilldown: CategoryDrilldown?
 
     @State private var visibleTransactions: [Transaction] = []
     @State private var hasHiddenOlderHistory = false
@@ -54,6 +60,14 @@ struct TransactionListView: View {
             .navigationTitle("")
             .accentWash(.transactions)
             .accent(.transactions)
+            .navigationDestination(item: $drilldown) { target in
+                switch target {
+                case .category(let category):
+                    CategoryTransactionsView(category: category, month: .now)
+                case .uncategorized:
+                    CategoryTransactionsView(uncategorizedForMonth: .now)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Text("Activity · \(monthLabel(.now))")
@@ -67,16 +81,12 @@ struct TransactionListView: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .background(
-                                LinearGradient(
-                                    colors: [Palette.peach, Palette.amber],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ),
+                                Accent.transactions.gradient,
                                 in: Capsule(style: .continuous)
                             )
-                            .shadow(color: Palette.peach.opacity(0.4), radius: 10, x: 0, y: 4)
+                            .shadow(color: Accent.transactions.base.opacity(0.4), radius: 10, x: 0, y: 4)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .accessibilityLabel("Add Transaction")
                 }
             }
@@ -167,7 +177,7 @@ struct TransactionListView: View {
                 }
                 .foregroundStyle(filter.isActive ? Accent.wellness.deep : .secondary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
         }
         .card()
     }
@@ -205,7 +215,7 @@ struct TransactionListView: View {
                             .strokeBorder(isSelected ? Color.clear : Color.appHairline, lineWidth: 1)
                     )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
         }
     }
 
@@ -221,7 +231,10 @@ struct TransactionListView: View {
                 segments: breakdownSegments,
                 centerCaption: "Total spent",
                 showLegend: true,
-                isInteractive: false
+                isInteractive: true,
+                onSelect: { segment in
+                    drilldown = segment.category.map(CategoryDrilldown.category) ?? .uncategorized
+                }
             )
         }
         .card()
@@ -243,13 +256,13 @@ struct TransactionListView: View {
         }
 
         let sorted = totals
-            .map { DonutSegment(id: $0.key, label: $0.key, value: $0.value.amount, color: $0.value.color, isSelectable: false) }
+            .map { DonutSegment(id: $0.key, label: $0.key, value: $0.value.amount, color: $0.value.color, isSelectable: true, category: $0.value.category) }
             .sorted { $0.value > $1.value }
 
         if sorted.count <= 5 { return sorted }
         let top = Array(sorted.prefix(4))
         let other = sorted.dropFirst(4).reduce(Decimal(0)) { $0 + $1.value }
-        return top + [DonutSegment(id: "Other", label: "Other", value: other, color: Color.ink3, isSelectable: false)]
+        return top + [DonutSegment(id: "Other", label: "Other", value: other, color: Color.ink3, isSelectable: false, category: nil)]
     }
 
     // MARK: - Grouped transaction list
@@ -345,7 +358,7 @@ struct TransactionListView: View {
                             .strokeBorder(Color.appHairline, lineWidth: 1)
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
         }
     }
@@ -370,7 +383,7 @@ struct TransactionListView: View {
                         .padding(.vertical, 12)
                         .background(Accent.wellness.base, in: Capsule(style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             }
         }
         .frame(maxWidth: .infinity)
