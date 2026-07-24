@@ -205,10 +205,9 @@ h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em
     inset 0 1px 0 rgba(255,255,255,.55),inset 0 -8px 18px color-mix(in srgb,var(--sl) 8%,transparent)}
 .navbar::before{content:"";position:absolute;inset:0;border-radius:30px;pointer-events:none;
   background:linear-gradient(180deg,rgba(255,255,255,.30),transparent 44%)}
-.navbar a{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px 11px;border-radius:15px;font-size:9.5px;font-weight:800;color:var(--ink3);text-decoration:none}
-.navbar a .i{font-size:20px;filter:grayscale(.3);opacity:.62}
-.navbar a.on{color:var(--green-d);background:color-mix(in srgb,var(--green) 15%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
-.navbar a.on .i{filter:none;opacity:1}
+.navbar a{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 12px;border-radius:16px;font-size:10px;font-weight:600;letter-spacing:.01em;color:var(--ink3);text-decoration:none;transition:color .2s}
+.navbar a .i{width:26px;height:26px;display:block}
+.navbar a.on{color:var(--green-d);font-weight:700;background:color-mix(in srgb,var(--green) 13%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
 .navbar a.fab{padding:0}
 .navbar a.fab .i{width:50px;height:50px;border-radius:17px;display:grid;place-items:center;color:#fff;font-size:25px;background:linear-gradient(145deg,var(--green),var(--green-d));margin-top:-26px;
   box-shadow:0 12px 24px -8px color-mix(in srgb,var(--green) 70%,transparent),inset 0 1px 0 rgba(255,255,255,.5),0 0 0 5px color-mix(in srgb,var(--surf) 55%,transparent)}
@@ -219,6 +218,8 @@ h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
+
+<svg style="display:none" aria-hidden="true"><symbol id="ic-home" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.6 2.3 11c-.34.3-.13.9.32.9H4v8.1c0 .55.45 1 1 1h4.15v-5.55c0-.5.4-.95.95-.95h3.8c.55 0 .95.45.95.95V21H19c.55 0 1-.45 1-1v-8.1h1.38c.45 0 .66-.6.32-.9L12 2.6z"/></symbol><symbol id="ic-wellness" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21.35 10.55 20.03C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54z"/></symbol><symbol id="ic-budgets" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M3 7c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V7zm9 2.3a2.7 2.7 0 100 5.4 2.7 2.7 0 000-5.4z"/></symbol><symbol id="ic-activity" viewBox="0 0 24 24"><g fill="currentColor"><rect x="3.5" y="12" width="4" height="8" rx="1.3"/><rect x="10" y="7" width="4" height="13" rx="1.3"/><rect x="16.5" y="3" width="4" height="17" rx="1.3"/></g></symbol></svg>
 
 <div class="wrap">
   <div class="head">
@@ -283,11 +284,11 @@ h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em
           </div>
         </div>
         <div class="navbar">
-          <a class="on"><span class="i">🏠</span>Home</a>
-          <a><span class="i">🌿</span>Wellness</a>
+          <a class="on"><svg class="i"><use href="#ic-home"/></svg>Home</a>
+          <a><svg class="i"><use href="#ic-wellness"/></svg>Wellness</a>
           <a class="fab"><span class="i">＋</span></a>
-          <a><span class="i">💰</span>Budgets</a>
-          <a><span class="i">📊</span>Activity</a>
+          <a><svg class="i"><use href="#ic-budgets"/></svg>Budgets</a>
+          <a><svg class="i"><use href="#ic-activity"/></svg>Activity</a>
         </div>
       </div></div>
       <div class="cap">Dashboard</div>
@@ -316,11 +317,11 @@ h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em
           </div>
         </div>
         <div class="navbar">
-          <a><span class="i">🏠</span>Home</a>
-          <a class="on"><span class="i">🌿</span>Wellness</a>
+          <a><svg class="i"><use href="#ic-home"/></svg>Home</a>
+          <a class="on"><svg class="i"><use href="#ic-wellness"/></svg>Wellness</a>
           <a class="fab"><span class="i">＋</span></a>
-          <a><span class="i">💰</span>Budgets</a>
-          <a><span class="i">📊</span>Activity</a>
+          <a><svg class="i"><use href="#ic-budgets"/></svg>Budgets</a>
+          <a><svg class="i"><use href="#ic-activity"/></svg>Activity</a>
         </div>
       </div></div>
       <div class="cap">Financial Wellness</div>
@@ -355,11 +356,11 @@ h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em
           </div>
         </div>
         <div class="navbar">
-          <a><span class="i">🏠</span>Home</a>
-          <a><span class="i">🌿</span>Wellness</a>
+          <a><svg class="i"><use href="#ic-home"/></svg>Home</a>
+          <a><svg class="i"><use href="#ic-wellness"/></svg>Wellness</a>
           <a class="fab"><span class="i">＋</span></a>
-          <a class="on"><span class="i">💰</span>Budgets</a>
-          <a><span class="i">📊</span>Activity</a>
+          <a class="on"><svg class="i"><use href="#ic-budgets"/></svg>Budgets</a>
+          <a><svg class="i"><use href="#ic-activity"/></svg>Activity</a>
         </div>
       </div></div>
       <div class="cap">Budgets &amp; Goals</div>
@@ -390,11 +391,11 @@ h1{margin:0;font-size:clamp(30px,5vw,46px);line-height:.95;letter-spacing:-.03em
           </div>
         </div>
         <div class="navbar">
-          <a><span class="i">🏠</span>Home</a>
-          <a><span class="i">🌿</span>Wellness</a>
+          <a><svg class="i"><use href="#ic-home"/></svg>Home</a>
+          <a><svg class="i"><use href="#ic-wellness"/></svg>Wellness</a>
           <a class="fab"><span class="i">＋</span></a>
-          <a><span class="i">💰</span>Budgets</a>
-          <a class="on"><span class="i">📊</span>Activity</a>
+          <a><svg class="i"><use href="#ic-budgets"/></svg>Budgets</a>
+          <a class="on"><svg class="i"><use href="#ic-activity"/></svg>Activity</a>
         </div>
       </div></div>
       <div class="cap">Transactions &amp; Analytics</div>
