@@ -413,8 +413,6 @@ struct BudgetListView: View {
                         if let category = item.category { activeSheet = .quickBudget(category) }
                     } label: {
                         UnbudgetedRowView(
-                            symbol: item.categorySymbolName,
-                            color: item.categoryColorHex.map { Color(hex: $0) } ?? Color.secondary,
                             name: item.categoryName,
                             detail: "Tap to set a budget",
                             spent: item.spent,
@@ -424,8 +422,6 @@ struct BudgetListView: View {
                     .buttonStyle(.plain)
                 } else {
                     UnbudgetedRowView(
-                        symbol: "questionmark",
-                        color: Color.secondary,
                         name: "Uncategorized",
                         detail: "Categorize these transactions to budget them",
                         spent: item.spent,
@@ -479,10 +475,6 @@ private struct BudgetRowView: View {
     var paceMarker: Double?
     var showBiweekly: Bool = false
 
-    private var categoryColor: Color {
-        row.categoryColorHex.map { Color(hex: $0) } ?? Palette.indigo
-    }
-
     private func periodMoney(_ amount: Decimal) -> String {
         CurrencyFormatter.string(from: showBiweekly ? amount / 2 : amount)
     }
@@ -493,15 +485,7 @@ private struct BudgetRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: row.categorySymbolName)
-                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 38, height: 38)
-                .background(
-                    LinearGradient(colors: [categoryColor, categoryColor.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                )
-                .accessibilityHidden(true)
+            BloomRowIcon(emoji: BloomEmoji.categoryEmoji(name: row.categoryName), size: 40)
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -553,12 +537,14 @@ private struct BudgetRowView: View {
 }
 
 private struct UnbudgetedRowView: View {
-    let symbol: String
-    let color: Color
     let name: String
     let detail: String
     let spent: Decimal
     var showBiweekly: Bool = false
+
+    private var emoji: String {
+        name.lowercased() == "uncategorized" ? "❓" : BloomEmoji.categoryEmoji(name: name)
+    }
 
     private func periodMoney(_ amount: Decimal) -> String {
         CurrencyFormatter.string(from: showBiweekly ? amount / 2 : amount)
@@ -570,15 +556,7 @@ private struct UnbudgetedRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: symbol)
-                .font(AppFont.scaled(15, relativeTo: .subheadline, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 38, height: 38)
-                .background(
-                    LinearGradient(colors: [color, color.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                )
-                .accessibilityHidden(true)
+            BloomRowIcon(emoji: emoji, size: 40)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.appSubheadline.weight(.semibold))

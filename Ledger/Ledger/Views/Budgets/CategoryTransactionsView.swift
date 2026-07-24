@@ -39,8 +39,7 @@ struct CategoryTransactionsView: View {
     }
 
     private var title: String { category?.name ?? "Uncategorized" }
-    private var symbol: String { category?.sfSymbolName ?? "questionmark.circle.fill" }
-    private var color: Color { category.map { Color(hex: $0.colorHex) } ?? Color.secondary }
+    private var iconEmoji: String { category?.displayIcon ?? "❓" }
 
     private var spent: Decimal {
         transactions.filter { $0.amount < 0 }.reduce(Decimal(0)) { $0 + (-$1.amount) }
@@ -54,7 +53,7 @@ struct CategoryTransactionsView: View {
         Group {
             if transactions.isEmpty {
                 EmptyStateView(
-                    systemImage: symbol,
+                    systemImage: category?.sfSymbolName ?? "questionmark.circle.fill",
                     title: "No Transactions",
                     message: "Nothing in \(title) for \(subtitle)."
                 )
@@ -85,10 +84,7 @@ struct CategoryTransactionsView: View {
 
     private var summaryRow: some View {
         HStack {
-            Image(systemName: symbol)
-                .foregroundStyle(.white)
-                .frame(width: 34, height: 34)
-                .background(color, in: Circle())
+            BloomRowIcon(emoji: iconEmoji, size: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(subtitle)
                     .font(.appCaption)
