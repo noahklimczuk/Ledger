@@ -219,7 +219,7 @@ extension View {
     /// depth comes from the cards, not the background.
     func accentWash(_ accent: Accent) -> some View {
         _ = accent
-        return background(alignment: .center, ignoresSafeAreaEdges: .all) {
+        return background {
             BloomBackground()
         }
     }
