@@ -85,27 +85,16 @@ struct DashboardView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.sectionSpacing) {
+                    appHeader
+                    statusPills(viewModel)
                     if isCheckInDue {
                         checkInCard
                     }
                     balanceCard(viewModel)
-                    wellnessCard(viewModel)
-                    askLedgerCard(viewModel)
-                    monthSummaryCard(viewModel)
+                    monthSummaryTiles(viewModel)
+                    wellnessStrip(viewModel)
                     burnCard(viewModel)
-                    NavigationLink {
-                        SafeToSpendDetailView()
-                    } label: {
-                        safeToSpendCard(viewModel)
-                    }
-                    .buttonStyle(.pressable)
-                    if viewModel.budgetRows.isEmpty {
-                        budgetCard(viewModel)
-                    } else {
-                        budgetChannelsCard(viewModel)
-                    }
-                    categoryChartCard(viewModel)
-                    recentTransactionsSection(viewModel)
+                    budgetChannelsCard(viewModel)
                 }
                 .padding()
             }
@@ -191,6 +180,178 @@ struct DashboardView: View {
                 )
                 .frame(width: 40, height: 40)
                 .shadow(color: Color.bloomShadow, radius: 8, x: 3, y: 4)
+        }
+    }
+
+    // MARK: - Home header + pills
+
+    /// Phone 1 header: "Good morning,\nNoah 🌿 you're blooming" plus a gradient avatar.
+    private var appHeader: some View {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Good morning,")
+                    .font(.appHeadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text("Noah 🌿 you're blooming")
+                    .font(.appHeadline.weight(.heavy))
+                    .foregroundStyle(Color.primary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Palette.peach, Palette.peri],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 46, height: 46)
+                .shadow(color: Color.bloomShadow, radius: 10, x: 4, y: 5)
+        }
+        .padding(.top, 8)
+    }
+
+    private func statusPills(_ viewModel: DashboardViewModel) -> some View {
+        HStack(spacing: 8) {
+            wellnessPill(viewModel)
+            FilterChip(text: "All accounts · \(DateFormatting.monthYear(.now))")
+            Spacer()
+        }
+    }
+
+    private func wellnessPill(_ viewModel: DashboardViewModel) -> some View {
+        HStack(spacing: 7) {
+            Circle()
+                .fill(Palette.emerald)
+                .frame(width: 8, height: 8)
+                .shadow(color: Palette.emerald.opacity(0.6), radius: 6)
+            Text("\(viewModel.wellness.state) · \(viewModel.wellness.score)")
+                .font(.appCaption.weight(.heavy))
+                .foregroundStyle(Palette.emerald)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(
+            LinearGradient(
+                colors: [Palette.emerald.opacity(0.18), Palette.emerald.opacity(0.06)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: Capsule(style: .continuous)
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
+        )
+    }
+
+    // MARK: - Hero + tiles
+
+    private func monthSummaryTiles(_ viewModel: DashboardViewModel) -> some View {
+        HStack(spacing: 10) {
+            summaryTile(
+                "Safe to spend",
+                value: viewModel.safeToSpend,
+                color: viewModel.safeToSpend >= 0 ? Palette.income : Palette.expense,
+                subtitle: safeToSpendSubtitle()
+            )
+            summaryTile(
+                "Income",
+                value: viewModel.monthIncome,
+                color: Palette.income,
+                subtitle: DateFormatting.monthYear(.now)
+            )
+            summaryTile(
+                "Spent",
+                value: viewModel.monthSpending,
+                color: Palette.peach,
+                subtitle: DateFormatting.monthYear(.now)
+            )
+        }
+    }
+
+    private func summaryTile(_ label: String, value: Decimal, color: Color, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label.uppercased())
+                .font(.appCaption2.weight(.bold))
+                .tracking(0.8)
+                .foregroundStyle(.secondary)
+            Text(CurrencyFormatter.string(from: value))
+                .font(.appTitle3.weight(.heavy))
+                .foregroundStyle(color)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            Text(subtitle)
+                .font(.appCaption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                .strokeBorder(Color.appHairline, lineWidth: 1)
+        )
+        .shadow(color: Color.bloomShadow, radius: 20, x: 7, y: 7)
+        .shadow(color: Color.bloomHighlight, radius: 14, x: -6, y: -6)
+    }
+
+    private func safeToSpendSubtitle() -> String {
+        let calendar = Calendar.current
+        let today = calendar.component(.day, from: .now)
+        let daysInMonth = calendar.range(of: .day, in: .month, for: .now)?.count ?? 30
+        let remaining = max(daysInMonth - today, 1)
+        return remaining == 1 ? "1 day" : "\(remaining) days"
+    }
+
+    // MARK: - Wellness strip
+
+    /// Phone 1 wellness strip: mini ring, "Thriving 🌿", one-line summary, chevron.
+    private func wellnessStrip(_ viewModel: DashboardViewModel) -> some View {
+        NavigationLink {
+            FinancialWellnessView()
+        } label: {
+            HStack(spacing: 15) {
+                WellnessRing(score: viewModel.wellness.score, size: 66, lineWidth: 8)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(viewModel.wellness.state) \(viewModel.wellness.stateEmoji)")
+                        .font(.appTitle3.weight(.heavy))
+                        .foregroundStyle(Accent.wellness.deep)
+                    Text(viewModel.wellness.summary)
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 4)
+                Text("›")
+                    .font(.appFootnote.weight(.bold))
+                    .foregroundStyle(.tertiary)
+            }
+            .card()
+        }
+        .buttonStyle(.pressable)
+    }
+
+    // MARK: - Small helpers
+
+    private struct FilterChip: View {
+        let text: String
+        var body: some View {
+            Text(text)
+                .font(.appCaption.weight(.heavy))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(Color.appSurface, in: Capsule(style: .continuous))
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.appHairline, lineWidth: 1)
+                )
+                .shadow(color: Color.bloomShadow, radius: 12, x: 3, y: 3)
+                .shadow(color: Color.bloomHighlight, radius: 9, x: -3, y: -3)
         }
     }
 
@@ -320,48 +481,24 @@ struct DashboardView: View {
         return messages
     }
 
-    /// The Total Balance card. Tapping it expands a clean per-account breakdown in place, so the
-    /// single headline number can be unfolded into the accounts that make it up without leaving the
-    /// dashboard.
+    /// Phone 1 hero balance card: blob with budget-used percent on the left and the total
+    /// balance + monthly delta on the right.
     private func balanceCard(_ viewModel: DashboardViewModel) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                Haptics.tap()
-                withAnimation(Motion.smooth) { isBalanceExpanded.toggle() }
-            } label: {
-                HStack(spacing: 18) {
-                    BalanceBlob(percent: viewModel.budgetUsedPercent)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("TOTAL BALANCE")
-                            .font(.appCaption.weight(.heavy))
-                            .tracking(1.2)
-                            .foregroundStyle(.secondary)
-                        CountingCurrency(value: viewModel.totalBalance)
-                            .font(.appDisplay)
-                            .foregroundStyle(Color.primary)
-                            .minimumScaleFactor(0.4)
-                            .lineLimit(1)
-                        deltaPill(viewModel)
-                    }
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.down")
-                        .font(.appSubheadline.weight(.bold))
-                        .foregroundStyle(Accent.dashboard.deep)
-                        .padding(9)
-                        .background(Accent.dashboard.soft, in: Circle())
-                        .rotationEffect(.degrees(isBalanceExpanded ? 180 : 0))
-                }
-                .contentShape(Rectangle())
+        HStack(spacing: 18) {
+            BalanceBlob(percent: viewModel.budgetUsedPercent)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("TOTAL BALANCE")
+                    .font(.appCaption.weight(.heavy))
+                    .tracking(1.2)
+                    .foregroundStyle(.secondary)
+                CountingCurrency(value: viewModel.totalBalance)
+                    .font(.appDisplay)
+                    .foregroundStyle(Color.primary)
+                    .minimumScaleFactor(0.4)
+                    .lineLimit(1)
+                deltaPill(viewModel)
             }
-            .buttonStyle(.pressable)
-            .accessibilityLabel("Total Balance, \(CurrencyFormatter.string(from: viewModel.totalBalance))")
-            .accessibilityHint(isBalanceExpanded ? "Hides accounts" : "Shows all accounts")
-            .accessibilityAddTraits(.isButton)
-
-            if isBalanceExpanded {
-                accountBreakdown(viewModel.accounts)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .card()
@@ -600,9 +737,11 @@ struct DashboardView: View {
             }
             BurnMeter(position: viewModel.burnPosition)
             HStack {
-                Text("Cool · saving").font(.appCaption2).foregroundStyle(.secondary)
+                Text("Cool").font(.appCaption2).foregroundStyle(.secondary)
                 Spacer()
-                Text("Hot · overspending").font(.appCaption2).foregroundStyle(.secondary)
+                Text("you · steady").font(.appCaption2).foregroundStyle(.secondary)
+                Spacer()
+                Text("Hot").font(.appCaption2).foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

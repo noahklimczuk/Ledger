@@ -77,31 +77,29 @@ struct RootTabView: View {
     }
 }
 
-/// A true Liquid Glass floating tab bar. Modeled on the App Store tab bar: an extremely
-/// translucent frosted pill that lets the screen behind it show through, with the Bloom top sheen,
-/// a soft bottom inner glow, and a hairline edge. The selected tab uses the brand periwinkle wash;
-/// the centre Home tab is a raised rounded square with a surf ring.
+/// A true Liquid Glass floating tab bar with five equal-width tabs.
+///
+/// Modeled on the App Store tab bar: an extremely translucent frosted pill that lets the screen
+/// behind it show through, with the Bloom top sheen, a soft bottom inner glow, and a hairline
+/// edge. The selected tab gets a periwinkle wash, bold weight, and a filled SF Symbol. There is no
+/// giant centre FAB — Home sits in the middle as a regular tab.
 private struct FloatingTabBar: View {
     @Binding var selection: Int
-    /// Ties the moving selection pill to one identity so it springs between tabs.
-    @Namespace private var pill
 
     /// Visual order: Wellness · Activity · Home · Budgets · More. Home sits in the centre.
-    private let items: [(title: String, emoji: String, accent: Accent)] = [
-        ("Wellness", "🌿", .wellness),
-        ("Activity", "📊", .transactions),
-        ("Home", "🏠", .dashboard),
-        ("Budgets", "💰", .budgets),
-        ("More", "☰", .insights),
+    private let items: [(title: String, icon: String, selected: String)] = [
+        ("Wellness", "heart", "heart.fill"),
+        ("Activity", "chart.bar", "chart.bar.fill"),
+        ("Home", "house", "house.fill"),
+        ("Budgets", "wallet.bifold", "wallet.bifold.fill"),
+        ("More", "ellipsis", "ellipsis"),
     ]
 
     var body: some View {
         HStack(spacing: 0) {
-            tabButton(0)
-            tabButton(1)
-            homeButton
-            tabButton(3)
-            tabButton(4)
+            ForEach(0..<items.count, id: \.self) { index in
+                tabButton(index)
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 10)
@@ -112,63 +110,18 @@ private struct FloatingTabBar: View {
         .animation(Motion.bouncy, value: selection)
     }
 
-    /// The centre Home tab as a raised, rounded square brand button with a translucent surf ring.
-    private var homeButton: some View {
-        let isSelected = selection == 2
-        return Button {
-            Haptics.tap(.soft)
-            selection = 2
-        } label: {
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.appSurface.opacity(0.55))
-                    .frame(width: 58, height: 58)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: Color.white.opacity(0.50), location: 0),
-                                        .init(color: Color.white.opacity(0.06), location: 0.45),
-                                        .init(color: Color.clear, location: 0.75)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .blendMode(.overlay)
-                    )
-                Text("🏠")
-                    .font(.system(size: 24))
-                    .foregroundStyle(.white)
-            }
-            .frame(width: 58, height: 58)
-            .shadow(color: Palette.green.opacity(0.45), radius: 12, x: 0, y: 8)
-            .offset(y: isSelected ? -24 : -18)
-            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isSelected)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Home")
-    }
-
-    /// True Liquid Glass: material blur, a whisper of surf tint, a strong white top sheen,
-    /// a bottom inner glow, a translucent border, and the CSS shadow stack.
     private var glassBar: some View {
         ZStack {
             Capsule(style: .continuous)
                 .fill(.ultraThinMaterial)
             Capsule(style: .continuous)
-                .fill(Color.appSurface.opacity(0.10))
+                .fill(Color.appSurface.opacity(0.06))
             // ::before top sheen (30% white -> transparent by 44%)
             Capsule(style: .continuous)
                 .fill(
                     LinearGradient(
                         stops: [
-                            .init(color: Color.white.opacity(0.30), location: 0),
+                            .init(color: Color.white.opacity(0.32), location: 0),
                             .init(color: Color.white.opacity(0.06), location: 0.44),
                             .init(color: Color.clear, location: 0.70)
                         ],
@@ -192,10 +145,9 @@ private struct FloatingTabBar: View {
                 )
                 .blendMode(.overlay)
             Capsule(style: .continuous)
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+                .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.5)
         }
-        .shadow(color: Color.black.opacity(0.45), radius: 22, x: 0, y: 14)
-        .shadow(color: Color.bloomShadow.opacity(0.60), radius: 8, x: 0, y: 6)
+        .shadow(color: Color.black.opacity(0.35), radius: 28, x: 0, y: 14)
     }
 
     private func tabButton(_ index: Int) -> some View {
@@ -206,22 +158,23 @@ private struct FloatingTabBar: View {
             selection = index
         } label: {
             VStack(spacing: 3) {
-                Text(item.emoji)
-                    .font(.system(size: isSelected ? 22 : 20))
-                    .scaleEffect(isSelected ? 1.08 : 1)
+                Image(systemName: isSelected ? item.selected : item.icon)
+                    .font(.system(size: 22, weight: isSelected ? .semibold : .regular))
+                    .symbolVariant(isSelected ? .fill : .none)
                 Text(item.title)
-                    .font(AppFont.scaled(10, relativeTo: .caption2, weight: isSelected ? .heavy : .medium))
+                    .font(AppFont.scaled(10, relativeTo: .caption2, weight: isSelected ? .bold : .semibold))
             }
-            .foregroundStyle(isSelected ? AnyShapeStyle(Accent.dashboard.deep) : AnyShapeStyle(Color.primary.opacity(0.55)))
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .padding(.horizontal, 8)
+            .foregroundStyle(isSelected ? AnyShapeStyle(Accent.wellness.deep) : AnyShapeStyle(Color.primary.opacity(0.55)))
+            .frame(maxWidth: .infinity, minHeight: 46)
+            .padding(.horizontal, 6)
             .padding(.vertical, 4)
             .background {
                 if isSelected {
                     selectedPill()
                 }
             }
-            .contentShape(Capsule())
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(item.title)
@@ -230,12 +183,11 @@ private struct FloatingTabBar: View {
 
     private func selectedPill() -> some View {
         Capsule(style: .continuous)
-            .fill(Accent.dashboard.base.opacity(0.16))
+            .fill(Accent.wellness.base.opacity(0.13))
             .overlay(
                 Capsule(style: .continuous)
                     .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
             )
-            .matchedGeometryEffect(id: "pill", in: pill)
     }
 }
 
