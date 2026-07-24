@@ -36,7 +36,14 @@
 	</dict>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Fonts/InterVariable.ttf</string>
+		<string>Fonts/GeneralSans-Regular.ttf</string>
+		<string>Fonts/GeneralSans-Medium.ttf</string>
+		<string>Fonts/GeneralSans-Semibold.ttf</string>
+		<string>Fonts/GeneralSans-Bold.ttf</string>
+		<string>Fonts/ClashDisplay-Regular.ttf</string>
+		<string>Fonts/ClashDisplay-Medium.ttf</string>
+		<string>Fonts/ClashDisplay-Semibold.ttf</string>
+		<string>Fonts/ClashDisplay-Bold.ttf</string>
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>
