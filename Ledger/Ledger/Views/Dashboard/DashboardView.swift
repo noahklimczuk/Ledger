@@ -43,7 +43,8 @@ struct DashboardView: View {
                     LoadingView(message: "Syncing…")
                 }
             }
-            .navigationTitle("Home")
+            .navigationTitle("")
+            .toolbar(.hidden, for: .navigationBar)
             .accent(.dashboard)
             .navigationDestination(item: $drilldown) { target in
                 switch target {
@@ -114,7 +115,9 @@ struct DashboardView: View {
                     burnCard(viewModel)
                     budgetChannelsCard(viewModel)
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 100)
             }
             .accentWash(.dashboard)
         }
@@ -226,7 +229,6 @@ struct DashboardView: View {
                 .frame(width: 46, height: 46)
                 .shadow(color: Color.bloomShadow, radius: 10, x: 4, y: 5)
         }
-        .padding(.top, 8)
     }
 
     private func statusPills(_ viewModel: DashboardViewModel) -> some View {
