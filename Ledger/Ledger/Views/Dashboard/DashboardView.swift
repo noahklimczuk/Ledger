@@ -206,9 +206,9 @@ struct DashboardView: View {
     /// Phone 1 header: "Good morning,\nNoah 🌿 you're blooming" plus a gradient avatar.
     private var appHeader: some View {
         HStack(alignment: .top, spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text("Good morning,")
-                    .font(.appHeadline.weight(.semibold))
+                    .font(.appSubheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Text("Noah 🌿 you're blooming")
                     .font(.appHeadline.weight(.heavy))
@@ -314,7 +314,7 @@ struct DashboardView: View {
                 .tracking(0.8)
                 .foregroundStyle(.secondary)
             Text(CurrencyFormatter.string(from: value))
-                .font(.appNumber)
+                .font(.appTitle3.weight(.heavy))
                 .foregroundStyle(color)
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
@@ -354,7 +354,7 @@ struct DashboardView: View {
                 WellnessRing(score: viewModel.wellness.score, size: 66, lineWidth: 8)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\(viewModel.wellness.state) \(viewModel.wellness.stateEmoji)")
-                        .font(.appTitle3.weight(.heavy))
+                        .font(.appHeadline.weight(.heavy))
                         .foregroundStyle(Accent.wellness.deep)
                     Text(viewModel.wellness.summary)
                         .font(.appCaption.weight(.semibold))
@@ -461,7 +461,8 @@ struct DashboardView: View {
                 HStack(spacing: 10) {
                     BloomRowIcon(emoji: "✨", size: 32)
                     Text("Ask Ledger")
-                        .font(.appHeadline)
+                        .font(.appCaption2.weight(.heavy))
+                        .tracking(0.5)
                         .foregroundStyle(Color.primary)
                     Spacer()
                     Text("›")
@@ -469,7 +470,7 @@ struct DashboardView: View {
                         .foregroundStyle(Accent.insights.base)
                 }
                 Text(askLedgerMessage(viewModel, tick: askLedgerTick))
-                    .font(.appBody)
+                    .font(.appSubheadline)
                     .foregroundStyle(Color.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -533,10 +534,11 @@ struct DashboardView: View {
                         .tracking(1.2)
                         .foregroundStyle(.secondary)
                     CountingCurrency(value: viewModel.totalBalance)
-                        .font(.appDisplay)
+                        .font(AppFont.scaled(34, relativeTo: .largeTitle, weight: .heavy))
                         .foregroundStyle(Color.primary)
                         .minimumScaleFactor(0.4)
                         .lineLimit(1)
+                        .monospacedDigit()
                     deltaPill(viewModel)
                 }
                 Spacer(minLength: 0)
@@ -554,6 +556,7 @@ struct DashboardView: View {
         return Text("\(up ? "▲" : "▼") \(CurrencyFormatter.string(from: abs(viewModel.monthNet))) this month")
             .font(.appCaption.weight(.bold))
             .foregroundStyle(color)
+            .monospacedDigit()
             .padding(.horizontal, 11)
             .padding(.vertical, 6)
             .background(color.opacity(0.16), in: Capsule())
@@ -644,10 +647,11 @@ struct DashboardView: View {
                 .frame(width: 26, height: 26)
                 .background(color.opacity(0.26), in: Circle())
             Text(CurrencyFormatter.string(from: value))
-                .font(.appNumber)
+                .font(.appTitle3.weight(.heavy))
                 .foregroundStyle(color)
                 .minimumScaleFactor(0.4)
                 .lineLimit(1)
+                .monospacedDigit()
                 .contentTransition(.numericText())
                 .animation(.smooth, value: value)
             HStack(spacing: 3) {
@@ -705,10 +709,11 @@ struct DashboardView: View {
                     .font(.appSubheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Text(CurrencyFormatter.string(from: viewModel.safeToSpend))
-                    .font(.appNumber)
+                    .font(.appTitle3.weight(.heavy))
                     .foregroundStyle(ok ? Color.primary : Palette.expense)
                     .minimumScaleFactor(0.5)
                     .lineLimit(1)
+                    .monospacedDigit()
                     .contentTransition(.numericText())
                     .animation(.smooth, value: viewModel.safeToSpend)
                 if viewModel.reservedForBills > 0 {
@@ -730,8 +735,9 @@ struct DashboardView: View {
             SectionHeadline("Spending vs Budget")
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(CurrencyFormatter.string(from: viewModel.monthSpending))
-                    .font(.appNumber)
+                    .font(.appTitle3.weight(.heavy))
                     .foregroundStyle(.primary)
+                    .monospacedDigit()
                     .contentTransition(.numericText())
                     .animation(.smooth, value: viewModel.monthSpending)
                 Text("of \(CurrencyFormatter.string(from: viewModel.monthBudgetTotal))")

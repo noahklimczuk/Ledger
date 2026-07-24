@@ -199,10 +199,11 @@ struct BudgetListView: View {
                     .foregroundStyle(.secondary)
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(periodMoney(viewModel.leftToAssign))
-                        .font(.appDisplay)
+                        .font(AppFont.scaled(34, relativeTo: .largeTitle, weight: .heavy))
                         .foregroundStyle(leftToAssignColor(viewModel))
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
+                        .monospacedDigit()
                         .contentTransition(.numericText())
                     Text(periodSuffix)
                         .font(.appCaption2)
