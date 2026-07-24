@@ -29,42 +29,38 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
 
 // MARK: - Typography
 
-/// The app's typeface. The `InterVariable.ttf` file in `Ledger/Fonts` is registered under its
-/// PostScript name, and `.weight()` maps to the `wght` axis of the variable font.
+/// The app's two-font system. Display/headings use Clash Display; body text uses General Sans.
+/// Both families are bundled as static weights and registered in `Info.plist` → `UIAppFonts`.
 enum AppFont {
-    /// The variable font's PostScript name as listed in `Info.plist` → `UIAppFonts`.
-    static let family = "InterVariable"
+    static let displayFamily = "Clash Display"
+    static let bodyFamily = "General Sans"
 
-    /// A Dynamic-Type-scaled font in the app family at the given base size and weight.
-    static func scaled(_ size: CGFloat, relativeTo style: Font.TextStyle, weight: Font.Weight = .regular) -> Font {
-        Font.custom(family, size: size, relativeTo: style).weight(weight)
+    /// A Dynamic-Type-scaled font at the given base size and weight.
+    /// `display: true` uses Clash Display (headings / hero numbers); `false` uses General Sans (body).
+    static func scaled(_ size: CGFloat, relativeTo style: Font.TextStyle, weight: Font.Weight = .regular, display: Bool = false) -> Font {
+        Font.custom(display ? displayFamily : bodyFamily, size: size, relativeTo: style).weight(weight)
     }
 }
 
 extension Font {
-    // A tuned type scale in the app font. Sizes track the system text styles (and scale with Dynamic
-    // Type via `relativeTo:`) but with slightly firmer weights for a more deliberate, professional feel.
-    static let appLargeTitle = AppFont.scaled(34, relativeTo: .largeTitle, weight: .bold)
-    static let appTitle = AppFont.scaled(28, relativeTo: .title, weight: .bold)
-    static let appTitle2 = AppFont.scaled(22, relativeTo: .title2, weight: .semibold)
-    static let appTitle3 = AppFont.scaled(20, relativeTo: .title3, weight: .semibold)
-    static let appHeadline = AppFont.scaled(17, relativeTo: .headline, weight: .semibold)
-    static let appBody = AppFont.scaled(17, relativeTo: .body, weight: .regular)
-    static let appBodyMedium = AppFont.scaled(17, relativeTo: .body, weight: .medium)
-    static let appCallout = AppFont.scaled(16, relativeTo: .callout, weight: .regular)
-    static let appSubheadline = AppFont.scaled(15, relativeTo: .subheadline, weight: .regular)
-    static let appFootnote = AppFont.scaled(13, relativeTo: .footnote, weight: .regular)
-    static let appCaption = AppFont.scaled(12, relativeTo: .caption, weight: .medium)
-    static let appCaption2 = AppFont.scaled(11, relativeTo: .caption2, weight: .medium)
+    // Display / headings — Clash Display
+    static let appLargeTitle = AppFont.scaled(34, relativeTo: .largeTitle, weight: .bold, display: true)
+    static let appTitle = AppFont.scaled(28, relativeTo: .title, weight: .bold, display: true)
+    static let appTitle2 = AppFont.scaled(22, relativeTo: .title2, weight: .semibold, display: true)
+    static let appTitle3 = AppFont.scaled(20, relativeTo: .title3, weight: .semibold, display: true)
+    static let appHeadline = AppFont.scaled(17, relativeTo: .headline, weight: .semibold, display: true)
+    static let appMoney = AppFont.scaled(44, relativeTo: .largeTitle, weight: .bold, display: true)
+    static let appDisplay = AppFont.scaled(56, relativeTo: .largeTitle, weight: .bold, display: true)
+    static let appNumber = AppFont.scaled(30, relativeTo: .title, weight: .bold, display: true)
 
-    /// Large monetary figures — transaction hero amounts, matching the rendering's `.txhero .a` (44pt).
-    static let appMoney = AppFont.scaled(44, relativeTo: .largeTitle, weight: .bold)
-
-    // Bold-editorial display sizes for hero numbers and oversized headlines. Heavier and larger than
-    // the standard scale so the numbers that matter carry the screen. Sizes track the Bloom CSS:
-    // `.amtbig` 56pt for headline balances, `.onbh` 30pt for prominent metrics.
-    static let appDisplay = AppFont.scaled(56, relativeTo: .largeTitle, weight: .heavy)
-    static let appNumber = AppFont.scaled(30, relativeTo: .title, weight: .heavy)
+    // Body text — General Sans
+    static let appBody = AppFont.scaled(17, relativeTo: .body, weight: .regular, display: false)
+    static let appBodyMedium = AppFont.scaled(17, relativeTo: .body, weight: .medium, display: false)
+    static let appCallout = AppFont.scaled(16, relativeTo: .callout, weight: .regular, display: false)
+    static let appSubheadline = AppFont.scaled(15, relativeTo: .subheadline, weight: .regular, display: false)
+    static let appFootnote = AppFont.scaled(13, relativeTo: .footnote, weight: .regular, display: false)
+    static let appCaption = AppFont.scaled(12, relativeTo: .caption, weight: .medium, display: false)
+    static let appCaption2 = AppFont.scaled(11, relativeTo: .caption2, weight: .medium, display: false)
 }
 
 // MARK: - Surfaces & spacing

@@ -1,14 +1,25 @@
-# App font — Inter
+# App fonts
 
-The app's typography uses **Inter** (see `AppFont.family` in `Utilities/Theme.swift`).
-The variable font is bundled at `Ledger/Fonts/InterVariable.ttf` and registered in
-`Info.plist` → `UIAppFonts`.
+The app uses a two-font system defined in `Utilities/Theme.swift`:
+
+- **Display / headings** — `Clash Display` (from Fontshare)
+- **Body text** — `General Sans` (from Fontshare)
 
 ## Files
 
-- `Ledger/Fonts/InterVariable.ttf` — Inter 4.1 variable font with `wght` and `opsz` axes.
+Static TTFs are bundled in `Ledger/Fonts/` and registered in `Info.plist` → `UIAppFonts`:
 
-## Switching to a different font
+- `GeneralSans-Regular.ttf`
+- `GeneralSans-Medium.ttf`
+- `GeneralSans-Semibold.ttf`
+- `GeneralSans-Bold.ttf`
+- `ClashDisplay-Regular.ttf`
+- `ClashDisplay-Medium.ttf`
+- `ClashDisplay-Semibold.ttf`
+- `ClashDisplay-Bold.ttf`
 
-Change **one** thing: `AppFont.family` in `Utilities/Theme.swift`. Then add that
-family's file to `Ledger/Fonts` and list it in `Info.plist` → `UIAppFonts`.
+`AppFont.scaled(..., display: true)` uses `Clash Display`; `display: false` (the default) uses `General Sans`. `Font.custom` with `.weight()` selects the closest available static weight from the registered family.
+
+## Switching fonts
+
+Update `AppFont.displayFamily` / `AppFont.bodyFamily` and add the matching TTFs to `Ledger/Fonts/` plus `Info.plist` → `UIAppFonts`.
