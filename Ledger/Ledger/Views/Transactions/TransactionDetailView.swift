@@ -120,11 +120,6 @@ struct TransactionDetailView: View {
 
     private var categoryRow: some View {
         HStack(spacing: 14) {
-            Text("🏷️")
-                .font(.system(size: 17))
-                .foregroundStyle(Color.secondary)
-                .frame(width: 24, height: 24)
-
             Text("Category")
                 .font(.appCaption2.weight(.heavy))
                 .tracking(0.3)
@@ -135,7 +130,9 @@ struct TransactionDetailView: View {
             Menu {
                 Button("Uncategorized") { applyCategory(nil) }
                 ForEach(categories, id: \.persistentModelID) { category in
-                    Button(category.name) { applyCategory(category) }
+                    Button { applyCategory(category) } label: {
+                        Text("\(category.displayIcon)  \(category.name)")
+                    }
                 }
             } label: {
                 HStack(spacing: 6) {
@@ -171,7 +168,7 @@ struct TransactionDetailView: View {
                 Divider().padding(.leading, 38)
             }
             DetailMetaRow(
-                icon: transaction.isReviewed ? "✅" : "⚠️",
+                icon: transaction.isReviewed ? "✓" : "⚠️",
                 isEmoji: true,
                 label: "Status",
                 value: transaction.isReviewed ? "Reviewed" : "Needs review",
@@ -274,7 +271,7 @@ struct TransactionDetailView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 12) {
-            AccentButton(title: "Edit transaction", systemName: "pencil", accent: .dashboard) {
+            AccentButton(title: "Edit transaction", accent: .dashboard) {
                 isEditing = true
             }
 

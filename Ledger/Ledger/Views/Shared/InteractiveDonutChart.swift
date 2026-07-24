@@ -165,7 +165,7 @@ struct InteractiveDonutChart: View {
                 .font(.appSubheadline.weight(.semibold))
                 .foregroundStyle(Color.primary)
             if showChevron {
-                Image(systemName: "chevron.right")
+                Text("›")
                     .font(.appCaption.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }

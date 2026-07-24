@@ -124,15 +124,18 @@ struct DashboardView: View {
                         Circle()
                             .fill(
                                 RadialGradient(
-                                    gradient: Gradient(colors: [Palette.green.opacity(0.18), Color.clear]),
+                                    gradient: Gradient(colors: [Palette.green.opacity(0.20), Color.clear]),
                                     center: .center,
                                     startRadius: 10,
-                                    endRadius: 70
+                                    endRadius: 60
                                 )
                             )
-                            .frame(width: 130, height: 130)
+                            .frame(width: 120, height: 120)
+                        Circle()
+                            .strokeBorder(Palette.green.opacity(0.40), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                            .frame(width: 120, height: 120)
                         Text("🌱")
-                            .font(AppFont.scaled(54, relativeTo: .largeTitle))
+                            .font(.system(size: 52))
                     }
                     .padding(.top, 40)
 
@@ -149,7 +152,7 @@ struct DashboardView: View {
                 }
 
                 VStack(spacing: 12) {
-                    AccentButton(title: "Add an account", systemName: "banknote", accent: .dashboard) {
+                    AccentButton(title: "Add an account", accent: .dashboard) {
                         isPresentingNewAccount = true
                     }
 
@@ -209,7 +212,7 @@ struct DashboardView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Image(systemName: "chevron.right")
+                Text("›")
                     .font(.appFootnote.weight(.bold))
                     .foregroundStyle(Accent.checkIn.base)
             }
@@ -241,7 +244,7 @@ struct DashboardView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 4)
-                Image(systemName: "chevron.right")
+                Text("›")
                     .font(.appFootnote.weight(.bold))
                     .foregroundStyle(.tertiary)
             }
@@ -263,7 +266,7 @@ struct DashboardView: View {
                         .font(.appHeadline)
                         .foregroundStyle(Color.primary)
                     Spacer()
-                    Image(systemName: "chevron.right")
+                    Text("›")
                         .font(.appFootnote.weight(.bold))
                         .foregroundStyle(Accent.insights.base)
                 }
@@ -410,7 +413,7 @@ struct DashboardView: View {
                     Text("All accounts")
                         .font(.appSubheadline.weight(.semibold))
                     Spacer()
-                    Image(systemName: "chevron.right")
+                    Text("›")
                         .font(.appCaption2.weight(.bold))
                         .foregroundStyle(.tertiary)
                 }
@@ -465,7 +468,7 @@ struct DashboardView: View {
             HStack(spacing: 3) {
                 Text(label).font(.appCaption.weight(.semibold)).foregroundStyle(.secondary)
                 if tappable {
-                    Image(systemName: "chevron.right")
+                    Text("›")
                         .font(AppFont.scaled(9, relativeTo: .caption2, weight: .bold))
                         .foregroundStyle(color.opacity(0.7))
                 }
@@ -531,7 +534,7 @@ struct DashboardView: View {
                 }
             }
             Spacer()
-            Image(systemName: "chevron.right")
+            Text("›")
                 .font(.appFootnote.weight(.bold))
                 .foregroundStyle(.tertiary)
         }

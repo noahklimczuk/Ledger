@@ -18,7 +18,6 @@ struct BloomKeypad: View {
                 GridRow {
                     ForEach(row, id: \.self) { key in
                         KeyButton(key: key) { tap(key) }
-                            .gridCellColumns(key == "0" ? 2 : 1)
                     }
                 }
             }
@@ -65,8 +64,8 @@ private struct KeyButton: View {
                             )
                             .blendMode(.overlay)
                     )
-                    .shadow(color: Color.bloomShadow, radius: 4, x: 2, y: 3)
-                    .shadow(color: Color.bloomHighlight, radius: 3, x: -1, y: -1)
+                    .shadow(color: Color.bloomShadow, radius: 6, x: 5, y: 5)
+                    .shadow(color: Color.bloomHighlight, radius: 5, x: -4, y: -4)
 
                 Text(key)
                     .font(AppFont.scaled(isMut ? 20 : 22, relativeTo: .headline, weight: isMut ? .bold : .heavy))
