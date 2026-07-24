@@ -109,12 +109,16 @@ private struct PlantPot: View {
     var size: CGFloat = 58
 
     var body: some View {
+        let innerInset: CGFloat = 7
         ZStack {
-            Circle().stroke(Color.primary.opacity(0.08), lineWidth: 6)
+            Circle().stroke(Color.ink3.opacity(0.22), lineWidth: 6)
             Circle()
                 .trim(from: 0, to: min(max(progress, 0), 1))
-                .stroke(Accent.goals.gradient, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .stroke(Accent.goals.base, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+            Circle()
+                .fill(Color.appSurface)
+                .frame(width: size - innerInset * 2, height: size - innerInset * 2)
             Text(emoji).font(AppFont.scaled(size * 0.42, relativeTo: .body))
         }
         .frame(width: size, height: size)

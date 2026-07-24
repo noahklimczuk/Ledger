@@ -186,13 +186,18 @@ struct AccentProgressBar: View {
 struct AccentButton: View {
     let title: String
     var systemName: String?
+    var emoji: String?
     var accent: Accent = .dashboard
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                if let systemName { Image(systemName: systemName).font(.appHeadline) }
+                if let emoji {
+                    Text(emoji).font(.appHeadline)
+                } else if let systemName {
+                    Image(systemName: systemName).font(.appHeadline)
+                }
                 Text(title).font(.appHeadline)
             }
             .frame(maxWidth: .infinity)
@@ -214,7 +219,9 @@ extension View {
     /// depth comes from the cards, not the background.
     func accentWash(_ accent: Accent) -> some View {
         _ = accent
-        return background(BloomBackground(), ignoresSafeAreaEdges: .all)
+        return background(alignment: .center, ignoresSafeAreaEdges: .all) {
+            BloomBackground()
+        }
     }
 
     /// A tappable card: the standard card surface plus the springy press feel. Wrap the whole card in
@@ -238,13 +245,21 @@ struct WellnessRing: View {
 
     var body: some View {
         let fraction = min(max(Double(score) / 100, 0), 1)
+        let innerInset = lineWidth + 2
         ZStack {
             Circle()
-                .stroke(Color.primary.opacity(0.08), lineWidth: lineWidth)
+                .stroke(Color.ink3.opacity(0.22), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: fraction)
-                .stroke(accent.gradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(accent.base, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+            Circle()
+                .fill(Color.appSurface)
+                .frame(width: size - innerInset * 2, height: size - innerInset * 2)
+                .overlay(
+                    Circle()
+                        .stroke(Color.bloomHighlight.opacity(0.6), lineWidth: 1)
+                )
             if showLabel {
                 VStack(spacing: 1) {
                     Text("\(score)")
