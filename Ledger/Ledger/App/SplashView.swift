@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Branded launch/loading screen shown on cold start, over the emerald→teal wash so it blends out
-/// of the native launch screen (`UILaunchScreen` uses the matching `LaunchBackground` color). The
+/// Branded launch/loading screen shown on cold start, over the periwinkle→peach wash so it blends
+/// out of the native launch screen (`UILaunchScreen` uses the matching `LaunchBackground` color). The
 /// app logo and wordmark animate in and a loading indicator spins underneath while the first data
 /// refresh runs; `LedgerApp` fades the whole thing away once startup settles.
 struct SplashView: View {

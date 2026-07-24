@@ -277,7 +277,7 @@ struct WellnessRing: View {
 
 // MARK: - Balance blob
 
-/// The dashboard's soft "clay" budget blob — a warm peach→amber squircle showing how much of the
+/// The dashboard's soft "clay" budget blob — a periwinkle squircle showing how much of the
 /// month's budget is used, sitting beside the balance. Bloom's most recognizable hero element.
 struct BalanceBlob: View {
     let percent: Int
@@ -286,12 +286,12 @@ struct BalanceBlob: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.46, style: .continuous)
-                .fill(LinearGradient(colors: [Palette.peach, Palette.amber], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(LinearGradient(colors: [Palette.green, Palette.greenDeep], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .overlay(
                     RoundedRectangle(cornerRadius: size * 0.46, style: .continuous)
                         .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
                 )
-                .shadow(color: Palette.peach.opacity(0.5), radius: 16, y: 10)
+                .shadow(color: Palette.green.opacity(0.5), radius: 16, y: 10)
             VStack(spacing: 2) {
                 Text("\(percent)%")
                     .font(.system(size: size * 0.22, weight: .heavy, design: .rounded))
@@ -353,7 +353,7 @@ struct BurnMeter: View {
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(LinearGradient(
-                        colors: [Palette.green.opacity(0.55), Palette.amber, Palette.peach, Palette.coral],
+                        colors: [Palette.green.opacity(0.55), Palette.peach, Palette.peachDeep, Palette.coral],
                         startPoint: .leading, endPoint: .trailing))
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                     .fill(Color.primary)
