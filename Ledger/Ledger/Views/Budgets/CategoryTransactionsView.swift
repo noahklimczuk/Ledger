@@ -53,6 +53,7 @@ struct CategoryTransactionsView: View {
         Group {
             if transactions.isEmpty {
                 EmptyStateView(
+                    emoji: category?.displayIcon ?? "❓",
                     systemImage: category?.sfSymbolName ?? "questionmark.circle.fill",
                     title: "No Transactions",
                     message: "Nothing in \(title) for \(subtitle)."

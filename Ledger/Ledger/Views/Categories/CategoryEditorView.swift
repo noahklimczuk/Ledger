@@ -12,6 +12,7 @@ struct CategoryEditorView: View {
             if let viewModel {
                 if viewModel.categories.isEmpty {
                     EmptyStateView(
+                        emoji: "🏷️",
                         systemImage: "tag",
                         title: "No Categories",
                         message: "Create categories to organize your transactions and budgets.",
@@ -71,20 +72,10 @@ private struct CategoryRow: View {
     let category: Category
     let onTap: () -> Void
 
-    private var color: Color { Color(hex: category.colorHex) }
-
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
-                Image(systemName: category.sfSymbolName)
-                    .font(AppFont.scaled(14, relativeTo: .subheadline, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 34, height: 34)
-                    .background(
-                        LinearGradient(colors: [color, color.opacity(0.72)], startPoint: .topLeading, endPoint: .bottomTrailing),
-                        in: RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    )
-                    .accessibilityHidden(true)
+                BloomRowIcon(emoji: category.displayIcon, size: 34)
                 Text(category.name)
                     .font(.appBodyMedium)
                     .foregroundStyle(.primary)

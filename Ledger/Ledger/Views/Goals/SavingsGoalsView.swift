@@ -13,6 +13,7 @@ struct SavingsGoalsView: View {
             if let viewModel {
                 if viewModel.goals.isEmpty {
                     EmptyStateView(
+                        emoji: "🎯",
                         systemImage: "target",
                         title: "No Savings Goals",
                         message: "Set a goal with a target amount and date to track your progress.",

@@ -58,7 +58,8 @@ struct DailyCheckInView: View {
                     Button {
                         dismiss()
                     } label: {
-                        Image(systemName: "xmark")
+                        Text("❌")
+                            .font(.system(size: 18))
                     }
                 }
             }
@@ -215,8 +216,8 @@ struct DailyCheckInView: View {
             Button {
                 withAnimation { viewModel.markReviewed(transaction) }
             } label: {
-                Image(systemName: "checkmark.circle")
-                    .font(.appTitle3)
+                Text("✅")
+                    .font(.system(size: 24))
                     .foregroundStyle(Color.accentColor)
                     // Expand the hit area to the 44pt minimum without changing the glyph size.
                     .frame(width: 44, height: 44)
@@ -259,8 +260,8 @@ struct DailyCheckInView: View {
                 Text(transaction.category?.name ?? "Set category")
                     .font(.appCaption.weight(.medium))
                     .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(AppFont.scaled(8, relativeTo: .caption2, weight: .semibold))
+                Text("⌄")
+                    .font(.appCaption2)
             }
             .foregroundStyle(transaction.category == nil ? Color.accentColor : Color.secondary)
             .padding(.horizontal, 8)
@@ -280,7 +281,7 @@ struct DailyCheckInView: View {
         Button {
             selectCategory(category, for: transaction, viewModel: viewModel)
         } label: {
-            Label(category.name, systemImage: category.sfSymbolName)
+            Text("\(category.displayIcon)  \(category.name)")
         }
     }
 
@@ -339,11 +340,7 @@ struct DailyCheckInView: View {
                 .foregroundStyle(color)
             ForEach(rows) { row in
                 HStack(spacing: 10) {
-                    Image(systemName: row.categorySymbolName)
-                        .font(AppFont.scaled(12, relativeTo: .caption, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 26, height: 26)
-                        .background(row.categoryColorHex.map { Color(hex: $0) } ?? Color.secondary, in: Circle())
+                    BloomRowIcon(emoji: BloomEmoji.categoryEmoji(name: row.categoryName), size: 26)
                     Text(row.categoryName)
                         .font(.appSubheadline)
                         .lineLimit(1)
@@ -452,8 +449,8 @@ struct DailyCheckInView: View {
 
     private func doneStep(_ viewModel: DailyCheckInViewModel) -> some View {
         VStack(spacing: 20) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(AppFont.scaled(56, relativeTo: .largeTitle))
+            Text("🎉")
+                .font(.system(size: 56))
                 .foregroundStyle(LinearGradient.brand)
                 .padding(.top, 12)
             Text("You're Set for Today")
@@ -494,10 +491,20 @@ struct DailyCheckInView: View {
 
     // MARK: - Shared pieces
 
+    private func stepEmoji(for symbol: String) -> String {
+        switch symbol {
+        case "checkmark.circle": return "✅"
+        case "chart.pie": return "📊"
+        case "calendar.badge.clock": return "📅"
+        case "equal.circle": return "⚖️"
+        default: return "✨"
+        }
+    }
+
     private func stepHeader(symbol: String, title: String, subtitle: String) -> some View {
         VStack(spacing: 8) {
-            Image(systemName: symbol)
-                .font(AppFont.scaled(30, relativeTo: .title))
+            Text(stepEmoji(for: symbol))
+                .font(.system(size: 30))
                 .foregroundStyle(Color.accentColor)
             Text(title)
                 .font(.appTitle3.weight(.bold))
@@ -512,8 +519,8 @@ struct DailyCheckInView: View {
 
     private func allClear(_ title: String, detail: String) -> some View {
         VStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(AppFont.scaled(34, relativeTo: .largeTitle))
+            Text("✅")
+                .font(.system(size: 34))
                 .foregroundStyle(Color.brandEmerald)
             Text(title)
                 .font(.appHeadline)

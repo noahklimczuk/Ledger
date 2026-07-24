@@ -249,22 +249,24 @@ struct BudgetListView: View {
 
     @ViewBuilder
     private func planStatusChip(_ viewModel: BudgetsViewModel) -> some View {
-        let (text, symbol, color): (String, String, Color) = {
+        let (text, icon, color): (String, String, Color) = {
             if viewModel.incomeToAssign <= 0 && viewModel.totalAllocated <= 0 {
-                return ("Set your income to start the plan", "info.circle.fill", .secondary)
+                return ("Set your income to start the plan", "ℹ️", .secondary)
             }
             if viewModel.leftToAssign < 0 {
-                return ("Over-assigned by \(periodMoney(0 - viewModel.leftToAssign))\(periodSuffix)", "exclamationmark.triangle.fill", Palette.expense)
+                return ("Over-assigned by \(periodMoney(0 - viewModel.leftToAssign))\(periodSuffix)", "⚠️", Palette.expense)
             }
             if viewModel.leftToAssign == 0 {
-                return ("Every dollar has a job", "checkmark.seal.fill", .brandEmerald)
+                return ("Every dollar has a job", "✅", .brandEmerald)
             }
-            return ("Assign \(periodMoney(viewModel.leftToAssign))\(periodSuffix) to finish the plan", "arrow.down.circle.fill", Palette.amber)
+            return ("Assign \(periodMoney(viewModel.leftToAssign))\(periodSuffix) to finish the plan", "⬇️", Palette.amber)
         }()
 
-        Label(text, systemImage: symbol)
-            .font(.appCaption.weight(.semibold))
-            .foregroundStyle(color)
+        Label {
+            Text(text).font(.appCaption.weight(.semibold)).foregroundStyle(color)
+        } icon: {
+            Text(icon)
+        }
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(color.opacity(0.18), in: Capsule())
@@ -440,7 +442,7 @@ struct BudgetListView: View {
 
     private var emptyPlanCard: some View {
         VStack(spacing: 14) {
-            IconBadge(systemName: "chart.pie.fill", accent: .budgets, size: 64)
+            BloomRowIcon(emoji: "📊", size: 64)
             Text("No Budgets Yet")
                 .font(.appTitle3.weight(.heavy))
             Text("Assign your income to categories until Left to Assign hits zero. Start from scratch, or build the plan from your recent spending.")

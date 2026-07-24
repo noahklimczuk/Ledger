@@ -199,7 +199,7 @@ struct DashboardView: View {
             isPresentingCheckIn = true
         } label: {
             HStack(spacing: 14) {
-                IconBadge(systemName: "checklist", accent: .checkIn, size: 44)
+                BloomRowIcon(emoji: "✅", size: 44)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Daily Check-In")
                         .font(.appHeadline)
@@ -258,7 +258,7 @@ struct DashboardView: View {
         } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 10) {
-                    IconBadge(systemName: "sparkles", accent: .insights, size: 30)
+                    BloomRowIcon(emoji: "✨", size: 32)
                     Text("Ask Ledger")
                         .font(.appHeadline)
                         .foregroundStyle(Color.primary)
@@ -387,7 +387,7 @@ struct DashboardView: View {
                     Divider().padding(.vertical, 10)
                 }
                 HStack(spacing: 12) {
-                    IconBadge(systemName: account.type.sfSymbolName, accent: .accounts, size: 30, filled: false)
+                    BloomRowIcon(emoji: account.displayIcon, size: 30)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(account.name)
                             .font(.appSubheadline.weight(.medium))
@@ -512,11 +512,7 @@ struct DashboardView: View {
     private func safeToSpendCard(_ viewModel: DashboardViewModel) -> some View {
         let ok = viewModel.safeToSpend >= 0
         return HStack(spacing: 14) {
-            IconBadge(
-                systemName: ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
-                accent: ok ? .goals : .debt,
-                size: 44
-            )
+            BloomRowIcon(emoji: ok ? "✅" : "⚠️", size: 44)
             VStack(alignment: .leading, spacing: 3) {
                 Text("Safe to Spend")
                     .font(.appSubheadline.weight(.semibold))
@@ -690,6 +686,7 @@ private struct MonthFlowTransactionsView: View {
         Group {
             if transactions.isEmpty {
                 EmptyStateView(
+                    emoji: flow == .income ? "💰" : "💸",
                     systemImage: flow == .income ? "arrow.down.circle" : "arrow.up.circle",
                     title: "No Transactions",
                     message: "No \(flow.title.lowercased()) for \(DateFormatting.monthYear(month))."

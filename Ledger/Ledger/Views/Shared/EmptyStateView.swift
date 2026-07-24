@@ -3,11 +3,25 @@ import SwiftUI
 /// Bloom empty state — warm illustration, short headline, and a single primary action. No tutorial
 /// copy; the app is for a single user, so empty surfaces stay minimal and direct.
 struct EmptyStateView: View {
+    var emoji: String?
     let systemImage: String
     let title: String
     let message: String
     var actionTitle: String?
     var action: (() -> Void)?
+
+    private var iconView: some View {
+        Group {
+            if let emoji {
+                Text(emoji)
+                    .font(.system(size: 64))
+            } else {
+                Image(systemName: systemImage)
+                    .font(.appMoney)
+                    .foregroundStyle(Palette.greenDeep)
+            }
+        }
+    }
 
     var body: some View {
         VStack(spacing: 18) {
@@ -30,9 +44,7 @@ struct EmptyStateView: View {
                     .foregroundStyle(Palette.green.opacity(0.35))
                     .frame(width: 110, height: 110)
 
-                Image(systemName: systemImage)
-                    .font(.appMoney)
-                    .foregroundStyle(Palette.greenDeep)
+                iconView
             }
 
             Text(title)
@@ -61,6 +73,7 @@ struct EmptyStateView: View {
 
 #Preview {
     EmptyStateView(
+        emoji: "🏦",
         systemImage: "banknote",
         title: "No Accounts Yet",
         message: "Add a chequing, savings, credit, or investment account to get started.",

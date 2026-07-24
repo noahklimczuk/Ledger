@@ -67,6 +67,7 @@ struct BudgetSuggestionView: View {
             LoadingView(message: "Analyzing your spending…")
         case .noData:
             EmptyStateView(
+                emoji: "📊",
                 systemImage: "chart.pie",
                 title: "Not Enough History",
                 message: "Suggestions are built from your categorized spending. Add or import a month or two of transactions first."
@@ -132,9 +133,11 @@ struct BudgetSuggestionView: View {
                     Button {
                         isEditingKey = true
                     } label: {
-                        Label(aiStatus, systemImage: viewModel.hasAPIKey ? "exclamationmark.triangle" : "sparkles")
-                            .font(.appFootnote)
-                            .multilineTextAlignment(.leading)
+                        Label {
+                            Text(aiStatus).font(.appFootnote).multilineTextAlignment(.leading)
+                        } icon: {
+                            Text(viewModel.hasAPIKey ? "⚠️" : "✨")
+                        }
                     }
                 }
             }
