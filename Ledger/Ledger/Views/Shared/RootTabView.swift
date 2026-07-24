@@ -207,11 +207,18 @@ private struct MoreView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.sectionSpacing) {
                     profileCard
+                    routineGroup
+                    insightsGroup
+                    planningGroup
+                    organizeGroup
+                    dataSourcesGroup
                     appearanceCard
                     dataCard
                     aboutCard
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 100)
             }
             .navigationTitle("More")
             .accent(.dashboard)
@@ -321,6 +328,50 @@ private struct MoreView: View {
 
     // MARK: - Data
 
+    private var routineGroup: some View {
+        MoreGroup(title: "Routine") {
+            MoreButton(title: "Daily Check-In", icon: "✅") {
+                isPresentingCheckIn = true
+            }
+        }
+    }
+
+    private var insightsGroup: some View {
+        MoreGroup(title: "Insights") {
+            MoreLink(title: "Ask Ledger", icon: "✨", destination: AskLedgerView(month: .now))
+            MoreDivider()
+            MoreLink(title: "Reports", icon: "📊", destination: ReportsView())
+            MoreDivider()
+            MoreLink(title: "Recurring", icon: "🔄", destination: RecurringView())
+        }
+    }
+
+    private var planningGroup: some View {
+        MoreGroup(title: "Planning") {
+            MoreLink(title: "Savings Goals", icon: "🎯", destination: SavingsGoalsView())
+            MoreDivider()
+            MoreLink(title: "Debt Tracker", icon: "💳", destination: DebtListView())
+            MoreDivider()
+            MoreLink(title: "Bill Reminders", icon: "🛎️", destination: BillRemindersView())
+        }
+    }
+
+    private var organizeGroup: some View {
+        MoreGroup(title: "Organize") {
+            MoreLink(title: "Categories", icon: "🏷️", destination: CategoryEditorView())
+        }
+    }
+
+    private var dataSourcesGroup: some View {
+        MoreGroup(title: "Data Sources") {
+            MoreLink(title: "Connect Wealthsimple", icon: "🍁", destination: IntegrationsSettingsView())
+            MoreDivider()
+            MoreButton(title: "Import CSV / OFX", icon: "📥") {
+                isPresentingCSVImport = true
+            }
+        }
+    }
+
     private var dataCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Data")
@@ -328,10 +379,6 @@ private struct MoreView: View {
                 .tracking(0.8)
                 .foregroundStyle(.secondary)
             VStack(spacing: 0) {
-                MoreButton(title: "Import CSV / OFX", icon: "📥") {
-                    isPresentingCSVImport = true
-                }
-                MoreDivider()
                 MoreButton(title: "Export transactions", icon: "📤") {
                     exportTransactions()
                 }
@@ -476,6 +523,39 @@ private struct MoreDivider: View {
             .fill(Color.appHairline)
             .frame(height: 1)
             .padding(.leading, 54)
+    }
+}
+
+private struct MoreGroup<Content: View>: View {
+    let title: String
+    let content: Content
+
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeadline(title)
+            VStack(spacing: 0) { content }
+                .card()
+        }
+    }
+}
+
+private struct MoreLink<Destination: View>: View {
+    let title: String
+    let icon: String
+    let destination: Destination
+
+    var body: some View {
+        NavigationLink {
+            destination
+        } label: {
+            MoreRow(title: title, icon: icon)
+        }
+        .buttonStyle(.pressable)
     }
 }
 
