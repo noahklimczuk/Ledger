@@ -117,6 +117,8 @@ struct RecurringView: View {
                     RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                         .strokeBorder(Color.appHairline, lineWidth: 1)
                 )
+                .shadow(color: Color.bloomShadow, radius: 18, y: 11)
+                .shadow(color: Color.bloomHighlight, radius: 12, x: -7, y: -7)
                 .padding(4)
         )
     }
@@ -212,6 +214,8 @@ struct RecurringView: View {
             RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                 .strokeBorder(Palette.peri.opacity(0.18), lineWidth: 1)
         )
+        .shadow(color: Color.bloomShadow, radius: 18, y: 11)
+        .shadow(color: Color.bloomHighlight, radius: 12, x: -7, y: -7)
     }
 
     // MARK: - Suggested (review)
@@ -228,10 +232,10 @@ struct RecurringView: View {
                     // navigation instead of confirming/dismissing. The filled look is drawn on the
                     // label so the buttons still read as primary/secondary actions.
                     HStack(spacing: 10) {
-                        reviewButton("Confirm", systemImage: "checkmark", prominent: true) {
+                        reviewButton("Confirm", prominent: true) {
                             viewModel.confirm(series)
                         }
-                        reviewButton("Not recurring", systemImage: "xmark", prominent: false) {
+                        reviewButton("Not recurring", prominent: false) {
                             viewModel.ignore(series)
                         }
                     }
@@ -242,16 +246,16 @@ struct RecurringView: View {
         }
     }
 
-    private func reviewButton(_ title: String, systemImage: String, prominent: Bool, action: @escaping () -> Void) -> some View {
+    private func reviewButton(_ title: String, prominent: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
+            Text(title)
                 .font(.appSubheadline.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .foregroundStyle(prominent ? Color.appBackground : Color.primary)
-                .background(prominent ? Color.accentColor : Color.appSurface, in: Capsule())
+                .background(prominent ? AnyShapeStyle(Accent.dashboard.gradient) : AnyShapeStyle(Color.appSurface), in: Capsule())
                 .contentShape(Capsule())
         }
         .buttonStyle(.borderless)
@@ -272,6 +276,9 @@ struct RecurringView: View {
                     Text(CurrencyFormatter.string(from: charge.amount))
                         .foregroundStyle(charge.amount > 0 ? Palette.income : Color.primary)
                 }
+                .padding(.vertical, 6)
+                .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                .listRowBackground(clayRowBackground)
             }
         } header: {
             Text("Upcoming (next 60 days)")
@@ -286,6 +293,8 @@ struct RecurringView: View {
                 NavigationLink(value: item) {
                     RecurringRow(series: item)
                 }
+                .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                .listRowBackground(clayRowBackground)
                 .swipeActions(edge: .trailing) {
                     swipeActions(viewModel, series: item)
                 }
@@ -294,6 +303,18 @@ struct RecurringView: View {
                 }
             }
         }
+    }
+
+    private var clayRowBackground: some View {
+        RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+            .fill(Color.appSurface)
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .strokeBorder(Color.appHairline, lineWidth: 1)
+            )
+            .shadow(color: Color.bloomShadow, radius: 18, y: 11)
+            .shadow(color: Color.bloomHighlight, radius: 12, x: -7, y: -7)
+            .padding(4)
     }
 
     @ViewBuilder
@@ -363,7 +384,7 @@ private struct RecurringRow: View {
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
     }
@@ -373,9 +394,9 @@ private struct RecurringRow: View {
     /// and an ended one shows when it last charged rather than a meaningless future "next".
     private var scheduleLine: String {
         if series.status == .ended {
-            return "\(series.cadence.displayName) · last \(DateFormatting.medium(series.lastOccurrence))"
+            return "\(series.cadence.displayName) · last \(DateFormatting.relativeDay(series.lastOccurrence))"
         }
-        return "\(series.cadence.displayName) · next \(DateFormatting.medium(series.projectedNextDate()))"
+        return "\(series.cadence.displayName) · \(DateFormatting.relativeUpcoming(series.projectedNextDate()))"
     }
 
     @ViewBuilder

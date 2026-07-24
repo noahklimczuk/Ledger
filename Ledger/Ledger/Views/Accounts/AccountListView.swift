@@ -70,9 +70,9 @@ struct AccountListView: View {
                 .lineLimit(1)
 
             HStack(spacing: 6) {
-                Text(viewModel.netWorthDeltaThisMonth >= 0 ? "↑" : "↓")
+                Text(viewModel.netWorthDeltaThisMonth >= 0 ? "▲" : "▼")
                     .font(.appCaption2.weight(.heavy))
-                Text(CurrencyFormatter.string(from: viewModel.netWorthDeltaThisMonth))
+                Text("\(CurrencyFormatter.string(from: viewModel.netWorthDeltaThisMonth)) this month")
                     .font(.appCaption.weight(.heavy))
             }
             .foregroundStyle(viewModel.netWorthDeltaThisMonth >= 0 ? Palette.income : Palette.expense)

@@ -16,12 +16,12 @@ struct SplitEditorView: View {
                         Picker("Category", selection: binding(for: split).category) {
                             Text("Select category").tag(Category?.none)
                             ForEach(categories, id: \.persistentModelID) { category in
-                                Text(category.name).tag(category as Category?)
+                                Text("\(category.displayIcon)  \(category.name)").tag(category as Category?)
                             }
                         }
                     } label: {
                         HStack(spacing: 6) {
-                            Text(split.category?.name ?? "Select category")
+                            Text("\(split.category?.displayIcon ?? "❓")  \(split.category?.name ?? "Select category")")
                                 .font(.appBody.weight(.semibold))
                                 .foregroundStyle(Color.primary)
                             Text("⌄")

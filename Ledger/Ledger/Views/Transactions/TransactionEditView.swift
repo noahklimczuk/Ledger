@@ -141,7 +141,7 @@ struct TransactionEditView: View {
             )
         }
         .padding(4)
-        .background(Color.appSurface.opacity(0.8), in: Capsule(style: .continuous))
+        .background(Color.appSurface2, in: Capsule(style: .continuous))
         .overlay(
             Capsule(style: .continuous)
                 .strokeBorder(Color.appHairline, lineWidth: 1)
@@ -197,7 +197,7 @@ struct TransactionEditView: View {
 
     private func merchantField(_ viewModel: TransactionEditViewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Merchant")
+            Text("MERCHANT")
                 .font(.appCaption2.weight(.heavy))
                 .tracking(0.4)
                 .foregroundStyle(.secondary)
@@ -208,7 +208,7 @@ struct TransactionEditView: View {
             .font(.appHeadline.weight(.semibold))
             .focused($merchantFocused)
             .padding(14)
-            .background(Color.appSurface, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
+            .background(Color.appSurface2, in: RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.controlRadius, style: .continuous)
                     .strokeBorder(Color.appHairline, lineWidth: 1)
@@ -420,7 +420,7 @@ private struct ValueCard: View {
             HStack(spacing: 6) {
                 iconView
                 Text(value)
-                    .font(.appBodyMedium.weight(.semibold))
+                    .font(.appSubheadline.weight(.heavy))
                     .foregroundStyle(Color.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -433,8 +433,8 @@ private struct ValueCard: View {
             RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
                 .strokeBorder(Color.appHairline, lineWidth: 1)
         )
-        .shadow(color: Color.bloomShadow, radius: 6, y: 3)
-        .shadow(color: Color.bloomHighlight, radius: 5, x: -2, y: -3)
+        .shadow(color: Color.bloomShadow, radius: 6, x: 4, y: 4)
+        .shadow(color: Color.bloomHighlight, radius: 5, x: -3, y: -3)
     }
 }
 
